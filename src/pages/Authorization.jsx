@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, CheckCircle, XCircle, AlertTriangle, Copy, ExternalLink, Trash2, Inbox } from 'lucide-react';
+import { Shield, CheckCircle, XCircle, AlertTriangle, Copy, ExternalLink, Trash2, Inbox, Loader2 } from 'lucide-react';
 import { useWallet } from '../context/WalletContext';
 import { useI18n } from '../context/I18nContext';
 import { signAuthorization, revokeAuthorization } from '../services/eip7702';
@@ -18,6 +18,7 @@ export default function Authorization() {
     const [isLoading, setIsLoading] = useState(false);
     const [result, setResult] = useState(null);
     const [error, setError] = useState(null);
+    const [isRevoking, setIsRevoking] = useState(null); // authId being revoked
 
     // Load deployed contracts from cache
     const [deployedContracts, setDeployedContracts] = useState([]);
@@ -42,7 +43,7 @@ export default function Authorization() {
             });
 
             const newAuth = {
-                id: `auth-${Date.now()}`,
+                id: `auth - ${Date.now()} `,
                 walletAddress: wallet,
                 delegateContract: contractAddress,
                 contractName: deployedContracts.find(c => c.address.toLowerCase() === selectedContract.toLowerCase())?.name || 'Custom Contract',
@@ -67,8 +68,33 @@ export default function Authorization() {
     };
 
     const handleRevoke = async (authId) => {
-        updateAuthorization(authId, { status: 'revoked' });
-        setAuthorizations(getAuthorizations());
+        const auth = authorizations.find(a => a.id === authId);
+        if (!auth) return;
+
+        if (!address || address.toLowerCase() !== auth.walletAddress.toLowerCase()) {
+            setError(t('auth.revokePermissionError') || 'Only the owner of this delegation can revoke it.');
+            return;
+        }
+
+        setIsRevoking(authId);
+        setError(null); // Clear previous errors
+
+        try {
+            // Trigger actual on-chain revocation (0x0 delegation)
+            await revokeAuthorization({
+                account: address,
+                chainId: auth.chainId || chainId
+            });
+
+            // Update local state only if successful
+            updateAuthorization(authId, { status: 'revoked' });
+            setAuthorizations(getAuthorizations());
+        } catch (err) {
+            console.error('Revocation failed:', err);
+            setError(err.shortMessage || err.message || 'Failed to revoke authorization');
+        } finally {
+            setIsRevoking(null);
+        }
     };
 
     const copyToClipboard = (text) => {
@@ -92,17 +118,17 @@ export default function Authorization() {
 
             {/* Flow Steps */}
             <div className="flow-steps">
-                <div className={`flow-step ${step >= 1 ? (step > 1 ? 'completed' : 'active') : ''}`}>
+                <div className={`flow - step ${step >= 1 ? (step > 1 ? 'completed' : 'active') : ''} `}>
                     <span className="flow-step-number">1</span>
                     <span>{t('auth.step1')}</span>
                 </div>
-                <div className={`flow-connector ${step > 1 ? 'done' : ''}`} />
-                <div className={`flow-step ${step >= 2 ? (step > 2 ? 'completed' : 'active') : ''}`}>
+                <div className={`flow - connector ${step > 1 ? 'done' : ''} `} />
+                <div className={`flow - step ${step >= 2 ? (step > 2 ? 'completed' : 'active') : ''} `}>
                     <span className="flow-step-number">2</span>
                     <span>{t('auth.step2')}</span>
                 </div>
-                <div className={`flow-connector ${step > 2 ? 'done' : ''}`} />
-                <div className={`flow-step ${step >= 3 ? 'active' : ''}`}>
+                <div className={`flow - connector ${step > 2 ? 'done' : ''} `} />
+                <div className={`flow - step ${step >= 3 ? 'active' : ''} `}>
                     <span className="flow-step-number">3</span>
                     <span>{t('auth.step3')}</span>
                 </div>
@@ -195,7 +221,7 @@ export default function Authorization() {
                                     <div className="tx-preview-row">
                                         <span className="tx-preview-label">{t('auth.chain')}</span>
                                         <span className="tx-preview-value">
-                                            {chainId === 1 ? 'Ethereum' : chainId === 11155111 ? 'Sepolia' : `Chain ${chainId || 1}`}
+                                            {chainId === 1 ? 'Ethereum' : chainId === 11155111 ? 'Sepolia' : `Chain ${chainId || 1} `}
                                         </span>
                                     </div>
                                     <div className="tx-preview-row">
@@ -281,7 +307,7 @@ export default function Authorization() {
                                     }}
                                     className="activity-item"
                                 >
-                                    <div className={`activity-icon ${auth.status === 'active' ? 'auth' : 'revoke'}`}>
+                                    <div className={`activity - icon ${auth.status === 'active' ? 'auth' : 'revoke'} `}>
                                         {auth.status === 'active' ? <Shield size={18} /> : <XCircle size={18} />}
                                     </div>
                                     <div style={{ flex: 1 }}>
@@ -294,7 +320,7 @@ export default function Authorization() {
                                         </div>
                                     </div>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                        <span className={`badge ${auth.status === 'active' ? 'badge-active' : 'badge-revoked'}`}>
+                                        <span className={`badge ${auth.status === 'active' ? 'badge-active' : 'badge-revoked'} `}>
                                             {auth.status === 'active' ? t('common.active') : t('common.revoked')}
                                         </span>
                                         {auth.status === 'active' && (
@@ -302,8 +328,10 @@ export default function Authorization() {
                                                 className="btn btn-danger"
                                                 style={{ padding: '6px 10px', fontSize: '12px' }}
                                                 onClick={() => handleRevoke(auth.id)}
+                                                disabled={isRevoking === auth.id || (address && address.toLowerCase() !== auth.walletAddress.toLowerCase())}
+                                                title={address && address.toLowerCase() !== auth.walletAddress.toLowerCase() ? t('auth.revokePermissionError') : t('auth.revokeOnChain')}
                                             >
-                                                <Trash2 size={12} /> {t('auth.revoke')}
+                                                {isRevoking === auth.id ? <Loader2 size={16} className="spin" /> : <Trash2 size={16} />}
                                             </button>
                                         )}
                                     </div>

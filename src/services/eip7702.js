@@ -208,14 +208,31 @@ export async function sponsorTransaction({
  * @returns {Object} The revocation authorization object
  */
 export async function revokeAuthorization({ account, chainId = 1 }) {
-    // Sign an authorization pointing to the zero address to revoke
-    const authorization = await signAuthorization({
+    const publicClient = getPublicClient(chainId);
+    const walletClient = getWalletClient(chainId);
+
+    // 1. Sign an authorization pointing to the zero address
+    const authToZero = await signAuthorization({
         contractAddress: '0x0000000000000000000000000000000000000000',
         account,
         chainId,
     });
 
-    return authorization;
+    // 2. Broadcast a transaction applying this zero-address authorization to clear the code
+    const hash = await walletClient.sendTransaction({
+        account,
+        to: account,
+        value: 0n,
+        authorizationList: [authToZero],
+    });
+
+    const receipt = await publicClient.waitForTransactionReceipt({ hash });
+
+    if (receipt.status !== 'success') {
+        throw new Error('Revocation transaction reverted');
+    }
+
+    return { hash, receipt, authorization: authToZero };
 }
 
 // ==========================================
