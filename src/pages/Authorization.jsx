@@ -5,10 +5,14 @@ import { useI18n } from '../context/I18nContext';
 import { signAuthorization, revokeAuthorization } from '../services/eip7702';
 import { truncateAddress } from '../services/wallet';
 
+// 真实的 EIP-7702 委托合约
+// 部署后请更新合约地址
 const DELEGATE_CONTRACTS = [
-    { name: 'Simple7702Account', address: '0x1234567890abcdef1234567890abcdef12345678' },
-    { name: 'BatchExecutor', address: '0xabcdefabcdefabcdefabcdefabcdefabcdefabcd' },
-    { name: 'EIP7702StatelessDeleGator', address: '0x9876543210fedcba9876543210fedcba98765432' },
+    {
+        name: 'EIP7702AutoForwarder',
+        address: '', // TODO: 部署后填入合约地址
+        description: 'Auto-forward ETH & sweep ERC20 to target wallet, with gas sponsorship',
+    },
 ];
 
 export default function Authorization() {
