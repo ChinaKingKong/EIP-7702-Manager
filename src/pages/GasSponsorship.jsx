@@ -91,14 +91,14 @@ export default function GasSponsorship() {
 
             saveIntents([newIntent, ...intents]);
 
-            setSuccessMsg('交易意图已签名！请切换到赞助方钱包执行该操作。');
+            setSuccessMsg(t('gas.signSuccess'));
             setTxTo('');
             setTxValue('');
             setTxData('');
 
         } catch (err) {
             console.error(err);
-            setError(`签名失败: ${err.message} `);
+            setError(t('gas.signError').replace('{msg}', err.message));
         } finally {
             setIsSigning(false);
         }
@@ -127,7 +127,7 @@ export default function GasSponsorship() {
             }
 
             if (!fallbackContract) {
-                setError('为了绕过目前测试网对 EOA 接收附带 Data 交易的拦截，你需要先在「部署合约」页面为大家部署一个公共的 EIP7702AutoForwarder 代付代理合约！');
+                setError(t('gas.fallbackError'));
                 setIsExecuting(null);
                 return;
             }
@@ -153,14 +153,14 @@ export default function GasSponsorship() {
             });
             saveIntents(updated);
 
-            setSuccessMsg(`代付执行成功！交易哈希: ${truncateAddress(hash)} `);
+            setSuccessMsg(t('gas.executeSuccess').replace('{hash}', truncateAddress(hash)));
 
         } catch (err) {
             console.error(err);
 
             // For Demo purposes: allow marking as executed even if it fails due to setup issues
             if (err.message.includes('Simulation failed') || err.message.includes('reverted')) {
-                setError(`链上执行失败: ${err.message}。这通常是因为被赞助的账户尚未初始化转发器或签名不匹配。已将其标记为执行完成以继续演示流程。`);
+                setError(t('gas.executeDemoFallback').replace('{msg}', err.message));
 
                 // Demo fallback: update UI anyway
                 const mockHash = '0x' + Math.random().toString(16).slice(2).padStart(64, '0');
@@ -172,7 +172,7 @@ export default function GasSponsorship() {
                 });
                 saveIntents(updated);
             } else {
-                setError(`执行失败: ${err.message} `);
+                setError(t('gas.executeError').replace('{msg}', err.message));
             }
         } finally {
             setIsExecuting(null);
@@ -200,10 +200,8 @@ export default function GasSponsorship() {
             <div className="alert alert-info" style={{ marginBottom: '24px' }}>
                 <Zap size={18} />
                 <div>
-                    <strong style={{ display: 'block', marginBottom: '4px' }}>异步 Gas 赞助 (EIP-712 + EIP-7702)</strong>
-                    <span>
-                        EIP-7702 允许 <b>被赞助方 (Sponsee)</b> 仅通过零 Gas 的离线签名 (Intent) 表达交易意图，由 <b>赞助方 (Sponsor)</b> 捕获该意图并负责上链和支付 Gas 费。
-                    </span>
+                    <strong style={{ display: 'block', marginBottom: '4px' }}>{t('gas.title')}</strong>
+                    <span dangerouslySetInnerHTML={{ __html: t('gas.description') }} />
                 </div>
             </div>
 
@@ -214,14 +212,14 @@ export default function GasSponsorship() {
                     onClick={() => setRole('sponsee')}
                     style={{ padding: '8px 24px' }}
                 >
-                    我是被赞助方 (请求代付)
+                    {t('gas.sponseeRole')}
                 </button>
                 <button
                     className={`btn ${role === 'sponsor' ? 'btn-primary' : 'btn-ghost'} `}
                     onClick={() => setRole('sponsor')}
                     style={{ padding: '8px 24px' }}
                 >
-                    我是赞助方 (帮人付 Gas)
+                    {t('gas.sponsorRole')}
                 </button>
             </div>
 
@@ -245,18 +243,18 @@ export default function GasSponsorship() {
                 {role === 'sponsee' ? (
                     <div className="card">
                         <div className="card-header">
-                            <h3>签署交易意图</h3>
+                            <h3>{t('gas.signIntentTitle')}</h3>
                         </div>
                         <div className="card-body">
                             <div className="form-group">
-                                <label className="form-label">我的钱包账户 (无 Gas)</label>
+                                <label className="form-label">{t('gas.myAccount')}</label>
                                 <div className="form-input mono" style={{ opacity: 0.7, background: 'var(--bg-body)' }}>
-                                    {address || '请先连接钱包'}
+                                    {address || t('gas.connectWalletToStart')}
                                 </div>
                             </div>
 
                             <div className="form-group">
-                                <label className="form-label">交互的目标合约/地址</label>
+                                <label className="form-label">{t('gas.targetAddress')}</label>
                                 <input
                                     className="form-input mono"
                                     type="text"
@@ -267,7 +265,7 @@ export default function GasSponsorship() {
                             </div>
 
                             <div className="form-group">
-                                <label className="form-label">随附 ETH 金额 (Value) <span style={{ color: 'var(--text-tertiary)', fontSize: '12px', fontWeight: 'normal' }}>- 选填</span></label>
+                                <label className="form-label">{t('gas.ethValue')} <span style={{ color: 'var(--text-tertiary)', fontSize: '12px', fontWeight: 'normal' }}>{t('gas.optional')}</span></label>
                                 <input
                                     className="form-input"
                                     type="number"
@@ -280,7 +278,7 @@ export default function GasSponsorship() {
                             </div>
 
                             <div className="form-group">
-                                <label className="form-label">交易数据 (Calldata) <span style={{ color: 'var(--text-tertiary)', fontSize: '12px', fontWeight: 'normal' }}>- 选填</span></label>
+                                <label className="form-label">{t('gas.calldata')} <span style={{ color: 'var(--text-tertiary)', fontSize: '12px', fontWeight: 'normal' }}>{t('gas.optional')}</span></label>
                                 <textarea
                                     className="form-input mono"
                                     placeholder="0x..."
@@ -297,14 +295,14 @@ export default function GasSponsorship() {
                                 onClick={handleSignIntent}
                                 disabled={!address || !txTo || isSigning}
                             >
-                                {isSigning ? '签名中...' : <><PenTool size={18} /> 免 Gas 签名意图</>}
+                                {isSigning ? t('gas.signing') : <><PenTool size={18} /> {t('gas.signBtn')}</>}
                             </button>
                         </div>
                     </div>
                 ) : (
                     <div className="card">
                         <div className="card-header">
-                            <h3>你的代付统计</h3>
+                            <h3>{t('gas.sponsorStatsTitle')}</h3>
                         </div>
                         <div className="card-body">
                             <div className="stats-grid" style={{ gridTemplateColumns: '1fr', gap: '16px' }}>
@@ -313,7 +311,7 @@ export default function GasSponsorship() {
                                         <div className="stat-icon cyan"><CheckCircle size={28} /></div>
                                     </div>
                                     <div className="stat-value" style={{ fontSize: '32px' }}>{executedIntents.length}</div>
-                                    <div className="stat-label">已成功代付的意图</div>
+                                    <div className="stat-label">{t('gas.successfulSponsored')}</div>
                                 </div>
 
                                 <div className="stat-card purple" style={{ padding: '24px' }}>
@@ -323,7 +321,7 @@ export default function GasSponsorship() {
                                     <div className="stat-value" style={{ fontSize: '32px' }}>
                                         {new Set(executedIntents.map(i => i.sponsee)).size}
                                     </div>
-                                    <div className="stat-label">帮助过的独特账户</div>
+                                    <div className="stat-label">{t('gas.uniqueAccountsHelped')}</div>
                                 </div>
                             </div>
                         </div>
@@ -333,15 +331,15 @@ export default function GasSponsorship() {
                 {/* Right: Intent Queue */}
                 <div className="card">
                     <div className="card-header">
-                        <h3>意图队列 (Intent Queue)</h3>
+                        <h3>{t('gas.intentQueueTitle')}</h3>
                         <span className="badge badge-info">{intents.length} {t('common.total')}</span>
                     </div>
                     <div className="card-body" style={{ padding: 0 }}>
                         {intents.length === 0 ? (
                             <div className="empty-state">
                                 <Inbox size={40} />
-                                <div className="empty-state-title">没有待办意图</div>
-                                <div className="empty-state-desc">等待被赞助方提交签名意图</div>
+                                <div className="empty-state-title">{t('gas.noPendingIntents')}</div>
+                                <div className="empty-state-desc">{t('gas.waitingForSponsee')}</div>
                             </div>
                         ) : (
                             <div style={{ display: 'flex', flexDirection: 'column' }}>
@@ -355,23 +353,23 @@ export default function GasSponsorship() {
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
                                             <div>
                                                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                                                    <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)' }}>请求者:</span>
+                                                    <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)' }}>{t('gas.requester')}</span>
                                                     <span className="mono" style={{ fontSize: '14px', color: 'var(--text-primary)' }}>
                                                         {truncateAddress(intent.sponsee)}
                                                     </span>
                                                 </div>
                                                 <div style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>
-                                                    {formatTime(intent.timestamp)} • Nonce: {intent.nonce}
+                                                    {formatTime(intent.timestamp)} • {t('gas.nonce')} {intent.nonce}
                                                 </div>
                                             </div>
 
                                             {intent.status === 'executed' ? (
                                                 <span className="badge badge-active">
-                                                    <Check size={12} /> 已代付
+                                                    <Check size={12} /> {t('gas.sponsoredStatus')}
                                                 </span>
                                             ) : (
                                                 <span className="badge badge-warning" style={{ background: 'rgba(245, 158, 11, 0.1)', color: '#fbbf24' }}>
-                                                    等待代付
+                                                    {t('gas.pendingStatus')}
                                                 </span>
                                             )}
                                         </div>
@@ -384,11 +382,11 @@ export default function GasSponsorship() {
                                             marginBottom: '12px'
                                         }}>
                                             <div style={{ display: 'grid', gridTemplateColumns: '80px 1fr', gap: '8px', marginBottom: '8px' }}>
-                                                <span style={{ color: 'var(--text-tertiary)' }}>目标:</span>
+                                                <span style={{ color: 'var(--text-tertiary)' }}>{t('gas.target')}</span>
                                                 <span className="mono" style={{ color: 'var(--accent-cyan)' }}>{truncateAddress(intent.to)}</span>
                                             </div>
                                             <div style={{ display: 'grid', gridTemplateColumns: '80px 1fr', gap: '8px', marginBottom: '8px' }}>
-                                                <span style={{ color: 'var(--text-tertiary)' }}>金额:</span>
+                                                <span style={{ color: 'var(--text-tertiary)' }}>{t('gas.amount')}</span>
                                                 <span>{intent.value} ETH</span>
                                             </div>
                                             <div style={{ display: 'grid', gridTemplateColumns: '80px 1fr', gap: '8px' }}>
@@ -411,7 +409,7 @@ export default function GasSponsorship() {
                                                 onClick={() => handleExecute(intent)}
                                                 disabled={isExecuting === intent.id || !address}
                                             >
-                                                {isExecuting === intent.id ? '上链中...' : <><Fuel size={16} /> 结算 Gas 并执行</>}
+                                                {isExecuting === intent.id ? t('gas.executing') : <><Fuel size={16} /> {t('gas.executeBtn')}</>}
                                             </button>
                                         )}
 
@@ -430,7 +428,7 @@ export default function GasSponsorship() {
                                                 <span className="mono">{truncateAddress(intent.txHash)}</span>
                                                 <Copy size={12} style={{ cursor: 'pointer' }} onClick={() => copyToClipboard(intent.txHash)} />
                                                 <span style={{ marginLeft: 'auto', color: 'var(--text-secondary)' }}>
-                                                    由 {truncateAddress(intent.sponsor)} 代付
+                                                    {t('gas.sponsoredBy').replace('{sponsor}', truncateAddress(intent.sponsor))}
                                                 </span>
                                             </div>
                                         )}
