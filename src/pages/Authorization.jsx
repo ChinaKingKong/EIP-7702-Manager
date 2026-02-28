@@ -1,19 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Shield, CheckCircle, XCircle, AlertTriangle, Copy, ExternalLink, Trash2, Inbox } from 'lucide-react';
 import { useWallet } from '../context/WalletContext';
 import { useI18n } from '../context/I18nContext';
 import { signAuthorization, revokeAuthorization } from '../services/eip7702';
 import { truncateAddress } from '../services/wallet';
-
-// 真实的 EIP-7702 委托合约
-// 部署后请更新合约地址
-const DELEGATE_CONTRACTS = [
-    {
-        name: 'EIP7702AutoForwarder',
-        address: '', // TODO: 部署后填入合约地址
-        description: 'Auto-forward ETH & sweep ERC20 to target wallet, with gas sponsorship',
-    },
-];
+import { getDeployedContracts } from '../services/deployedContracts';
+import { getAuthorizations, saveAuthorization, updateAuthorization } from '../services/authorizationCache';
 
 export default function Authorization() {
     const { isConnected, address, chainId } = useWallet();
@@ -22,11 +14,16 @@ export default function Authorization() {
     const [selectedContract, setSelectedContract] = useState('');
     const [customContract, setCustomContract] = useState('');
     const [targetWallet, setTargetWallet] = useState('');
-    const [authorizations, setAuthorizations] = useState([]);
+    const [authorizations, setAuthorizations] = useState(() => getAuthorizations());
     const [isLoading, setIsLoading] = useState(false);
     const [result, setResult] = useState(null);
     const [error, setError] = useState(null);
 
+    // Load deployed contracts from cache
+    const [deployedContracts, setDeployedContracts] = useState([]);
+    useEffect(() => {
+        setDeployedContracts(getDeployedContracts());
+    }, []);
     const contractAddress = selectedContract || customContract;
 
     const handleSign = async () => {
@@ -48,14 +45,15 @@ export default function Authorization() {
                 id: `auth-${Date.now()}`,
                 walletAddress: wallet,
                 delegateContract: contractAddress,
-                contractName: DELEGATE_CONTRACTS.find(c => c.address === selectedContract)?.name || 'Custom Contract',
+                contractName: deployedContracts.find(c => c.address.toLowerCase() === selectedContract.toLowerCase())?.name || 'Custom Contract',
                 chainId,
                 status: 'active',
                 timestamp: Date.now(),
                 txHash: '0x' + Math.random().toString(16).slice(2) + Math.random().toString(16).slice(2),
             };
 
-            setAuthorizations(prev => [newAuth, ...prev]);
+            saveAuthorization(newAuth);
+            setAuthorizations(getAuthorizations());
             setResult({
                 message: t('auth.signSuccess'),
                 auth: newAuth,
@@ -69,9 +67,8 @@ export default function Authorization() {
     };
 
     const handleRevoke = async (authId) => {
-        setAuthorizations(prev =>
-            prev.map(a => a.id === authId ? { ...a, status: 'revoked' } : a)
-        );
+        updateAuthorization(authId, { status: 'revoked' });
+        setAuthorizations(getAuthorizations());
     };
 
     const copyToClipboard = (text) => {
@@ -145,12 +142,11 @@ export default function Authorization() {
                                         onChange={(e) => setSelectedContract(e.target.value)}
                                     >
                                         <option value="">{t('auth.chooseDelegateContract')}</option>
-                                        {DELEGATE_CONTRACTS.filter(c => c.address).map((c) => (
+                                        {deployedContracts.map((c) => (
                                             <option key={c.address} value={c.address}>
                                                 {c.name} — {truncateAddress(c.address)}
                                             </option>
                                         ))}
-                                        <option value="">{t('auth.customAddress')}</option>
                                     </select>
                                 </div>
 

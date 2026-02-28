@@ -84,6 +84,11 @@ export function WalletProvider({ children }) {
         const unsubChain = onChainChanged((chainId) => {
             const chainInfo = getChainInfo(chainId);
             setWallet((prev) => ({ ...prev, chainId, chainInfo }));
+            // Re-fetch balance on the new chain
+            setWallet((prev) => {
+                if (prev.address) updateBalance(prev.address);
+                return prev;
+            });
         });
 
         return () => {

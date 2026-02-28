@@ -31,6 +31,7 @@ export default {
         authorization: 'Authorization',
         transferDelegation: 'Transfer Delegation',
         gasSponsorship: 'Gas Sponsorship',
+        deployContract: 'Deploy Contract',
         documentation: 'Documentation',
         settings: 'Settings',
     },
@@ -46,6 +47,12 @@ export default {
         en: 'EN',
         zh: '中文',
         switchLang: 'Switch Language',
+    },
+
+    // Network switcher
+    network: {
+        switchNetwork: 'Switch Network',
+        unknown: 'Unknown',
     },
 
     // Dashboard page
@@ -174,5 +181,40 @@ export default {
         time: 'Time',
         noSponsorships: 'No sponsorships yet',
         noSponsorshipsDesc: 'Sponsored transactions will appear here',
+    },
+
+    // Deploy Contract page
+    deploy: {
+        infoAlert: 'Deploy the EIP-7702 delegate contract to the blockchain. Connect your wallet and switch to the desired network before deploying.',
+        deployContract: 'Deploy Contract',
+        selectContract: 'Select Contract',
+        customContract: 'Custom Contract (Paste ABI & Bytecode)',
+        invalidAbi: 'Invalid JSON format — please paste a valid ABI array',
+        contractName: 'Contract Name',
+        compiler: 'Compiler',
+        evmTarget: 'EVM Target',
+        deployer: 'Deployer',
+        notConnected: 'Not connected',
+        features: 'Contract Features',
+        featureAutoForward: 'ETH auto-forward via receive()',
+        featureERC20Sweep: 'ERC20 token batch sweep',
+        featureGasSponsor: 'Gas sponsorship (EIP-7702 native)',
+        featureBatchExec: 'Batch execution (multiple calls in 1 tx)',
+        deploying: 'Deploying...',
+        deployNow: 'Deploy to Network',
+        success: 'Contract deployed successfully!',
+        failed: 'Deployment failed',
+        contractAddress: 'Contract Address',
+        deployAnother: 'Deploy Another',
+        howItWorks: 'How It Works',
+        step1Title: 'Connect Wallet',
+        step1Desc: 'Connect MetaMask and switch to your target network (e.g. Sepolia testnet).',
+        step2Title: 'Deploy Contract',
+        step2Desc: 'Click deploy to submit the contract creation transaction. MetaMask will ask for confirmation.',
+        step3Title: 'Use in Authorization',
+        step3Desc: 'Copy the deployed contract address and use it in the Authorization page to set up EIP-7702 delegation.',
+        step4Title: 'Configure Forwarding',
+        step4Desc: 'After delegation, call initialize() to set your forward target and gas sponsor.',
+        networkWarning: 'Make sure you are connected to the correct network. Deploy to a testnet (Sepolia) first for testing.',
     },
 };

@@ -7,6 +7,7 @@ import Dashboard from './pages/Dashboard';
 import Authorization from './pages/Authorization';
 import TransferDelegation from './pages/TransferDelegation';
 import GasSponsorship from './pages/GasSponsorship';
+import DeployContract from './pages/DeployContract';
 
 export default function App() {
   return (
@@ -19,6 +20,7 @@ export default function App() {
               <Route path="authorization" element={<Authorization />} />
               <Route path="transfer" element={<TransferDelegation />} />
               <Route path="gas-sponsorship" element={<GasSponsorship />} />
+              <Route path="deploy" element={<DeployContract />} />
               <Route path="*" element={<Dashboard />} />
             </Route>
           </Routes>

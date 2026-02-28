@@ -1,8 +1,9 @@
 import React from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
-import { LayoutDashboard, Shield, ArrowRightLeft, Fuel, BookOpen, Settings } from 'lucide-react';
+import { LayoutDashboard, Shield, ArrowRightLeft, Fuel, Rocket } from 'lucide-react';
 import WalletConnect from './WalletConnect';
 import LanguageSwitcher from './LanguageSwitcher';
+import NetworkSwitcher from './NetworkSwitcher';
 import { useWallet } from '../context/WalletContext';
 import { useI18n } from '../context/I18nContext';
 
@@ -15,16 +16,10 @@ export default function Layout() {
             section: t('nav.sectionMain'),
             items: [
                 { to: '/', icon: LayoutDashboard, label: t('nav.dashboard') },
+                { to: '/deploy', icon: Rocket, label: t('nav.deployContract') },
                 { to: '/authorization', icon: Shield, label: t('nav.authorization'), badge: 'EIP-7702' },
                 { to: '/transfer', icon: ArrowRightLeft, label: t('nav.transferDelegation') },
                 { to: '/gas-sponsorship', icon: Fuel, label: t('nav.gasSponsorship') },
-            ],
-        },
-        {
-            section: t('nav.sectionResources'),
-            items: [
-                { to: '/docs', icon: BookOpen, label: t('nav.documentation') },
-                { to: '/settings', icon: Settings, label: t('nav.settings') },
             ],
         },
     ];
@@ -85,6 +80,7 @@ export default function Layout() {
                         <p>{t('header.subtitle')}</p>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <NetworkSwitcher />
                         <LanguageSwitcher />
                         <WalletConnect />
                     </div>

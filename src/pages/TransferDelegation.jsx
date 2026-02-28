@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ArrowRightLeft, Send, CheckCircle, XCircle, ArrowDown, Copy, Inbox } from 'lucide-react';
 import { useWallet } from '../context/WalletContext';
 import { useI18n } from '../context/I18nContext';
 import { sendDelegatedTransfer, estimateGas } from '../services/eip7702';
 import { truncateAddress } from '../services/wallet';
+import { getActiveAuthorizations } from '../services/authorizationCache';
 
 export default function TransferDelegation() {
     const { isConnected, address, chainId, balance } = useWallet();
@@ -17,6 +18,12 @@ export default function TransferDelegation() {
     const [error, setError] = useState(null);
     const [gasEstimate, setGasEstimate] = useState(null);
     const [transfers, setTransfers] = useState([]);
+
+    // Load active authorizations from cache
+    const [activeAuths, setActiveAuths] = useState([]);
+    useEffect(() => {
+        setActiveAuths(getActiveAuthorizations());
+    }, []);
 
     const handleEstimateGas = async () => {
         if (!recipient || !amount) return;
@@ -114,6 +121,11 @@ export default function TransferDelegation() {
                                 onChange={(e) => setSelectedAuth(e.target.value)}
                             >
                                 <option value="">{t('transfer.selectAuth')}</option>
+                                {activeAuths.map((auth) => (
+                                    <option key={auth.id} value={auth.id}>
+                                        {auth.contractName} — {truncateAddress(auth.delegateContract)}
+                                    </option>
+                                ))}
                             </select>
                         </div>
 

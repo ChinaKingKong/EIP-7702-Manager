@@ -31,6 +31,7 @@ export default {
         authorization: '授权管理',
         transferDelegation: '转账代理',
         gasSponsorship: 'Gas 代付',
+        deployContract: '部署合约',
         documentation: '文档',
         settings: '设置',
     },
@@ -46,6 +47,12 @@ export default {
         en: 'EN',
         zh: '中文',
         switchLang: '切换语言',
+    },
+
+    // 网络切换
+    network: {
+        switchNetwork: '切换网络',
+        unknown: '未知',
     },
 
     // 仪表盘页面
@@ -174,5 +181,40 @@ export default {
         time: '时间',
         noSponsorships: '暂无代付记录',
         noSponsorshipsDesc: '代付的交易将会显示在这里',
+    },
+
+    // 部署合约页面
+    deploy: {
+        infoAlert: '将 EIP-7702 委托合约部署到区块链。请先连接钱包并切换到目标网络。',
+        deployContract: '部署合约',
+        selectContract: '选择合约',
+        customContract: '自定义合约（粘贴 ABI 和 Bytecode）',
+        invalidAbi: 'JSON 格式无效 — 请粘贴有效的 ABI 数组',
+        contractName: '合约名称',
+        compiler: '编译器',
+        evmTarget: 'EVM 目标',
+        deployer: '部署者',
+        notConnected: '未连接',
+        features: '合约功能',
+        featureAutoForward: 'ETH 自动转发 (receive())',
+        featureERC20Sweep: 'ERC20 代币批量搬运',
+        featureGasSponsor: 'Gas 代付（EIP-7702 原生）',
+        featureBatchExec: '批量执行（一笔交易完成多个操作）',
+        deploying: '部署中...',
+        deployNow: '部署到网络',
+        success: '合约部署成功！',
+        failed: '部署失败',
+        contractAddress: '合约地址',
+        deployAnother: '再次部署',
+        howItWorks: '部署流程',
+        step1Title: '连接钱包',
+        step1Desc: '连接 MetaMask 钱包并切换到目标网络（如 Sepolia 测试网）。',
+        step2Title: '部署合约',
+        step2Desc: '点击部署按钮提交合约创建交易，MetaMask 将要求确认。',
+        step3Title: '在授权中使用',
+        step3Desc: '复制已部署的合约地址，在授权页面中用于设置 EIP-7702 委托。',
+        step4Title: '配置转发',
+        step4Desc: '委托设置完成后，调用 initialize() 设置转发目标和 Gas 代付人。',
+        networkWarning: '请确保已连接到正确的网络。建议先部署到测试网 (Sepolia) 进行测试。',
     },
 };
