@@ -5,7 +5,8 @@ import { useI18n } from '../context/I18nContext';
 
 const NETWORKS = [
     { chainId: 1, hexId: '0x1', name: 'Ethereum', shortName: 'ETH', color: '#627eea' },
-    { chainId: 11155111, hexId: '0xaa36a7', name: 'Sepolia', shortName: 'Sepolia', color: '#f6c343' },
+    { chainId: 11155111, hexId: '0xaa36a7', name: 'Sepolia', shortName: 'Sepolia', color: '#f6c343', rpcUrl: 'https://rpc.sepolia.org', explorer: 'https://sepolia.etherscan.io' },
+    { chainId: 17000, hexId: '0x4268', name: 'Holesky', shortName: 'Holesky', color: '#ffb3b3', rpcUrl: 'https://rpc.holesky.ethpandaops.io', explorer: 'https://holesky.etherscan.io' },
 ];
 
 export default function NetworkSwitcher() {
@@ -28,11 +29,25 @@ export default function NetworkSwitcher() {
                 params: [{ chainId: net.hexId }],
             });
         } catch (err) {
-            // 4902 = chain not added 
-            if (err.code === 4902) {
-                console.warn('Chain not added to wallet:', net.name);
+            // 4902 = chain not added to wallet
+            if (err.code === 4902 && net.rpcUrl) {
+                try {
+                    await window.ethereum.request({
+                        method: 'wallet_addEthereumChain',
+                        params: [{
+                            chainId: net.hexId,
+                            chainName: net.name,
+                            rpcUrls: [net.rpcUrl],
+                            nativeCurrency: { name: 'ETH', symbol: 'ETH', decimals: 18 },
+                            blockExplorerUrls: [net.explorer]
+                        }],
+                    });
+                } catch (addError) {
+                    console.error('Failed to add network:', addError);
+                }
+            } else {
+                console.error('Switch chain error:', err);
             }
-            console.error('Switch chain error:', err);
         } finally {
             setSwitching(false);
             setOpen(false);

@@ -38,7 +38,7 @@ export default function Dashboard() {
 
         setLoadingTxs(true);
         try {
-            const url = `${ETHERSCAN_API[chainId]}?module=account&action=txlist&address=${address}&startblock=0&endblock=99999999&page=1&offset=5&sort=desc`;
+            const url = `${ETHERSCAN_API[chainId]}?module=account&action=txlist&address=${address}&startblock=0&endblock=99999999&page=1&offset=10&sort=desc`;
             const response = await fetch(url);
             const data = await response.json();
             if (data.status === '1' && Array.isArray(data.result)) {
