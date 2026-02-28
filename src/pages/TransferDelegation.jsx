@@ -101,10 +101,19 @@ export default function TransferDelegation() {
         loadConfig();
     }, [loadConfig]);
 
+    // Custom error selectors for better error messages
+    const ERROR_SELECTORS = {
+        '0x82b42900': 'Unauthorized — 合约权限校验失败',
+        '0xdc149f00': 'AlreadyInitialized — 合约已经初始化过',
+        '0xd92e233d': 'ZeroAddress — 目标地址不能为零地址',
+        '0x096dc0e1': 'ForwardFailed — ETH 转发失败',
+        '0x044c2581': 'TokenTransferFailed — 代币转账失败',
+        '0x7bb5ead2': 'NoTokenBalance — 该代币余额为零',
+        '0xacfdb444': 'ExecutionFailed — 执行失败',
+        '0x09cc6f01': 'LengthMismatch — 参数数组长度不匹配',
+    };
+
     // Helper: send a contract call to the deployed contract
-    // Note: In full EIP-7702 (post-Pectra), calls would go to the delegated EOA.
-    // Pre-Pectra, we call the contract directly as MetaMask doesn't support
-    // sending data to internal accounts (your own EOA).
     const sendContractCall = async (functionName, args = []) => {
         const { publicClient } = getClients();
         const data = encodeFunctionData({
@@ -112,20 +121,39 @@ export default function TransferDelegation() {
             functionName,
             args,
         });
-        // Send transaction to the deployed contract via MetaMask
+
+        const txParams = {
+            from: address,
+            to: selectedContract,
+            data,
+            value: '0x0',
+        };
+
+        // Pre-flight: simulate with eth_call to catch revert reasons
+        try {
+            await window.ethereum.request({
+                method: 'eth_call',
+                params: [txParams, 'latest'],
+            });
+        } catch (simErr) {
+            // Try to decode the revert reason
+            const errData = simErr?.data?.originalError?.data || simErr?.data || '';
+            const selector = typeof errData === 'string' ? errData.slice(0, 10) : '';
+            const decoded = ERROR_SELECTORS[selector];
+            if (decoded) {
+                throw new Error(decoded);
+            }
+            throw new Error(`Simulation failed: ${simErr?.message || simErr}`);
+        }
+
+        // Actual transaction
         const hash = await window.ethereum.request({
             method: 'eth_sendTransaction',
-            params: [{
-                from: address,
-                to: selectedContract,
-                data,
-                value: '0x0',
-                gas: '0x493E0', // 300000
-            }],
+            params: [{ ...txParams, gas: '0x493E0' }],
         });
         const receipt = await publicClient.waitForTransactionReceipt({ hash });
         if (receipt.status !== 'success') {
-            throw new Error('Transaction reverted');
+            throw new Error('Transaction reverted on-chain');
         }
         return { hash, receipt };
     };

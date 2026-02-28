@@ -12,11 +12,14 @@ import { truncateAddress } from '../services/wallet';
 const ETHERSCAN_API = {
     1: 'https://api.etherscan.io/api',
     11155111: 'https://api-sepolia.etherscan.io/api',
+    // ETHERSCAN holesky api might be blocked/timeout in some regions, using blockscout which is 100% compatible
+    17000: 'https://eth-holesky.blockscout.com/api',
 };
 
 const EXPLORER_URL = {
     1: 'https://etherscan.io',
     11155111: 'https://sepolia.etherscan.io',
+    17000: 'https://holesky.etherscan.io',
 };
 
 export default function Dashboard() {
