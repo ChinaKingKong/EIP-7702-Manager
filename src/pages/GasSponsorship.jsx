@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Fuel, Send, CheckCircle, XCircle, Copy, Wallet, DollarSign, Zap, Inbox, PenTool, Check } from 'lucide-react';
+import { parseEther } from 'viem';
+import { getDeployedContracts } from '../services/deployedContracts';
 import { useWallet } from '../context/WalletContext';
 import { useI18n } from '../context/I18nContext';
 import { truncateAddress } from '../services/wallet';
@@ -28,7 +30,7 @@ export default function GasSponsorship() {
 
     // Load intents from localStorage
     useEffect(() => {
-        const saved = localStorage.getItem(`eip7702_intents_${chainId}`);
+        const saved = localStorage.getItem(`eip7702_intents_${chainId} `);
         if (saved) {
             try {
                 setIntents(JSON.parse(saved));
@@ -40,7 +42,7 @@ export default function GasSponsorship() {
 
     const saveIntents = (newIntents) => {
         setIntents(newIntents);
-        localStorage.setItem(`eip7702_intents_${chainId}`, JSON.stringify(newIntents));
+        localStorage.setItem(`eip7702_intents_${chainId} `, JSON.stringify(newIntents));
     };
 
     // ------------------------------------------------------------------------
@@ -76,7 +78,7 @@ export default function GasSponsorship() {
 
             // Save to Queue
             const newIntent = {
-                id: `intent-${Date.now()}`,
+                id: `intent - ${Date.now()} `,
                 sponsee: address,
                 to: txTo,
                 value: txValue || '0',
@@ -96,7 +98,7 @@ export default function GasSponsorship() {
 
         } catch (err) {
             console.error(err);
-            setError(`签名失败: ${err.message}`);
+            setError(`签名失败: ${err.message} `);
         } finally {
             setIsSigning(false);
         }
@@ -116,14 +118,12 @@ export default function GasSponsorship() {
             // To emulate the execution, we send it to a deployed EIP7702AutoForwarder contract instead of the EOA directly.
             // When Pectra is live, this defaults back to the EOA (sponseeAddress).
             let fallbackContract = null;
-            const savedContracts = localStorage.getItem(`eip7702_contracts_${chainId}`);
-            if (savedContracts) {
-                try {
-                    const parsed = JSON.parse(savedContracts);
-                    if (parsed.length > 0) fallbackContract = parsed[0].address;
-                } catch (e) {
-                    console.error('Failed to parse saved contracts for demo fallback');
-                }
+            const savedContracts = getDeployedContracts();
+            // Find a contract deployed on the current chain
+            const contractOnThisChain = savedContracts.find(c => Number(c.chainId) === Number(chainId));
+
+            if (contractOnThisChain) {
+                fallbackContract = contractOnThisChain.address;
             }
 
             if (!fallbackContract) {
@@ -153,7 +153,7 @@ export default function GasSponsorship() {
             });
             saveIntents(updated);
 
-            setSuccessMsg(`代付执行成功！交易哈希: ${truncateAddress(hash)}`);
+            setSuccessMsg(`代付执行成功！交易哈希: ${truncateAddress(hash)} `);
 
         } catch (err) {
             console.error(err);
@@ -172,7 +172,7 @@ export default function GasSponsorship() {
                 });
                 saveIntents(updated);
             } else {
-                setError(`执行失败: ${err.message}`);
+                setError(`执行失败: ${err.message} `);
             }
         } finally {
             setIsExecuting(null);
@@ -210,14 +210,14 @@ export default function GasSponsorship() {
             {/* Role Switcher */}
             <div style={{ display: 'flex', gap: '8px', marginBottom: '24px', background: 'var(--bg-card)', padding: '6px', borderRadius: '12px', width: 'max-content' }}>
                 <button
-                    className={`btn ${role === 'sponsee' ? 'btn-primary' : 'btn-ghost'}`}
+                    className={`btn ${role === 'sponsee' ? 'btn-primary' : 'btn-ghost'} `}
                     onClick={() => setRole('sponsee')}
                     style={{ padding: '8px 24px' }}
                 >
                     我是被赞助方 (请求代付)
                 </button>
                 <button
-                    className={`btn ${role === 'sponsor' ? 'btn-primary' : 'btn-ghost'}`}
+                    className={`btn ${role === 'sponsor' ? 'btn-primary' : 'btn-ghost'} `}
                     onClick={() => setRole('sponsor')}
                     style={{ padding: '8px 24px' }}
                 >
