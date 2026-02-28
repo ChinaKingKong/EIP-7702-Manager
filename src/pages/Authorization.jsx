@@ -286,7 +286,7 @@ export default function Authorization() {
                         <h3>{t('auth.authHistory')}</h3>
                         {address && (
                             <span className="badge badge-info">
-                                {authorizations.filter(a => a.status === 'active' && a.walletAddress?.toLowerCase() === address.toLowerCase()).length} {t('common.active')}
+                                {authorizations.filter(a => a.status === 'active' && a.walletAddress?.toLowerCase() === address.toLowerCase() && a.chainId === chainId).length} {t('common.active')}
                             </span>
                         )}
                     </div>
@@ -297,14 +297,14 @@ export default function Authorization() {
                                 <div className="empty-state-title">钱包未连接</div>
                                 <div className="empty-state-desc">请连接钱包以查看您的授权历史</div>
                             </div>
-                        ) : authorizations.filter(a => a.walletAddress?.toLowerCase() === address.toLowerCase()).length === 0 ? (
+                        ) : authorizations.filter(a => a.walletAddress?.toLowerCase() === address.toLowerCase() && a.chainId === chainId).length === 0 ? (
                             <div className="empty-state">
                                 <Inbox size={40} />
                                 <div className="empty-state-title">{t('auth.noAuthorizations')}</div>
                                 <div className="empty-state-desc">{t('auth.noAuthorizationsDesc')}</div>
                             </div>
                         ) : (
-                            authorizations.filter(a => a.walletAddress?.toLowerCase() === address.toLowerCase()).map((auth) => (
+                            authorizations.filter(a => a.walletAddress?.toLowerCase() === address.toLowerCase() && a.chainId === chainId).map((auth) => (
                                 <div
                                     key={auth.id}
                                     style={{
