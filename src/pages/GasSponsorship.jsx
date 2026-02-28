@@ -126,6 +126,12 @@ export default function GasSponsorship() {
                 }
             }
 
+            if (!fallbackContract) {
+                setError('为了绕过目前测试网对 EOA 接收附带 Data 交易的拦截，你需要先在「部署合约」页面为大家部署一个公共的 EIP7702AutoForwarder 代付代理合约！');
+                setIsExecuting(null);
+                return;
+            }
+
             // Note: intent.sponsee is the target contract we want to call (since the EOA is the contract)
             const { hash } = await executeSponsoredIntent(
                 intent.sponsee, // target is the sponsee's wallet
@@ -261,7 +267,7 @@ export default function GasSponsorship() {
                             </div>
 
                             <div className="form-group">
-                                <label className="form-label">随附 ETH 金额 (Value)</label>
+                                <label className="form-label">随附 ETH 金额 (Value) <span style={{ color: 'var(--text-tertiary)', fontSize: '12px', fontWeight: 'normal' }}>- 选填</span></label>
                                 <input
                                     className="form-input"
                                     type="number"
@@ -274,7 +280,7 @@ export default function GasSponsorship() {
                             </div>
 
                             <div className="form-group">
-                                <label className="form-label">交易数据 (Calldata)</label>
+                                <label className="form-label">交易数据 (Calldata) <span style={{ color: 'var(--text-tertiary)', fontSize: '12px', fontWeight: 'normal' }}>- 选填</span></label>
                                 <textarea
                                     className="form-input mono"
                                     placeholder="0x..."
