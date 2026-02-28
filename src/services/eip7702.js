@@ -218,35 +218,106 @@ export async function revokeAuthorization({ account, chainId = 1 }) {
     return authorization;
 }
 
-/**
- * Estimate gas for a transaction
- */
-export async function estimateGas({ to, value = '0', data = '0x', from, chainId = 1 }) {
-    const publicClient = getPublicClient(chainId);
+// ==========================================
+// 4. Gas Sponsorship (Async Intent Flow)
+// ==========================================
 
+// Minimal ABI for the sponsoredExecute function on the EIP-7702 Auto Forwarder
+const EIP7702_AUTO_FORWARDER_ABI = [
+    {
+        inputs: [
+            { internalType: 'address', name: 'to', type: 'address' },
+            { internalType: 'uint256', name: 'value', type: 'uint256' },
+            { internalType: 'bytes', name: 'data', type: 'bytes' },
+            { internalType: 'bytes', name: 'signature', type: 'bytes' },
+        ],
+        name: 'sponsoredExecute',
+        outputs: [],
+        stateMutability: 'payable',
+        type: 'function',
+    },
+];
+
+export function encodeGasSponsorshipIntent(chainId, sponseeAddress, to, value, data, nonce) {
+    // Defines the EIP-712 Typed Data that the Sponsee will sign to express their intent
+    const domain = {
+        name: 'EIP7702AutoForwarder',
+        version: '1',
+        chainId: Number(chainId),
+        verifyingContract: sponseeAddress, // The verifying contract IS the sponsee's EOA via 7702
+    };
+
+    const types = {
+        SponsoredCall: [
+            { name: 'to', type: 'address' },
+            { name: 'value', type: 'uint256' },
+            { name: 'data', type: 'bytes' },
+            { name: 'nonce', type: 'uint256' },
+        ],
+    };
+
+    // value needs to be safely handled as string/bigint based on input
+    let weiValue;
     try {
-        const gasEstimate = await publicClient.estimateGas({
-            account: from,
-            to,
-            value: parseEther(value),
-            data,
-        });
-
-        const gasPrice = await publicClient.getGasPrice();
-        const totalCostWei = gasEstimate * gasPrice;
-
-        return {
-            gasLimit: gasEstimate.toString(),
-            gasPrice: formatEther(gasPrice),
-            totalCost: formatEther(totalCostWei),
-        };
+        weiValue = value === '0' || !value ? 0n : parseEther(value.toString());
     } catch {
-        return {
-            gasLimit: '21000',
-            gasPrice: '0.000000020',
-            totalCost: '0.00042',
-        };
+        weiValue = 0n;
     }
+
+    const message = {
+        to: to,
+        value: weiValue.toString(), // For metamask typed data signing, string is safer
+        data: data || '0x',
+        nonce: nonce.toString(),
+    };
+
+    return {
+        domain,
+        types,
+        primaryType: 'SponsoredCall',
+        message,
+    };
+}
+
+export async function executeSponsoredIntent(sponseeAddress, to, value, data, signature, sponsorAddress, chainId = 1) {
+    const publicClient = getPublicClient(chainId);
+    const walletClient = getWalletClient(chainId);
+
+    let weiValue;
+    try {
+        weiValue = value === '0' || !value ? 0n : parseEther(value.toString());
+    } catch {
+        weiValue = 0n;
+    }
+
+    // Prepare tx data to call `sponsoredExecute` on the sponsee's delegated code
+    const txData = encodeFunctionData({
+        abi: EIP7702_AUTO_FORWARDER_ABI,
+        functionName: 'sponsoredExecute',
+        args: [
+            to,
+            weiValue,
+            data || '0x',
+            signature
+        ]
+    });
+
+    // Sponsor pays the gas and sends the tx TO the sponsee's address
+    // (since sponsee's logic is powered by 7702)
+    const hash = await walletClient.sendTransaction({
+        account: sponsorAddress,
+        to: sponseeAddress,
+        data: txData,
+        value: 0n, // Sponsor is just paying gas, not necessarily sending ETH along (unless they want to)
+    });
+
+    const receipt = await publicClient.waitForTransactionReceipt({ hash });
+
+    if (receipt.status !== 'success') {
+        throw new Error('Transaction reverted on-chain during sponsor execution');
+    }
+
+    return { hash, receipt };
 }
 
 export { parseEther, formatEther };
