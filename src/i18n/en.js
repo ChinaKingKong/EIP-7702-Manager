@@ -77,6 +77,7 @@ export default {
         erc4337Compatible: 'ERC-4337 Compatible',
         noActivity: 'No activity yet',
         noActivityDesc: 'Actions you perform will appear here',
+        connectWalletToSeeActivity: 'Connect your wallet to see recent on-chain activity',
     },
 
     // Activity items

@@ -130,7 +130,7 @@ export default function Dashboard() {
                             <div className="empty-state" style={{ padding: '30px' }}>
                                 <Clock size={32} />
                                 <div className="empty-state-title" style={{ marginTop: '12px' }}>{t('common.connectToStart')}</div>
-                                <div className="empty-state-desc">Connect your wallet to see recent on-chain activity</div>
+                                <div className="empty-state-desc">{t('dashboard.connectWalletToSeeActivity')}</div>
                             </div>
                         ) : loadingTxs ? (
                             <div style={{ display: 'flex', justifyContent: 'center', padding: '40px' }}>

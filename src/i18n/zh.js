@@ -77,6 +77,7 @@ export default {
         erc4337Compatible: '兼容 ERC-4337',
         noActivity: '暂无活动',
         noActivityDesc: '您的操作记录将会显示在这里',
+        connectWalletToSeeActivity: '连接钱包以查看最近的链上活动',
     },
 
     // 活动条目
