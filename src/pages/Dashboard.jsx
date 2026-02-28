@@ -1,16 +1,71 @@
-import React from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
     Shield, ArrowRightLeft, Fuel, TrendingUp, Activity,
-    CheckCircle, XCircle, Clock, Zap, Inbox
+    CheckCircle, XCircle, Clock, Zap, Inbox, ExternalLink, Loader2
 } from 'lucide-react';
 import { useWallet } from '../context/WalletContext';
 import { useI18n } from '../context/I18nContext';
+import { formatEther } from 'viem';
+import { truncateAddress } from '../services/wallet';
+
+const ETHERSCAN_API = {
+    1: 'https://api.etherscan.io/api',
+    11155111: 'https://api-sepolia.etherscan.io/api',
+};
+
+const EXPLORER_URL = {
+    1: 'https://etherscan.io',
+    11155111: 'https://sepolia.etherscan.io',
+};
 
 export default function Dashboard() {
-    const { isConnected } = useWallet();
+    const { isConnected, address, chainId } = useWallet();
     const navigate = useNavigate();
     const { t } = useI18n();
+
+    const [recentTxs, setRecentTxs] = useState([]);
+    const [loadingTxs, setLoadingTxs] = useState(false);
+
+    const fetchRecentTxs = useCallback(async () => {
+        if (!isConnected || !address || !ETHERSCAN_API[chainId]) {
+            setRecentTxs([]);
+            return;
+        }
+
+        setLoadingTxs(true);
+        try {
+            const url = `${ETHERSCAN_API[chainId]}?module=account&action=txlist&address=${address}&startblock=0&endblock=99999999&page=1&offset=5&sort=desc`;
+            const response = await fetch(url);
+            const data = await response.json();
+            if (data.status === '1' && Array.isArray(data.result)) {
+                setRecentTxs(data.result);
+            } else {
+                setRecentTxs([]); // Probably no transactions yet
+            }
+        } catch (err) {
+            console.error('Failed to fetch transactions:', err);
+            setRecentTxs([]);
+        } finally {
+            setLoadingTxs(false);
+        }
+    }, [isConnected, address, chainId]);
+
+    useEffect(() => {
+        fetchRecentTxs();
+    }, [fetchRecentTxs]);
+
+    const formatTime = (timestamp) => {
+        const diff = Date.now() / 1000 - parseInt(timestamp);
+        if (diff < 60) return t('common.justNow');
+        if (diff < 3600) return t('common.minAgo', { n: Math.floor(diff / 60) });
+        if (diff < 86400) return t('common.hoursAgo', { n: Math.floor(diff / 3600) });
+        return t('common.daysAgo', { n: Math.floor(diff / 86400) });
+    };
+
+    const getExplorerUrl = (hash) => {
+        return `${EXPLORER_URL[chainId] || EXPLORER_URL[11155111]}/tx/${hash}`;
+    };
 
     return (
         <div>
@@ -67,12 +122,66 @@ export default function Dashboard() {
                             <Activity size={12} /> {t('common.live')}
                         </span>
                     </div>
-                    <div className="card-body" style={{ padding: '8px 12px' }}>
-                        <div className="empty-state">
-                            <Inbox size={40} />
-                            <div className="empty-state-title">{t('dashboard.noActivity')}</div>
-                            <div className="empty-state-desc">{t('dashboard.noActivityDesc')}</div>
-                        </div>
+                    <div className="card-body" style={{ padding: '0' }}>
+                        {!isConnected ? (
+                            <div className="empty-state" style={{ padding: '30px' }}>
+                                <Clock size={32} />
+                                <div className="empty-state-title" style={{ marginTop: '12px' }}>{t('common.connectToStart')}</div>
+                                <div className="empty-state-desc">Connect your wallet to see recent on-chain activity</div>
+                            </div>
+                        ) : loadingTxs ? (
+                            <div style={{ display: 'flex', justifyContent: 'center', padding: '40px' }}>
+                                <Loader2 size={24} className="spin" style={{ color: 'var(--text-tertiary)' }} />
+                            </div>
+                        ) : recentTxs.length === 0 ? (
+                            <div className="empty-state" style={{ padding: '30px' }}>
+                                <Inbox size={32} />
+                                <div className="empty-state-title" style={{ marginTop: '12px' }}>{t('dashboard.noActivity')}</div>
+                                <div className="empty-state-desc">{t('dashboard.noActivityDesc')}</div>
+                            </div>
+                        ) : (
+                            <table className="data-table">
+                                <tbody>
+                                    {recentTxs.map((tx) => (
+                                        <tr key={tx.hash}>
+                                            <td>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                                    <div style={{
+                                                        width: '32px', height: '32px', borderRadius: '50%',
+                                                        background: tx.isError === '0' ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)',
+                                                        color: tx.isError === '0' ? 'var(--accent-green)' : 'var(--accent-red)',
+                                                        display: 'flex', alignItems: 'center', justifyContent: 'center'
+                                                    }}>
+                                                        {tx.isError === '0' ? <CheckCircle size={16} /> : <XCircle size={16} />}
+                                                    </div>
+                                                    <div>
+                                                        <div style={{ fontWeight: '500', fontSize: '13px' }}>
+                                                            {tx.to.toLowerCase() === address.toLowerCase() ? 'Receive' : 'Send'}
+                                                        </div>
+                                                        <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)' }}>
+                                                            {truncateAddress(tx.to.toLowerCase() === address.toLowerCase() ? tx.from : tx.to)}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td style={{ textAlign: 'right' }}>
+                                                <div style={{ fontWeight: '600', fontSize: '13px' }}>
+                                                    {parseFloat(formatEther(tx.value)).toFixed(4)} ETH
+                                                </div>
+                                                <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
+                                                    {formatTime(tx.timeStamp)}
+                                                </div>
+                                            </td>
+                                            <td style={{ width: '40px', textAlign: 'center' }}>
+                                                <a href={getExplorerUrl(tx.hash)} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--text-tertiary)' }}>
+                                                    <ExternalLink size={14} />
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        )}
                     </div>
                 </div>
 
