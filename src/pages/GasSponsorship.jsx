@@ -118,7 +118,8 @@ export default function GasSponsorship() {
                 intent.value,
                 intent.data,
                 intent.signature,
-                address // current connected user is the sponsor paying gas
+                address, // current connected user is the sponsor paying gas
+                chainId // pass the current active chain ID
             );
 
             // Update intent status
