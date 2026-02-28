@@ -4,7 +4,7 @@ import { useWallet } from '../context/WalletContext';
 import { useI18n } from '../context/I18nContext';
 
 const NETWORKS = [
-    { chainId: 1, hexId: '0x1', name: 'Ethereum Mainnet', shortName: 'ETH', color: '#627eea' },
+    { chainId: 1, hexId: '0x1', name: 'Ethereum', shortName: 'ETH', color: '#627eea' },
     { chainId: 11155111, hexId: '0xaa36a7', name: 'Sepolia', shortName: 'Sepolia', color: '#f6c343', rpcUrl: 'https://rpc.sepolia.org', explorer: 'https://sepolia.etherscan.io' },
     { chainId: 17000, hexId: '0x4268', name: 'Holesky', shortName: 'Holesky', color: '#ffb3b3', rpcUrl: 'https://rpc.holesky.ethpandaops.io', explorer: 'https://holesky.etherscan.io' },
 ];
