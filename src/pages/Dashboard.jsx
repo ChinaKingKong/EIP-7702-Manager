@@ -11,8 +11,8 @@ import { truncateAddress } from '../services/wallet';
 
 const ETHERSCAN_API = {
     1: 'https://api.etherscan.io/api',
-    11155111: 'https://api-sepolia.etherscan.io/api',
-    // ETHERSCAN holesky api might be blocked/timeout in some regions, using blockscout which is 100% compatible
+    // ETHERSCAN testnet apis might be blocked/timeout in some regions, using blockscout which is 100% compatible
+    11155111: 'https://eth-sepolia.blockscout.com/api',
     17000: 'https://eth-holesky.blockscout.com/api',
 };
 
