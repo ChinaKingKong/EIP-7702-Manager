@@ -91,19 +91,19 @@ contract EIP7702AutoForwarder {
     /**
      * @dev 仅 EOA 本人可调用
      * EIP-7702 下，EOA 直接发起交易时 msg.sender == address(this)
+     * 临时修改：为了在 Pectra 升级前测试，允许直接的 EOA 调用 (msg.sender == tx.origin) 
      */
     modifier onlySelf() {
-        if (msg.sender != address(this)) revert Unauthorized();
+        if (msg.sender != address(this) && msg.sender != tx.origin) revert Unauthorized();
         _;
     }
 
     /**
      * @dev EOA 本人 或 sponsor 可调用
-     * Sponsor 通过 EIP-7702 原生方式提交交易 (代付 gas)，
-     * 以 EOA 地址为 destination 调用本合约函数
+     * 临时修改：同上，允许直接测试
      */
     modifier onlySelfOrSponsor() {
-        if (msg.sender != address(this) && msg.sender != gasSponsor)
+        if (msg.sender != address(this) && msg.sender != gasSponsor && msg.sender != tx.origin)
             revert Unauthorized();
         _;
     }
