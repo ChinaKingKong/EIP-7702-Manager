@@ -191,14 +191,14 @@ export default function GasSponsorship() {
                     onClick={() => setRole('sponsee')}
                     style={{ padding: '8px 24px' }}
                 >
-                    🙋我是被赞助方 (请求代付)
+                    我是被赞助方 (请求代付)
                 </button>
                 <button
                     className={`btn ${role === 'sponsor' ? 'btn-primary' : 'btn-ghost'}`}
                     onClick={() => setRole('sponsor')}
                     style={{ padding: '8px 24px' }}
                 >
-                    💎我是赞助方 (帮人付 Gas)
+                    我是赞助方 (帮人付 Gas)
                 </button>
             </div>
 
@@ -222,7 +222,7 @@ export default function GasSponsorship() {
                 {role === 'sponsee' ? (
                     <div className="card">
                         <div className="card-header">
-                            <h3>✍️ 签署交易意图</h3>
+                            <h3>签署交易意图</h3>
                         </div>
                         <div className="card-body">
                             <div className="form-group">
@@ -281,7 +281,7 @@ export default function GasSponsorship() {
                 ) : (
                     <div className="card">
                         <div className="card-header">
-                            <h3>💎 你的代付统计</h3>
+                            <h3>你的代付统计</h3>
                         </div>
                         <div className="card-body">
                             <div className="stats-grid" style={{ gridTemplateColumns: '1fr', gap: '16px' }}>
@@ -310,7 +310,7 @@ export default function GasSponsorship() {
                 {/* Right: Intent Queue */}
                 <div className="card">
                     <div className="card-header">
-                        <h3>📋 意图队列 (Intent Queue)</h3>
+                        <h3>意图队列 (Intent Queue)</h3>
                         <span className="badge badge-info">{intents.length} {t('common.total')}</span>
                     </div>
                     <div className="card-body" style={{ padding: 0 }}>
@@ -348,7 +348,7 @@ export default function GasSponsorship() {
                                                 </span>
                                             ) : (
                                                 <span className="badge badge-warning" style={{ background: 'rgba(245, 158, 11, 0.1)', color: '#fbbf24' }}>
-                                                    ⏳ 等待代付
+                                                    等待代付
                                                 </span>
                                             )}
                                         </div>

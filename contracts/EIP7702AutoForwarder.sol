@@ -316,13 +316,14 @@ contract EIP7702AutoForwarder {
      * @notice 计算当前链的 EIP-712 Domain Separator
      */
     function _domainSeparatorV4() internal view returns (bytes32) {
+        // 由于测试期 MetaMask 限制 (External signature requests cannot use internal accounts as the verifying contract)
+        // 去掉了 verifyingContract 的验证，这里仅验证 chainId
         return keccak256(
             abi.encode(
-                keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"),
+                keccak256("EIP712Domain(string name,string version,uint256 chainId)"),
                 keccak256(bytes("EIP7702AutoForwarder")),
                 keccak256(bytes("1")),
-                block.chainid,
-                address(this) // The delegated EOA address
+                block.chainid
             )
         );
     }

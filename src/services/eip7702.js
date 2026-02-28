@@ -240,11 +240,11 @@ const EIP7702_AUTO_FORWARDER_ABI = [
 
 export function encodeGasSponsorshipIntent(chainId, sponseeAddress, to, value, data, nonce) {
     // Defines the EIP-712 Typed Data that the Sponsee will sign to express their intent
+    // Omitted verifyingContract due to MetaMask pre-pectra limitation (cannot use internal account as contract)
     const domain = {
         name: 'EIP7702AutoForwarder',
         version: '1',
-        chainId: Number(chainId),
-        verifyingContract: sponseeAddress, // The verifying contract IS the sponsee's EOA via 7702
+        chainId: Number(chainId)
     };
 
     const types = {
