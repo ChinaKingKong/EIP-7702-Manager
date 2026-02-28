@@ -284,17 +284,27 @@ export default function Authorization() {
                 <div className="card">
                     <div className="card-header">
                         <h3>{t('auth.authHistory')}</h3>
-                        <span className="badge badge-info">{authorizations.filter(a => a.status === 'active').length} {t('common.active')}</span>
+                        {address && (
+                            <span className="badge badge-info">
+                                {authorizations.filter(a => a.status === 'active' && a.walletAddress?.toLowerCase() === address.toLowerCase()).length} {t('common.active')}
+                            </span>
+                        )}
                     </div>
                     <div className="card-body" style={{ padding: '0' }}>
-                        {authorizations.length === 0 ? (
+                        {!address ? (
+                            <div className="empty-state">
+                                <Wallet size={40} />
+                                <div className="empty-state-title">钱包未连接</div>
+                                <div className="empty-state-desc">请连接钱包以查看您的授权历史</div>
+                            </div>
+                        ) : authorizations.filter(a => a.walletAddress?.toLowerCase() === address.toLowerCase()).length === 0 ? (
                             <div className="empty-state">
                                 <Inbox size={40} />
                                 <div className="empty-state-title">{t('auth.noAuthorizations')}</div>
                                 <div className="empty-state-desc">{t('auth.noAuthorizationsDesc')}</div>
                             </div>
                         ) : (
-                            authorizations.map((auth) => (
+                            authorizations.filter(a => a.walletAddress?.toLowerCase() === address.toLowerCase()).map((auth) => (
                                 <div
                                     key={auth.id}
                                     style={{
@@ -307,7 +317,7 @@ export default function Authorization() {
                                     }}
                                     className="activity-item"
                                 >
-                                    <div className={`activity - icon ${auth.status === 'active' ? 'auth' : 'revoke'} `}>
+                                    <div className={`activity-icon ${auth.status === 'active' ? 'auth' : 'revoke'}`}>
                                         {auth.status === 'active' ? <Shield size={18} /> : <XCircle size={18} />}
                                     </div>
                                     <div style={{ flex: 1 }}>
@@ -320,7 +330,7 @@ export default function Authorization() {
                                         </div>
                                     </div>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                        <span className={`badge ${auth.status === 'active' ? 'badge-active' : 'badge-revoked'} `}>
+                                        <span className={`badge ${auth.status === 'active' ? 'badge-active' : 'badge-revoked'}`}>
                                             {auth.status === 'active' ? t('common.active') : t('common.revoked')}
                                         </span>
                                         {auth.status === 'active' && (
