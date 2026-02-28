@@ -111,6 +111,21 @@ export default function GasSponsorship() {
         setSuccessMsg(null);
 
         try {
+            // MetaMask Pre-Pectra Demo Restriction:
+            // "External transactions to internal accounts cannot include data"
+            // To emulate the execution, we send it to a deployed EIP7702AutoForwarder contract instead of the EOA directly.
+            // When Pectra is live, this defaults back to the EOA (sponseeAddress).
+            let fallbackContract = null;
+            const savedContracts = localStorage.getItem(`eip7702_contracts_${chainId}`);
+            if (savedContracts) {
+                try {
+                    const parsed = JSON.parse(savedContracts);
+                    if (parsed.length > 0) fallbackContract = parsed[0].address;
+                } catch (e) {
+                    console.error('Failed to parse saved contracts for demo fallback');
+                }
+            }
+
             // Note: intent.sponsee is the target contract we want to call (since the EOA is the contract)
             const { hash } = await executeSponsoredIntent(
                 intent.sponsee, // target is the sponsee's wallet
@@ -119,7 +134,8 @@ export default function GasSponsorship() {
                 intent.data,
                 intent.signature,
                 address, // current connected user is the sponsor paying gas
-                chainId // pass the current active chain ID
+                chainId, // pass the current active chain ID
+                fallbackContract // use the deployed contract to bypass EOA strictness pre-pectra
             );
 
             // Update intent status

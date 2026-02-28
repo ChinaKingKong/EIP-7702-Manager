@@ -279,7 +279,7 @@ export function encodeGasSponsorshipIntent(chainId, sponseeAddress, to, value, d
     };
 }
 
-export async function executeSponsoredIntent(sponseeAddress, to, value, data, signature, sponsorAddress, chainId = 1) {
+export async function executeSponsoredIntent(sponseeAddress, to, value, data, signature, sponsorAddress, chainId = 1, fallbackContract = null) {
     const publicClient = getPublicClient(chainId);
     const walletClient = getWalletClient(chainId);
 
@@ -290,7 +290,7 @@ export async function executeSponsoredIntent(sponseeAddress, to, value, data, si
         weiValue = 0n;
     }
 
-    // Prepare tx data to call `sponsoredExecute` on the sponsee's delegated code
+    // Prepare tx data to call `sponsoredExecute`
     const txData = encodeFunctionData({
         abi: EIP7702_AUTO_FORWARDER_ABI,
         functionName: 'sponsoredExecute',
@@ -302,11 +302,13 @@ export async function executeSponsoredIntent(sponseeAddress, to, value, data, si
         ]
     });
 
-    // Sponsor pays the gas and sends the tx TO the sponsee's address
-    // (since sponsee's logic is powered by 7702)
+    // Determine target. Pre-Pectra MetaMask blocks sending data to an EOA.
+    // If a fallbackContract is provided, we route through that actual deployed contract for demo purposes.
+    const executionTarget = fallbackContract || sponseeAddress;
+
     const hash = await walletClient.sendTransaction({
         account: sponsorAddress,
-        to: sponseeAddress,
+        to: executionTarget,
         data: txData,
         value: 0n, // Sponsor is just paying gas, not necessarily sending ETH along (unless they want to)
     });
