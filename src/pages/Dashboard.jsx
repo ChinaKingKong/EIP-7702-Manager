@@ -10,8 +10,8 @@ import { formatEther } from 'viem';
 import { truncateAddress } from '../services/wallet';
 
 const ETHERSCAN_API = {
-    1: 'https://api.etherscan.io/api',
-    // ETHERSCAN testnet apis might be blocked/timeout in some regions, using blockscout which is 100% compatible
+    // ETHERSCAN apis might be blocked/timeout in some regions or require an API key, using blockscout which is 100% compatible
+    1: 'https://eth.blockscout.com/api',
     11155111: 'https://eth-sepolia.blockscout.com/api',
     17000: 'https://eth-holesky.blockscout.com/api',
 };
