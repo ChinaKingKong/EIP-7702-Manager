@@ -4,7 +4,7 @@ import { useWallet } from '../context/WalletContext';
 import { useI18n } from '../context/I18nContext';
 
 const NETWORKS = [
-    { chainId: 1, hexId: '0x1', name: 'Ethereum', shortName: 'ETH', color: '#627eea' },
+    { chainId: 1, hexId: '0x1', name: 'Ethereum Mainnet', shortName: 'ETH', color: '#627eea' },
     { chainId: 11155111, hexId: '0xaa36a7', name: 'Sepolia', shortName: 'Sepolia', color: '#f6c343', rpcUrl: 'https://rpc.sepolia.org', explorer: 'https://sepolia.etherscan.io' },
     { chainId: 17000, hexId: '0x4268', name: 'Holesky', shortName: 'Holesky', color: '#ffb3b3', rpcUrl: 'https://rpc.holesky.ethpandaops.io', explorer: 'https://holesky.etherscan.io' },
 ];
@@ -79,7 +79,7 @@ export default function NetworkSwitcher() {
                         background: currentNetwork ? currentNetwork.color : '#666',
                     }}
                 />
-                <span>{currentNetwork ? currentNetwork.shortName : t('network.unknown')}</span>
+                <span>{currentNetwork ? currentNetwork.name : t('network.unknown')}</span>
                 <svg width="10" height="10" viewBox="0 0 10 10" style={{ opacity: 0.6 }}>
                     <path d="M2 4 L5 7 L8 4" stroke="currentColor" fill="none" strokeWidth="1.5" strokeLinecap="round" />
                 </svg>
