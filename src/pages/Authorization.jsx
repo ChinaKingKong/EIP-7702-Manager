@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, CheckCircle, XCircle, AlertTriangle, Copy, ExternalLink, Trash2, Inbox, Loader2, Wallet } from 'lucide-react';
+import { Shield, CheckCircle, XCircle, AlertTriangle, Copy, ExternalLink, Trash2, Inbox, Loader2, Wallet, Key, Zap } from 'lucide-react';
 import { useWallet } from '../context/WalletContext';
 import { useI18n } from '../context/I18nContext';
-import { signAuthorization, revokeAuthorization } from '../services/eip7702';
+import { revokeAuthorization, delegateWithPrivateKey } from '../services/eip7702';
 import { truncateAddress } from '../services/wallet';
 import { getDeployedContracts } from '../services/deployedContracts';
 import { getAuthorizations, saveAuthorization, updateAuthorization } from '../services/authorizationCache';
@@ -10,15 +10,19 @@ import { getAuthorizations, saveAuthorization, updateAuthorization } from '../se
 export default function Authorization() {
     const { isConnected, address, chainId } = useWallet();
     const { t } = useI18n();
-    const [step, setStep] = useState(1);
     const [selectedContract, setSelectedContract] = useState('');
     const [customContract, setCustomContract] = useState('');
-    const [targetWallet, setTargetWallet] = useState('');
     const [authorizations, setAuthorizations] = useState(() => getAuthorizations());
-    const [isLoading, setIsLoading] = useState(false);
-    const [result, setResult] = useState(null);
     const [error, setError] = useState(null);
-    const [isRevoking, setIsRevoking] = useState(null); // authId being revoked
+    const [isRevoking, setIsRevoking] = useState(null);
+
+    // Real delegation state
+    const [privateKey, setPrivateKey] = useState('');
+    const [forwardTarget, setForwardTarget] = useState('');
+    const [autoForward, setAutoForward] = useState(true);
+    const [delegateStatus, setDelegateStatus] = useState('');
+    const [delegateResult, setDelegateResult] = useState(null);
+    const [isDelegating, setIsDelegating] = useState(false);
 
     // Load deployed contracts from cache
     const [deployedContracts, setDeployedContracts] = useState([]);
@@ -27,43 +31,56 @@ export default function Authorization() {
     }, []);
     const contractAddress = selectedContract || customContract;
 
-    const handleSign = async () => {
-        if (!isConnected || !contractAddress) return;
+    const statusMessages = {
+        creating_clients: t('auth.statusCreatingClients'),
+        checking_balance: t('auth.statusCheckingBalance'),
+        signing_authorization: t('auth.statusSigning'),
+        sending_transaction: t('auth.statusSendingTx'),
+        waiting_confirmation: t('auth.statusWaitingConf'),
+    };
 
-        const wallet = targetWallet || address;
-        setIsLoading(true);
+    const handleRealDelegate = async () => {
+        if (!contractAddress || !privateKey || !forwardTarget) return;
+
+        const formattedPrivateKey = privateKey.startsWith('0x') ? privateKey : `0x${privateKey}`;
+
+        setIsDelegating(true);
         setError(null);
-        setResult(null);
+        setDelegateResult(null);
+        setDelegateStatus('');
 
         try {
-            const auth = await signAuthorization({
+            const result = await delegateWithPrivateKey({
+                privateKey: formattedPrivateKey,
                 contractAddress,
-                account: wallet,
-                chainId,
+                forwardTarget,
+                autoForward,
+                chainId: chainId || 11155111,
+                onStatus: (status) => setDelegateStatus(statusMessages[status] || status),
             });
 
+            setDelegateResult(result);
+
+            // Save to local authorization cache
             const newAuth = {
-                id: `auth - ${Date.now()} `,
-                walletAddress: wallet,
+                id: `auth-${Date.now()}`,
+                walletAddress: result.account,
                 delegateContract: contractAddress,
                 contractName: deployedContracts.find(c => c.address.toLowerCase() === selectedContract.toLowerCase())?.name || 'Custom Contract',
-                chainId,
+                chainId: chainId || 11155111,
                 status: 'active',
                 timestamp: Date.now(),
-                txHash: '0x' + Math.random().toString(16).slice(2) + Math.random().toString(16).slice(2),
+                txHash: result.hash,
+                isRealDelegation: true,
             };
-
             saveAuthorization(newAuth);
             setAuthorizations(getAuthorizations());
-            setResult({
-                message: t('auth.signSuccess'),
-                auth: newAuth,
-            });
-            setStep(3);
+
         } catch (err) {
-            setError(err.message || t('auth.failedToSign'));
+            setError(err.shortMessage || err.message);
         } finally {
-            setIsLoading(false);
+            setIsDelegating(false);
+            setDelegateStatus('');
         }
     };
 
@@ -77,16 +94,14 @@ export default function Authorization() {
         }
 
         setIsRevoking(authId);
-        setError(null); // Clear previous errors
+        setError(null);
 
         try {
-            // Trigger actual on-chain revocation (0x0 delegation)
             await revokeAuthorization({
                 account: address,
                 chainId: auth.chainId || chainId
             });
 
-            // Update local state only if successful
             updateAuthorization(authId, { status: 'revoked' });
             setAuthorizations(getAuthorizations());
         } catch (err) {
@@ -116,239 +131,239 @@ export default function Authorization() {
                 <span>{t('auth.infoAlert')}</span>
             </div>
 
-            {/* Flow Steps */}
-            <div className="flow-steps">
-                <div className={`flow - step ${step >= 1 ? (step > 1 ? 'completed' : 'active') : ''} `}>
-                    <span className="flow-step-number">1</span>
-                    <span>{t('auth.step1')}</span>
+            {/* ═══════════════════════════════════════════
+                 Real EIP-7702 Delegation Card
+                 ═══════════════════════════════════════════ */}
+            <div className="card" style={{ marginBottom: '24px', border: '1px solid var(--accent-green)', borderRadius: '12px' }}>
+                <div className="card-header" style={{ background: 'rgba(34, 197, 94, 0.08)' }}>
+                    <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <Zap size={20} style={{ color: 'var(--accent-green)' }} />
+                        {t('auth.realDelegationTitle')}
+                    </h3>
+                    <span className="badge badge-active">{t('common.pectra')}</span>
                 </div>
-                <div className={`flow - connector ${step > 1 ? 'done' : ''} `} />
-                <div className={`flow - step ${step >= 2 ? (step > 2 ? 'completed' : 'active') : ''} `}>
-                    <span className="flow-step-number">2</span>
-                    <span>{t('auth.step2')}</span>
-                </div>
-                <div className={`flow - connector ${step > 2 ? 'done' : ''} `} />
-                <div className={`flow - step ${step >= 3 ? 'active' : ''} `}>
-                    <span className="flow-step-number">3</span>
-                    <span>{t('auth.step3')}</span>
+                <div className="card-body">
+                    <div className="alert alert-warning" style={{ marginBottom: '16px' }}>
+                        <AlertTriangle size={16} />
+                        <span style={{ fontSize: '13px' }}>
+                            {t('auth.realDelegationWarning')}
+                        </span>
+                    </div>
+
+                    <div className="form-group">
+                        <label className="form-label">
+                            <Key size={14} style={{ marginRight: '4px' }} />
+                            {t('auth.eoaPrivateKey')}
+                        </label>
+                        <input
+                            className="form-input mono"
+                            type="password"
+                            placeholder="0x..."
+                            value={privateKey}
+                            onChange={(e) => setPrivateKey(e.target.value)}
+                            style={{ fontSize: '13px' }}
+                        />
+                        <div className="form-hint">{t('auth.privateKeyHint')}</div>
+                    </div>
+
+                    <div className="form-group">
+                        <label className="form-label">{t('auth.delegateContract')}</label>
+                        <select
+                            className="form-select"
+                            value={selectedContract}
+                            onChange={(e) => setSelectedContract(e.target.value)}
+                        >
+                            <option value="">{t('auth.chooseDelegateContract')}</option>
+                            {deployedContracts.map((c) => (
+                                <option key={c.address} value={c.address}>
+                                    {c.name} — {truncateAddress(c.address)}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+
+                    {!selectedContract && (
+                        <div className="form-group">
+                            <label className="form-label">{t('auth.customContractAddressLabel')}</label>
+                            <input
+                                className="form-input mono"
+                                type="text"
+                                placeholder="0x..."
+                                value={customContract}
+                                onChange={(e) => setCustomContract(e.target.value)}
+                            />
+                        </div>
+                    )}
+
+                    <div className="form-group">
+                        <label className="form-label">{t('auth.forwardTargetLabel')}</label>
+                        <input
+                            className="form-input mono"
+                            type="text"
+                            placeholder="0x..."
+                            value={forwardTarget}
+                            onChange={(e) => setForwardTarget(e.target.value)}
+                        />
+                    </div>
+
+                    <div className="form-group">
+                        <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <input
+                                type="checkbox"
+                                checked={autoForward}
+                                onChange={(e) => setAutoForward(e.target.checked)}
+                                style={{ width: '16px', height: '16px' }}
+                            />
+                            {t('auth.enableAutoForward')}
+                        </label>
+                        <div className="form-hint">{t('auth.autoForwardHint')}</div>
+                    </div>
+
+                    <button
+                        className="btn btn-primary btn-lg btn-full"
+                        onClick={handleRealDelegate}
+                        disabled={isDelegating || !contractAddress || !privateKey || !forwardTarget}
+                        style={{ marginTop: '8px' }}
+                    >
+                        {isDelegating ? (
+                            <><Loader2 size={18} className="spin" /> {delegateStatus || t('auth.processing')}</>
+                        ) : (
+                            <><Zap size={18} /> {t('auth.executeDelegation')}</>
+                        )}
+                    </button>
+
+                    {error && !delegateResult && (
+                        <div className="alert alert-error" style={{ marginTop: '16px' }}>
+                            <XCircle size={18} />
+                            <span>{error}</span>
+                        </div>
+                    )}
+
+                    {delegateResult && (
+                        <div style={{ marginTop: '16px' }}>
+                            <div className="alert alert-info" style={{ background: 'rgba(34, 197, 94, 0.1)', borderColor: 'var(--accent-green)' }}>
+                                <CheckCircle size={18} style={{ color: 'var(--accent-green)' }} />
+                                <span style={{ color: 'var(--accent-green)', fontWeight: 600 }}>
+                                    {t('auth.successAlert')}
+                                </span>
+                            </div>
+                            <div className="tx-preview" style={{ marginTop: '12px' }}>
+                                <div className="tx-preview-row">
+                                    <span className="tx-preview-label">{t('auth.eoaAddress')}</span>
+                                    <span className="tx-preview-value">{truncateAddress(delegateResult.account)}</span>
+                                </div>
+                                <div className="tx-preview-row">
+                                    <span className="tx-preview-label">Tx Hash</span>
+                                    <span className="tx-preview-value" style={{ cursor: 'pointer' }} onClick={() => copyToClipboard(delegateResult.hash)}>
+                                        {truncateAddress(delegateResult.hash)} <Copy size={12} />
+                                    </span>
+                                </div>
+                                <div className="tx-preview-row">
+                                    <span className="tx-preview-label">{t('auth.block')}</span>
+                                    <span className="tx-preview-value">{delegateResult.blockNumber?.toString()}</span>
+                                </div>
+                                <div className="tx-preview-row">
+                                    <span className="tx-preview-label">{t('auth.gasUsed')}</span>
+                                    <span className="tx-preview-value">{delegateResult.gasUsed?.toString()}</span>
+                                </div>
+                                {delegateResult.config && (
+                                    <>
+                                        <div className="tx-preview-row">
+                                            <span className="tx-preview-label">{t('auth.forwardTarget')}</span>
+                                            <span className="tx-preview-value">{truncateAddress(delegateResult.config.forwardTarget)}</span>
+                                        </div>
+                                        <div className="tx-preview-row">
+                                            <span className="tx-preview-label">{t('auth.autoForward')}</span>
+                                            <span className="tx-preview-value">{delegateResult.config.autoForwardEnabled ? t('auth.enabledYes') : t('auth.enabledNo')}</span>
+                                        </div>
+                                        <div className="tx-preview-row">
+                                            <span className="tx-preview-label">{t('auth.initialized')}</span>
+                                            <span className="tx-preview-value">{delegateResult.config.initialized ? t('auth.initializedYes') : t('auth.initializedNo')}</span>
+                                        </div>
+                                    </>
+                                )}
+                            </div>
+                            <div style={{ marginTop: '12px', padding: '12px', background: 'rgba(34, 197, 94, 0.06)', borderRadius: '8px', fontSize: '13px', color: 'var(--text-secondary)' }}>
+                                {t('auth.successMessage')} <strong style={{ color: 'var(--text-primary)' }}>{truncateAddress(delegateResult.account)}</strong> {t('auth.successMessageEnd')}
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
 
-            <div className="page-grid-wide">
-                {/* Left: Sign Authorization Form */}
-                <div className="card">
-                    <div className="card-header">
-                        <h3>{t('auth.signAuthorization')}</h3>
-                        {step > 1 && (
-                            <button className="btn btn-secondary" onClick={() => { setStep(1); setResult(null); setError(null); }} style={{ padding: '6px 14px', fontSize: '13px' }}>
-                                {t('common.reset')}
-                            </button>
-                        )}
-                    </div>
-                    <div className="card-body">
-                        {step === 1 && (
-                            <>
-                                <div className="form-group">
-                                    <label className="form-label">{t('auth.targetWallet')}</label>
-                                    <input
-                                        className="form-input mono"
-                                        type="text"
-                                        placeholder={address || '0x...'}
-                                        value={targetWallet}
-                                        onChange={(e) => setTargetWallet(e.target.value)}
-                                    />
-                                    <div className="form-hint">{t('auth.targetWalletHint')}</div>
-                                </div>
-
-                                <div className="form-group">
-                                    <label className="form-label">{t('auth.delegateContract')}</label>
-                                    <select
-                                        className="form-select"
-                                        value={selectedContract}
-                                        onChange={(e) => setSelectedContract(e.target.value)}
-                                    >
-                                        <option value="">{t('auth.chooseDelegateContract')}</option>
-                                        {deployedContracts.map((c) => (
-                                            <option key={c.address} value={c.address}>
-                                                {c.name} — {truncateAddress(c.address)}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </div>
-
-                                {!selectedContract && (
-                                    <div className="form-group">
-                                        <label className="form-label">{t('auth.customContractAddress')}</label>
-                                        <input
-                                            className="form-input mono"
-                                            type="text"
-                                            placeholder="0x..."
-                                            value={customContract}
-                                            onChange={(e) => setCustomContract(e.target.value)}
-                                        />
-                                    </div>
-                                )}
-
-                                <button
-                                    className="btn btn-primary btn-lg btn-full"
-                                    onClick={() => setStep(2)}
-                                    disabled={!contractAddress}
-                                    style={{ marginTop: '8px' }}
-                                >
-                                    <Shield size={18} /> {t('auth.continueToSign')}
-                                </button>
-                            </>
-                        )}
-
-                        {step === 2 && (
-                            <>
-                                <div className="alert alert-warning">
-                                    <AlertTriangle size={18} />
-                                    <span>{t('auth.signWarning')}</span>
-                                </div>
-
-                                <div className="tx-preview">
-                                    <div className="tx-preview-row">
-                                        <span className="tx-preview-label">{t('auth.wallet')}</span>
-                                        <span className="tx-preview-value">{truncateAddress(targetWallet || address || '0x0000...0000')}</span>
-                                    </div>
-                                    <div className="tx-preview-row">
-                                        <span className="tx-preview-label">{t('auth.delegateTo')}</span>
-                                        <span className="tx-preview-value" style={{ color: 'var(--accent-blue)' }}>
-                                            {truncateAddress(contractAddress)}
-                                        </span>
-                                    </div>
-                                    <div className="tx-preview-row">
-                                        <span className="tx-preview-label">{t('auth.chain')}</span>
-                                        <span className="tx-preview-value">
-                                            {chainId === 1 ? 'Ethereum' : chainId === 11155111 ? 'Sepolia' : `Chain ${chainId || 1} `}
-                                        </span>
-                                    </div>
-                                    <div className="tx-preview-row">
-                                        <span className="tx-preview-label">{t('auth.type')}</span>
-                                        <span className="tx-preview-value">0x04 (EIP-7702)</span>
-                                    </div>
-                                </div>
-
-                                <button
-                                    className="btn btn-primary btn-lg btn-full"
-                                    onClick={handleSign}
-                                    disabled={isLoading}
-                                >
-                                    {isLoading ? (
-                                        <>{t('auth.signing')}</>
-                                    ) : (
-                                        <>
-                                            <Shield size={18} /> {t('auth.signAuthorization')}
-                                        </>
-                                    )}
-                                </button>
-
-                                {error && (
-                                    <div className="alert alert-error" style={{ marginTop: '16px' }}>
-                                        <XCircle size={18} />
-                                        <span>{error}</span>
-                                    </div>
-                                )}
-                            </>
-                        )}
-
-                        {step === 3 && result && (
-                            <div style={{ textAlign: 'center', padding: '20px 0' }}>
-                                <CheckCircle size={48} style={{ color: 'var(--accent-green)', marginBottom: '16px' }} />
-                                <h4 style={{ marginBottom: '8px', fontSize: '18px' }}>{result.message}</h4>
-                                <p style={{ color: 'var(--text-secondary)', fontSize: '14px', marginBottom: '20px' }}>
-                                    {t('auth.eoaDelegated')}
-                                </p>
-                                <div className="tx-preview">
-                                    <div className="tx-preview-row">
-                                        <span className="tx-preview-label">{t('auth.contract')}</span>
-                                        <span className="tx-preview-value">{result.auth.contractName}</span>
-                                    </div>
-                                    <div className="tx-preview-row">
-                                        <span className="tx-preview-label">{t('auth.txHash')}</span>
-                                        <span className="tx-preview-value" style={{ cursor: 'pointer' }} onClick={() => copyToClipboard(result.auth.txHash)}>
-                                            {truncateAddress(result.auth.txHash)} <Copy size={12} />
-                                        </span>
-                                    </div>
-                                </div>
-                                <button className="btn btn-secondary" onClick={() => { setStep(1); setResult(null); }} style={{ marginTop: '12px' }}>
-                                    {t('auth.newAuthorization')}
-                                </button>
-                            </div>
-                        )}
-                    </div>
+            {/* Authorization List */}
+            <div className="card">
+                <div className="card-header">
+                    <h3>{t('auth.authHistory')}</h3>
+                    {address && (
+                        <span className="badge badge-info">
+                            {authorizations.filter(a => a.status === 'active' && a.walletAddress?.toLowerCase() === address.toLowerCase() && a.chainId === chainId).length} {t('common.active')}
+                        </span>
+                    )}
                 </div>
-
-                {/* Right: Authorization List */}
-                <div className="card">
-                    <div className="card-header">
-                        <h3>{t('auth.authHistory')}</h3>
-                        {address && (
-                            <span className="badge badge-info">
-                                {authorizations.filter(a => a.status === 'active' && a.walletAddress?.toLowerCase() === address.toLowerCase() && a.chainId === chainId).length} {t('common.active')}
-                            </span>
-                        )}
-                    </div>
-                    <div className="card-body" style={{ padding: '0' }}>
-                        {!address ? (
-                            <div className="empty-state">
-                                <Wallet size={40} />
-                                <div className="empty-state-title">钱包未连接</div>
-                                <div className="empty-state-desc">请连接钱包以查看您的授权历史</div>
-                            </div>
-                        ) : authorizations.filter(a => a.walletAddress?.toLowerCase() === address.toLowerCase() && a.chainId === chainId).length === 0 ? (
-                            <div className="empty-state">
-                                <Inbox size={40} />
-                                <div className="empty-state-title">{t('auth.noAuthorizations')}</div>
-                                <div className="empty-state-desc">{t('auth.noAuthorizationsDesc')}</div>
-                            </div>
-                        ) : (
-                            authorizations.filter(a => a.walletAddress?.toLowerCase() === address.toLowerCase() && a.chainId === chainId).map((auth) => (
-                                <div
-                                    key={auth.id}
-                                    style={{
-                                        padding: '16px 20px',
-                                        borderBottom: '1px solid var(--border-subtle)',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: '14px',
-                                        transition: 'background 150ms',
-                                    }}
-                                    className="activity-item"
-                                >
-                                    <div className={`activity-icon ${auth.status === 'active' ? 'auth' : 'revoke'}`}>
-                                        {auth.status === 'active' ? <Shield size={18} /> : <XCircle size={18} />}
-                                    </div>
-                                    <div style={{ flex: 1 }}>
-                                        <div style={{ fontWeight: 600, fontSize: '14px' }}>{auth.contractName}</div>
-                                        <div style={{ fontSize: '12px', color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)', marginTop: '2px' }}>
-                                            {truncateAddress(auth.delegateContract)}
-                                        </div>
-                                        <div style={{ fontSize: '11px', color: 'var(--text-tertiary)', marginTop: '4px' }}>
-                                            {formatTime(auth.timestamp)}
-                                        </div>
-                                    </div>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                        <span className={`badge ${auth.status === 'active' ? 'badge-active' : 'badge-revoked'}`}>
-                                            {auth.status === 'active' ? t('common.active') : t('common.revoked')}
-                                        </span>
-                                        {auth.status === 'active' && (
-                                            <button
-                                                className="btn btn-danger"
-                                                style={{ padding: '6px 10px', fontSize: '12px' }}
-                                                onClick={() => handleRevoke(auth.id)}
-                                                disabled={isRevoking === auth.id || (address && address.toLowerCase() !== auth.walletAddress.toLowerCase())}
-                                                title={address && address.toLowerCase() !== auth.walletAddress.toLowerCase() ? t('auth.revokePermissionError') : t('auth.revokeOnChain')}
-                                            >
-                                                {isRevoking === auth.id ? <Loader2 size={16} className="spin" /> : <Trash2 size={16} />}
-                                            </button>
+                <div className="card-body" style={{ padding: '0' }}>
+                    {!address ? (
+                        <div className="empty-state">
+                            <Wallet size={40} />
+                            <div className="empty-state-title">{t('common.walletNotConnected')}</div>
+                            <div className="empty-state-desc">{t('common.connectWalletToViewHistory')}</div>
+                        </div>
+                    ) : authorizations.filter(a => a.walletAddress?.toLowerCase() === address.toLowerCase() && a.chainId === chainId).length === 0 ? (
+                        <div className="empty-state">
+                            <Inbox size={40} />
+                            <div className="empty-state-title">{t('auth.noAuthorizations')}</div>
+                            <div className="empty-state-desc">{t('auth.noAuthorizationsDesc')}</div>
+                        </div>
+                    ) : (
+                        authorizations.filter(a => a.walletAddress?.toLowerCase() === address.toLowerCase() && a.chainId === chainId).map((auth) => (
+                            <div
+                                key={auth.id}
+                                style={{
+                                    padding: '16px 20px',
+                                    borderBottom: '1px solid var(--border-subtle)',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '14px',
+                                    transition: 'background 150ms',
+                                }}
+                                className="activity-item"
+                            >
+                                <div className={`activity-icon ${auth.status === 'active' ? 'auth' : 'revoke'}`}>
+                                    {auth.status === 'active' ? <Shield size={18} /> : <XCircle size={18} />}
+                                </div>
+                                <div style={{ flex: 1 }}>
+                                    <div style={{ fontWeight: 600, fontSize: '14px' }}>
+                                        {auth.contractName}
+                                        {auth.isRealDelegation && (
+                                            <span className="badge badge-active" style={{ marginLeft: '8px', fontSize: '10px' }}>{t('auth.realDelegationBadge')}</span>
                                         )}
                                     </div>
+                                    <div style={{ fontSize: '12px', color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)', marginTop: '2px' }}>
+                                        {truncateAddress(auth.delegateContract)}
+                                    </div>
+                                    <div style={{ fontSize: '11px', color: 'var(--text-tertiary)', marginTop: '4px' }}>
+                                        {formatTime(auth.timestamp)}
+                                    </div>
                                 </div>
-                            ))
-                        )}
-                    </div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <span className={`badge ${auth.status === 'active' ? 'badge-active' : 'badge-revoked'}`}>
+                                        {auth.status === 'active' ? t('common.active') : t('common.revoked')}
+                                    </span>
+                                    {auth.status === 'active' && (
+                                        <button
+                                            className="btn btn-danger"
+                                            style={{ padding: '6px 10px', fontSize: '12px' }}
+                                            onClick={() => handleRevoke(auth.id)}
+                                            disabled={isRevoking === auth.id || (address && address.toLowerCase() !== auth.walletAddress.toLowerCase())}
+                                            title={address && address.toLowerCase() !== auth.walletAddress.toLowerCase() ? t('auth.revokePermissionError') : t('auth.revokeOnChain')}
+                                        >
+                                            {isRevoking === auth.id ? <Loader2 size={16} className="spin" /> : <Trash2 size={16} />}
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+                        ))
+                    )}
                 </div>
             </div>
         </div>

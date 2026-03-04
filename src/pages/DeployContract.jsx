@@ -6,12 +6,7 @@ import { useWallet } from '../context/WalletContext';
 import { useI18n } from '../context/I18nContext';
 import { CONTRACT_REGISTRY } from '../services/contractABI';
 import { saveDeployedContract } from '../services/deployedContracts';
-
-// Ankr RPC 节点配置
-const RPC_URLS = {
-    1: 'https://rpc.ankr.com/eth/2012b763b06d70a6f8957933b229023d703ccab6849fb3a0201ecfc92d04aac5',
-    11155111: 'https://rpc.ankr.com/eth_sepolia/2012b763b06d70a6f8957933b229023d703ccab6849fb3a0201ecfc92d04aac5',
-};
+import { RPC_URLS } from '../config';
 
 const CHAINS = { 1: mainnet, 11155111: sepolia, 17000: holesky };
 

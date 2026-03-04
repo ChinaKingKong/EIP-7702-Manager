@@ -159,7 +159,7 @@ export default function Dashboard() {
                                                     </div>
                                                     <div>
                                                         <div style={{ fontWeight: '500', fontSize: '13px' }}>
-                                                            {tx.to.toLowerCase() === address.toLowerCase() ? 'Receive' : 'Send'}
+                                                            {tx.to.toLowerCase() === address.toLowerCase() ? t('common.receive') : t('common.send')}
                                                         </div>
                                                         <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)' }}>
                                                             {truncateAddress(tx.to.toLowerCase() === address.toLowerCase() ? tx.from : tx.to)}
@@ -227,7 +227,7 @@ export default function Dashboard() {
                             <div style={{ marginTop: '16px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                                 <span className="badge badge-info">{t('dashboard.pectraUpgrade')}</span>
                                 <span className="badge badge-active">{t('dashboard.erc4337Compatible')}</span>
-                                <span className="badge badge-pending">Type 0x04</span>
+                                <span className="badge badge-pending">{t('dashboard.type04')}</span>
                             </div>
                         </div>
                     </div>

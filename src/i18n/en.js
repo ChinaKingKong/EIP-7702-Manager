@@ -20,6 +20,14 @@ export default {
         minAgo: '{n} min ago',
         hoursAgo: '{n} hours ago',
         daysAgo: '{n} days ago',
+        pectra: 'Pectra',
+        walletNotConnected: 'Wallet Not Connected',
+        connectWalletToViewHistory: 'Please connect your wallet to view your authorization history',
+        receive: 'Receive',
+        send: 'Send',
+        mainnet: 'Ethereum Mainnet',
+        sepolia: 'Sepolia Testnet',
+        holesky: 'Holesky Testnet',
     },
 
     // Sidebar & Navigation
@@ -28,8 +36,9 @@ export default {
         sectionMain: 'Main',
         sectionResources: 'Resources',
         dashboard: 'Dashboard',
-        authorization: 'Authorization',
-        transferDelegation: 'Transfer Delegation',
+        authorization: 'Forwarding Auth',
+        autoForwardConfig: 'Auto Forward',
+
         gasSponsorship: 'Gas Sponsorship',
         deployContract: 'Deploy Contract',
         documentation: 'Documentation',
@@ -78,6 +87,7 @@ export default {
         noActivity: 'No activity yet',
         noActivityDesc: 'Actions you perform will appear here',
         connectWalletToSeeActivity: 'Connect your wallet to see recent on-chain activity',
+        type04: 'Type 0x04 Transaction',
     },
 
     // Activity items
@@ -94,7 +104,7 @@ export default {
 
     // Authorization page
     auth: {
-        infoAlert: 'EIP-7702 authorization lets your EOA temporarily adopt smart contract capabilities. Only authorize contracts you trust.',
+        infoAlert: 'EIP-7702 authorization lets your EOA adopt smart contract capabilities (like ETH auto-forwarding). Only authorize delegate contracts you trust.',
         step1: 'Select Contract',
         step2: 'Configure & Sign',
         step3: 'Confirmation',
@@ -122,6 +132,36 @@ export default {
         failedToSign: 'Failed to sign authorization',
         noAuthorizations: 'No authorizations yet',
         noAuthorizationsDesc: 'Signed authorizations will appear here',
+
+        realDelegationTitle: 'EIP-7702 Delegation (Type 0x04)',
+        realDelegationWarning: '⚠️ Private key is only used locally in this browser and never uploaded. Please ensure you are on a testnet.',
+        eoaPrivateKey: 'EOA Private Key',
+        privateKeyHint: '64-character hex string (exported from MetaMask)',
+        customContractAddressLabel: 'Custom Contract Address',
+        forwardTargetLabel: 'ETH Forward Target (Wallet B)',
+        enableAutoForward: 'Enable ETH Auto-Forward',
+        autoForwardHint: 'When enabled, ETH sent to the EOA will be automatically forwarded to the target address.',
+        executeDelegation: 'Execute EIP-7702 Delegation & Initialization',
+        eoaAddress: 'EOA Address',
+        block: 'Block',
+        gasUsed: 'Gas Used',
+        forwardTarget: 'Forward Target',
+        autoForward: 'Auto-Forward',
+        enabledYes: '✅ Enabled',
+        enabledNo: '❌ Disabled',
+        initializedYes: '✅ Yes',
+        initializedNo: '❌ No',
+        successMessage: '🎉 Your EOA is now an auto-forwarding smart account! ETH sent to ',
+        successMessageEnd: ' will automatically forward to the target.',
+        realDelegationBadge: 'Real Delegation',
+        processing: 'Processing...',
+        successAlert: '✅ Delegation & Initialization Successful!',
+
+        statusCreatingClients: '🔗 Creating RPC Clients...',
+        statusCheckingBalance: '💰 Checking EOA Balance...',
+        statusSigning: '🔐 Signing EIP-7702 Authorization...',
+        statusSendingTx: '📤 Sending type 0x04 transaction...',
+        statusWaitingConf: '⏳ Waiting for on-chain confirmation...',
     },
 
     // Gas Sponsorship page
@@ -159,7 +199,10 @@ export default {
         fallbackError: 'To bypass testnet restrictions on EOA data transactions, you must first deploy a public EIP7702AutoForwarder contract on the "Deploy Contract" page!',
         executeSuccess: 'Sponsorship execution successful! Tx Hash: {hash}',
         executeDemoFallback: 'On-chain execution failed: {msg}. This usually means the sponsee account has not initialized a forwarder or signature mismatch. Marked as executed to continue the demo flow.',
-        executeError: 'Execution failed: {msg}'
+        executeDemoFallback: 'On-chain execution failed: {msg}. This usually means the sponsee account has not initialized a forwarder or signature mismatch. Marked as executed to continue the demo flow.',
+        executeError: 'Execution failed: {msg}',
+        calldataLabel: 'Calldata:',
+        txLabel: 'Tx:'
     },
 
     // Auto-Forward Configuration page
@@ -212,6 +255,15 @@ export default {
         sweep: 'Sweep',
         sweepHint: 'Transfer all balance of this ERC20 token from Wallet A to Wallet B.',
         tokenSwept: 'Token swept successfully!',
+        operationMode: 'Operation Mode (Private Key or Connected Wallet)',
+        privateKeyInputPlaceholder: 'Enter private key (0x...) for direct execution. Leave empty to use connected wallet.',
+        scanAndSweepTitle: 'Scan & Sweep Known Tokens',
+        scanAssetsBtn: 'Scan Wallet Assets',
+        scanning: 'Scanning...',
+        manualSweepLabel: 'Manual Sweep by Contract Address',
+        sweepNotice: 'Note: Due to the ERC20 transfer mechanism, your smart wallet cannot automatically intercept incoming tokens. Please proactively use this function to gather (sweep) any received tokens to the forwarding target address.',
+        noTokensFound: 'Scan complete. No ERC20 tokens with > 0 balance found.',
+        tokensFound: 'Scan successful! Found {n} tokens with balance.',
     },
 
     // Deploy Contract page

@@ -7,7 +7,9 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "delegate": "node scripts/delegate.mjs",
+    "forward-eth": "node scripts/forward-eth.mjs"
   },
   "dependencies": {
     "lucide-react": "^0.575.0",

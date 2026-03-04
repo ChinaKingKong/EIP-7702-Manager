@@ -184,11 +184,11 @@ export default function GasSponsorship() {
     };
 
     const formatTime = (ts) => {
-        const diff = Date.now() - ts;
-        if (diff < 60000) return 'Just now';
-        if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
-        if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
-        return `${Math.floor(diff / 86400000)}d ago`;
+        const diff = (Date.now() - ts) / 1000;
+        if (diff < 60) return t('common.justNow');
+        if (diff < 3600) return t('common.minAgo', { n: Math.floor(diff / 60) });
+        if (diff < 86400) return t('common.hoursAgo', { n: Math.floor(diff / 3600) });
+        return t('common.daysAgo', { n: Math.floor(diff / 86400) });
     };
 
     // Compute stats
@@ -390,7 +390,7 @@ export default function GasSponsorship() {
                                                 <span>{intent.value} ETH</span>
                                             </div>
                                             <div style={{ display: 'grid', gridTemplateColumns: '80px 1fr', gap: '8px' }}>
-                                                <span style={{ color: 'var(--text-tertiary)' }}>Calldata:</span>
+                                                <span style={{ color: 'var(--text-tertiary)' }}>{t('gas.calldataLabel')}</span>
                                                 <span className="mono" style={{
                                                     whiteSpace: 'nowrap',
                                                     overflow: 'hidden',
@@ -424,7 +424,7 @@ export default function GasSponsorship() {
                                                 borderRadius: '6px',
                                                 color: 'var(--accent-green)'
                                             }}>
-                                                <b>Tx:</b>
+                                                <b>{t('gas.txLabel')}</b>
                                                 <span className="mono">{truncateAddress(intent.txHash)}</span>
                                                 <Copy size={12} style={{ cursor: 'pointer' }} onClick={() => copyToClipboard(intent.txHash)} />
                                                 <span style={{ marginLeft: 'auto', color: 'var(--text-secondary)' }}>

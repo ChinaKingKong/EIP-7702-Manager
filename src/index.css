@@ -176,7 +176,8 @@ textarea {
 }
 
 .sidebar-logo {
-  padding: 24px 20px;
+  height: var(--header-height);
+  padding: 0 20px;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -244,6 +245,7 @@ textarea {
   transition: all var(--transition-base);
   position: relative;
   overflow: hidden;
+  white-space: nowrap;
 }
 
 .nav-link::before {
@@ -362,6 +364,10 @@ textarea {
   margin-left: var(--sidebar-width);
   position: relative;
   z-index: 1;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
 }
 
 .content-header {
@@ -374,9 +380,8 @@ textarea {
   background: rgba(8, 12, 24, 0.5);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  position: sticky;
-  top: 0;
   z-index: 50;
+  flex-shrink: 0;
 }
 
 .content-header-left h2 {
@@ -393,6 +398,8 @@ textarea {
 
 .content-body {
   padding: 28px 32px;
+  flex: 1;
+  overflow-y: auto;
 }
 
 /* ============================================

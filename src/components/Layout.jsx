@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
-import { LayoutDashboard, Shield, ArrowRightLeft, Fuel, Rocket } from 'lucide-react';
+import { LayoutDashboard, Shield, Fuel, Rocket, Send } from 'lucide-react';
 import WalletConnect from './WalletConnect';
 import LanguageSwitcher from './LanguageSwitcher';
 import NetworkSwitcher from './NetworkSwitcher';
@@ -17,15 +17,19 @@ export default function Layout() {
             items: [
                 { to: '/', icon: LayoutDashboard, label: t('nav.dashboard') },
                 { to: '/deploy', icon: Rocket, label: t('nav.deployContract') },
-                { to: '/authorization', icon: Shield, label: t('nav.authorization'), badge: 'EIP-7702' },
-                { to: '/transfer', icon: ArrowRightLeft, label: t('nav.transferDelegation') },
+                { to: '/authorization', icon: Shield, label: t('nav.authorization') },
+                { to: '/auto-forward', icon: Send, label: t('nav.autoForwardConfig') },
                 { to: '/gas-sponsorship', icon: Fuel, label: t('nav.gasSponsorship') },
             ],
         },
     ];
 
     const getChainName = () => {
-        const chains = { 1: 'Ethereum Mainnet', 11155111: 'Sepolia', 17000: 'Holesky' };
+        const chains = {
+            1: t('common.mainnet'),
+            11155111: t('common.sepolia'),
+            17000: t('common.holesky')
+        };
         return chains[chainId] || t('common.notConnected');
     };
 

@@ -26,16 +26,11 @@ import {
     parseAbiParameters,
 } from 'viem';
 import { mainnet, sepolia } from 'viem/chains';
+import { RPC_URLS } from '../config';
 
 const CHAIN_MAP = {
     1: mainnet,
     11155111: sepolia,
-};
-
-// Ankr RPC endpoints for reliable public reads
-const RPC_URLS = {
-    1: 'https://rpc.ankr.com/eth/2012b763b06d70a6f8957933b229023d703ccab6849fb3a0201ecfc92d04aac5',
-    11155111: 'https://rpc.ankr.com/eth_sepolia/2012b763b06d70a6f8957933b229023d703ccab6849fb3a0201ecfc92d04aac5',
 };
 
 /**
@@ -240,7 +235,7 @@ export async function revokeAuthorization({ account, chainId = 1 }) {
 // ==========================================
 
 // Minimal ABI for the sponsoredExecute function on the EIP-7702 Auto Forwarder
-const EIP7702_AUTO_FORWARDER_ABI = [
+export const EIP7702_AUTO_FORWARDER_ABI = [
     {
         inputs: [
             { internalType: 'address', name: 'to', type: 'address' },
@@ -340,3 +335,146 @@ export async function executeSponsoredIntent(sponseeAddress, to, value, data, si
 }
 
 export { parseEther, formatEther };
+
+// ==========================================
+// 5. Real EIP-7702 Delegation (Private Key)
+// ==========================================
+
+import { privateKeyToAccount } from 'viem/accounts';
+
+/**
+ * Perform a real EIP-7702 delegation + initialize using a private key.
+ * This bypasses MetaMask and sends a type 0x04 transaction directly via RPC.
+ *
+ * @param {Object} params
+ * @param {string} params.privateKey — Private key (hex, with 0x prefix)
+ * @param {string} params.contractAddress — Deployed delegate contract address
+ * @param {string} params.forwardTarget — ETH forwarding target address
+ * @param {string} params.gasSponsor — Gas sponsor address (optional)
+ * @param {boolean} params.autoForward — Enable auto-forwarding (default: true)
+ * @param {number} params.chainId — Chain ID (default: 11155111 Sepolia)
+ * @param {function} params.onStatus — Status callback for UI updates
+ * @returns {Object} { hash, receipt, account }
+ */
+export async function delegateWithPrivateKey({
+    privateKey,
+    contractAddress,
+    forwardTarget,
+    gasSponsor = '0x0000000000000000000000000000000000000000',
+    autoForward = true,
+    chainId = 11155111,
+    onStatus = () => { },
+}) {
+    if (!privateKey || !contractAddress || !forwardTarget) {
+        throw new Error('缺少必填参数: privateKey, contractAddress, forwardTarget');
+    }
+
+    // Validate private key format
+    if (!/^0x[0-9a-fA-F]{64}$/.test(privateKey)) {
+        throw new Error('私钥格式无效。需要 0x 开头的 64 位十六进制字符串。');
+    }
+
+    const chain = CHAIN_MAP[chainId];
+    if (!chain) throw new Error(`不支持的链 ID: ${chainId}`);
+
+    const rpcUrl = RPC_URLS[chainId];
+    const account = privateKeyToAccount(privateKey);
+
+    onStatus('creating_clients');
+
+    const walletClient = createWalletClient({
+        account,
+        chain,
+        transport: http(rpcUrl),
+    });
+
+    const publicClient = createPublicClient({
+        chain,
+        transport: http(rpcUrl),
+    });
+
+    // Check balance
+    onStatus('checking_balance');
+    const balance = await publicClient.getBalance({ address: account.address });
+    if (balance === 0n) {
+        throw new Error(`EOA 没有 ETH。请先获取 ${chain.name} 测试网 ETH。`);
+    }
+
+    // Sign the EIP-7702 authorization
+    onStatus('signing_authorization');
+    const authorization = await walletClient.signAuthorization({
+        contractAddress,
+        executor: 'self',
+    });
+
+    // Encode initialize() calldata
+    const FORWARDER_ABI = [{
+        name: 'initialize', type: 'function', stateMutability: 'nonpayable',
+        inputs: [
+            { name: '_forwardTarget', type: 'address' },
+            { name: '_gasSponsor', type: 'address' },
+            { name: '_autoForward', type: 'bool' },
+        ],
+        outputs: [],
+    }];
+
+    const initData = encodeFunctionData({
+        abi: FORWARDER_ABI,
+        functionName: 'initialize',
+        args: [forwardTarget, gasSponsor, autoForward],
+    });
+
+    // Send type 0x04 transaction
+    onStatus('sending_transaction');
+    const hash = await walletClient.sendTransaction({
+        authorizationList: [authorization],
+        data: initData,
+        to: account.address,
+    });
+
+    // Wait for confirmation
+    onStatus('waiting_confirmation');
+    const receipt = await publicClient.waitForTransactionReceipt({ hash });
+
+    if (receipt.status !== 'success') {
+        throw new Error('交易在链上回滚。');
+    }
+
+    // Verify on-chain config
+    let config = null;
+    try {
+        const CONFIG_ABI = [{
+            name: 'getConfig', type: 'function', stateMutability: 'view',
+            inputs: [],
+            outputs: [
+                { name: '_forwardTarget', type: 'address' },
+                { name: '_gasSponsor', type: 'address' },
+                { name: '_autoForwardEnabled', type: 'bool' },
+                { name: '_initialized', type: 'bool' },
+            ],
+        }];
+        const result = await publicClient.readContract({
+            address: account.address,
+            abi: CONFIG_ABI,
+            functionName: 'getConfig',
+        });
+        config = {
+            forwardTarget: result[0],
+            gasSponsor: result[1],
+            autoForwardEnabled: result[2],
+            initialized: result[3],
+        };
+    } catch {
+        // Config verification may fail briefly after tx
+    }
+
+    return {
+        hash,
+        receipt,
+        account: account.address,
+        balance: formatEther(balance),
+        blockNumber: receipt.blockNumber,
+        gasUsed: receipt.gasUsed,
+        config,
+    };
+}

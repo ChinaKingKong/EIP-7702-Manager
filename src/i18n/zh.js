@@ -20,6 +20,14 @@ export default {
         minAgo: '{n} 分钟前',
         hoursAgo: '{n} 小时前',
         daysAgo: '{n} 天前',
+        pectra: 'Pectra',
+        walletNotConnected: '钱包未连接',
+        connectWalletToViewHistory: '请连接钱包以查看您的授权历史',
+        receive: '接收',
+        send: '发送',
+        mainnet: 'Ethereum 主网',
+        sepolia: 'Sepolia 测试网',
+        holesky: 'Holesky 测试网',
     },
 
     // 侧边栏 & 导航
@@ -28,8 +36,9 @@ export default {
         sectionMain: '主要',
         sectionResources: '资源',
         dashboard: '仪表盘',
-        authorization: '授权管理',
-        transferDelegation: '转账代理',
+        authorization: '转发授权',
+        autoForwardConfig: '自动转发',
+
         gasSponsorship: 'Gas 代付',
         deployContract: '部署合约',
         documentation: '文档',
@@ -78,6 +87,7 @@ export default {
         noActivity: '暂无活动',
         noActivityDesc: '您的操作记录将会显示在这里',
         connectWalletToSeeActivity: '连接钱包以查看最近的链上活动',
+        type04: 'Type 0x04 交易',
     },
 
     // 活动条目
@@ -94,7 +104,7 @@ export default {
 
     // 授权页面
     auth: {
-        infoAlert: 'EIP-7702 授权允许您的 EOA 临时获得智能合约功能。仅授权您信任的合约。',
+        infoAlert: 'EIP-7702 授权允许您的 EOA 获得智能合约功能（例如自动代理转发 ETH）。仅授权您信任的代理合约。',
         step1: '选择合约',
         step2: '配置并签名',
         step3: '确认',
@@ -122,6 +132,36 @@ export default {
         failedToSign: '授权签署失败',
         noAuthorizations: '暂无授权记录',
         noAuthorizationsDesc: '已签署的授权将会显示在这里',
+
+        realDelegationTitle: 'EIP-7702 真实委托 (Type 0x04)',
+        realDelegationWarning: '⚠️ 私钥仅在浏览器本地使用，不会上传到任何服务器。请确保在测试网环境操作。',
+        eoaPrivateKey: 'EOA 私钥',
+        privateKeyHint: '0x 开头的 64 位十六进制字符串（从 MetaMask 导出）',
+        customContractAddressLabel: '自定义合约地址',
+        forwardTargetLabel: 'ETH 转发目标地址（钱包 B）',
+        enableAutoForward: '启用 ETH 自动转发',
+        autoForwardHint: '开启后，发送到 EOA 的 ETH 会自动转发到目标地址',
+        executeDelegation: '执行 EIP-7702 委托 & 初始化',
+        eoaAddress: 'EOA 地址',
+        block: '区块',
+        gasUsed: 'Gas 消耗',
+        forwardTarget: '转发目标',
+        autoForward: '自动转发',
+        enabledYes: '✅ 已开启',
+        enabledNo: '❌ 未开启',
+        initializedYes: '✅ 是',
+        initializedNo: '❌ 否',
+        successMessage: '🎉 你的 EOA 现在是一个自动转发智能账户！往 ',
+        successMessageEnd: ' 转 ETH 将自动转发到目标地址。',
+        realDelegationBadge: '真实委托',
+        processing: '处理中...',
+        successAlert: '✅ 委托 & 初始化成功！',
+
+        statusCreatingClients: '🔗 创建 RPC 客户端...',
+        statusCheckingBalance: '💰 检查 EOA 余额...',
+        statusSigning: '🔐 签署 EIP-7702 授权...',
+        statusSendingTx: '📤 发送 type 0x04 交易...',
+        statusWaitingConf: '⏳ 等待链上确认...',
     },
 
     // 自动转发配置页面
@@ -174,6 +214,15 @@ export default {
         sweep: '搬运',
         sweepHint: '将钱包 A 中该 ERC20 代币的全部余额转到钱包 B。',
         tokenSwept: '代币搬运成功！',
+        operationMode: '操作方式 (私钥 或 已连接钱包)',
+        privateKeyInputPlaceholder: '输入私钥 (0x...) 进行免 MetaMask 强行操作。留空则通过右上角已连接的钱包签名。',
+        scanAndSweepTitle: '扫描并搬运已知代币',
+        scanAssetsBtn: '扫描钱包资产',
+        scanning: '扫描中...',
+        manualSweepLabel: '手动输入合约地址搬运',
+        sweepNotice: '注意：由于 ERC20 `transfer` 机制，您的智能钱包无法得知何时收到了代币。请在收到代币后，主动调用此功能将其自动汇聚（一键搬运）到被设置为转发目标的地址中。',
+        noTokensFound: '扫描完成，您的钱包中暂无 ERC20 代币。',
+        tokensFound: '扫描成功！发现 {n} 种拥有余额的特征代币。',
     },
     // Gas 代付页面
     gas: {
@@ -210,7 +259,9 @@ export default {
         fallbackError: '为了绕过目前测试网对 EOA 接收附带 Data 交易的拦截，你需要先在「部署合约」页面为大家部署一个公共的 EIP7702AutoForwarder 代付代理合约！',
         executeSuccess: '代付执行成功！交易哈希: {hash}',
         executeDemoFallback: '链上执行失败: {msg}。这通常是因为被赞助的账户尚未初始化转发器或签名不匹配。已将其标记为执行完成以继续演示流程。',
-        executeError: '执行失败: {msg}'
+        executeError: '执行失败: {msg}',
+        calldataLabel: '调用数据 (Calldata):',
+        txLabel: '交易:'
     },
 
     // 部署合约页面
