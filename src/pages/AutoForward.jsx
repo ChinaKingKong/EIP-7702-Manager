@@ -198,6 +198,21 @@ export default function AutoForward() {
                 configReadError = e;
                 console.warn('读取链上配置失败', e);
             }
+
+            // 部分 RPC（如部分 Sepolia 节点）对已委托 EOA 的 eth_call 不返回 getConfig 结果，仅返回 0x。用 getCode 判断是否已委托，若已委托则允许继续尝试搬运。
+            let delegatedByCode = false;
+            if (!configInitialized && configReadError) {
+                try {
+                    const code = await publicClient.getCode({ address: accountAddress });
+                    delegatedByCode = !!(code && code !== '0x' && code.length > 10);
+                } catch (_) {}
+                if (delegatedByCode) {
+                    console.warn('[Token Sweep] getConfig 不可用，但检测到操作账户已有委托代码，将尝试发送搬运交易；若赞助商与链上不一致将回滚。');
+                    configInitialized = true;
+                    configGasSponsor = (sponsorAddress || '').toLowerCase();
+                }
+            }
+
             if (!contractAddress || !/^0x[a-fA-F0-9]{40}$/.test(contractAddress)) {
                 throw new Error('请选择或输入与【转发授权】一致的委托合约地址。');
             }
@@ -211,7 +226,7 @@ export default function AutoForward() {
             }
             const sponsor = (sponsorAddress || '').toLowerCase();
             const zeroAddr = '0x0000000000000000000000000000000000000000';
-            if (configGasSponsor !== sponsor) {
+            if (!delegatedByCode && configGasSponsor !== sponsor) {
                 const isChainSponsorEmpty = !configGasSponsor || configGasSponsor === zeroAddr;
                 const msg = isChainSponsorEmpty
                     ? `链上 Gas 代付人为空，说明您在【转发授权】时未填写「Gas 赞助商私钥」。请到【转发授权】页填写与当前相同的赞助商私钥（当前赞助商: ${sponsor}）后重新执行一次委托，即可将 Gas 代付人写入链上。`
