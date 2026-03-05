@@ -40,7 +40,8 @@ export default function AutoForward() {
     // 交互状态
     const [isUpdating, setIsUpdating] = useState(false);
     const [isSweeping, setIsSweeping] = useState(false);
-    const [error, setError] = useState('');
+    const [configError, setConfigError] = useState('');
+    const [sweepError, setSweepError] = useState('');
     const [successMessage, setSuccessMessage] = useState('');
 
     // 组件挂载时获取已部署的合约
@@ -56,7 +57,7 @@ export default function AutoForward() {
     const loadConfig = async (userAddress, rpcUrl = null) => {
         try {
             setIsLoadingConfig(true);
-            setError('');
+            setConfigError('');
 
             let publicClient;
             if (rpcUrl) {
@@ -125,7 +126,7 @@ export default function AutoForward() {
 
     // 操作：处理 ETH 自动转发配置更新
     const handleUpdateConfig = async () => {
-        setError('');
+        setConfigError('');
         setSuccessMessage('');
         setIsUpdating(true);
 
@@ -227,9 +228,9 @@ export default function AutoForward() {
             console.error(err);
             const msg = err.message || '';
             if (msg.includes('External transactions to internal accounts cannot include data')) {
-                setError('节点拒绝了交易：当前账户尚未完成 EIP-7702 委托授权。请先前往左侧【转发授权】页面签署并执行初始委托，或者更换 RPC 节点重试。');
+                setConfigError('节点拒绝了交易：当前账户尚未完成 EIP-7702 委托授权。请先前往左侧【转发授权】页面签署并执行初始委托，或者更换 RPC 节点重试。');
             } else {
-                setError(msg || '更新配置失败');
+                setConfigError(msg || '更新配置失败');
             }
         } finally {
             setIsUpdating(false);
@@ -239,7 +240,7 @@ export default function AutoForward() {
     // 操作：搬运 ERC20 代币
     const handleSweepToken = async (targetToken = null) => {
         const sweepAddr = typeof targetToken === 'string' ? targetToken : tokenAddress;
-        setError('');
+        setSweepError('');
         setSuccessMessage('');
         setIsSweeping(sweepAddr); // Store the address to indicate which token is sweeping
 
@@ -306,9 +307,9 @@ export default function AutoForward() {
             console.error(err);
             const msg = err.message || '';
             if (msg.includes('External transactions to internal accounts cannot include data')) {
-                setError('节点拒绝了交易：当前账户尚未完成 EIP-7702 委托授权。请先前往左侧【转发授权】页面签署并执行初始委托，或者更换 RPC 节点重试。');
+                setSweepError('节点拒绝了交易：当前账户尚未完成 EIP-7702 委托授权。请先前往左侧【转发授权】页面签署并执行初始委托，或者更换 RPC 节点重试。');
             } else {
-                setError(msg || '代币搬运失败，请确认该代币余额不为 0 且 EOA 代理未过期。');
+                setSweepError(msg || '代币搬运失败，请确认该代币余额不为 0 且 EOA 代理未过期。');
             }
         } finally {
             setIsSweeping(false);
@@ -318,7 +319,7 @@ export default function AutoForward() {
     // 操作：扫描当前钱包的 ERC20 资产
     const handleScanTokens = async () => {
         setIsScanningTokens(true);
-        setError('');
+        setSweepError('');
         setSuccessMessage('');
         setDiscoveredTokens([]);
         try {
@@ -332,7 +333,7 @@ export default function AutoForward() {
 
             const supportedChains = [1, 11155111, 17000];
             if (!supportedChains.includes(chainId)) {
-                setError(`当前网络 (Chain ID: ${chainId}) 暂时不支持自动资产扫描，请手动输入合约地址。目前仅支持 Ethereum 主网、Sepolia 和 Holesky。`);
+                setSweepError(`当前网络 (Chain ID: ${chainId}) 暂时不支持自动资产扫描，请手动输入合约地址。目前仅支持 Ethereum 主网、Sepolia 和 Holesky。`);
                 return;
             }
 
@@ -345,7 +346,7 @@ export default function AutoForward() {
             }
         } catch (err) {
             console.error("Scanning failed", err);
-            setError(err.message || '扫描代币失败');
+            setSweepError(err.message || '扫描代币失败');
         } finally {
             setIsScanningTokens(false);
         }
@@ -445,13 +446,13 @@ export default function AutoForward() {
                         )}
                     </button>
 
-                    {error && !isUpdating && !isSweeping && (
+                    {configError && !isUpdating && (
                         <div className="alert alert-error" style={{ marginTop: '16px' }}>
                             <XCircle size={18} />
-                            <span>{error}</span>
+                            <span>{configError}</span>
                         </div>
                     )}
-                    {successMessage && !error && (
+                    {successMessage && !configError && !sweepError && (
                         <div className="alert alert-info" style={{ background: 'rgba(34, 197, 94, 0.1)', borderColor: 'var(--accent-green)', marginTop: '16px' }}>
                             <CheckCircle size={18} style={{ color: 'var(--accent-green)' }} />
                             <span style={{ color: 'var(--accent-green)', fontWeight: 600 }}>
@@ -507,10 +508,10 @@ export default function AutoForward() {
                         </div>
                     )}
 
-                    {error && !isUpdating && isSweeping === false && (
+                    {sweepError && !isUpdating && isSweeping === false && (
                         <div className="alert alert-error" style={{ marginBottom: '16px' }}>
                             <XCircle size={18} style={{ flexShrink: 0, marginTop: '2px' }} />
-                            <span style={{ wordBreak: 'break-all', fontSize: '13px', lineHeight: '1.4' }}>{error}</span>
+                            <span style={{ wordBreak: 'break-all', fontSize: '13px', lineHeight: '1.4' }}>{sweepError}</span>
                         </div>
                     )}
 
