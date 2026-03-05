@@ -8,9 +8,10 @@ The EIP-7702 Manager allows Externally Owned Accounts (EOAs) to temporarily act 
 
 * **EIP-7702 Authorization Management:** Grant, view, and revoke smart contract delegation authorizations for your EOA.
 * **Gas Sponsorship (Paymaster):** Experience zero-gas transactions. Deploy and interact with contracts without needing native ETH in the operating wallet.
-* **Auto-Forwarding / Sweeping:** Configure rules to automatically forward incoming native tokens (ETH) and ERC-20 assets to a designated cold wallet or vault.
-* **Multi-Chain Asset Scanner:** Integrated Ankr Advanced API to automatically discover and sweep all ERC-20 tokens across supported testnets (Sepolia, Holesky) and Mainnet.
-* **Contract Deployment:** Easily deploy the required `EIP7702AutoForwarder` contract directly from the dashboard.
+* **Auto-Forwarding / Sweeping:** Configure rules to automatically forward incoming native tokens (ETH). Supports optional custom recipient addresses for ERC-20 asset sweeps.
+* **Multi-Chain Asset Scanner:** Integrated Ankr Advanced API to automatically discover and sweep ERC-20 tokens across Sepolia, Holesky, and Mainnet.
+* **Optimized for Mainnet:** Enhanced deployment logic with pre-flight balance checks, gas estimation, and buffers to ensure stability on high-traffic networks.
+* **Premium UX/UI:** Smooth loading transitions, real-time toast notifications, and unified design aesthetics.
 * **Internationalization (i18n):** Full support for English and Simplified Chinese (简体中文).
 
 ## 🛠 Tech Stack
