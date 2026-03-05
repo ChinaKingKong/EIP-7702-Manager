@@ -206,8 +206,10 @@ export default function AutoForward() {
                 throw new Error(msg);
             }
 
+            // 交易层：赞助商 → 操作账户（赞助商付 Gas，调用操作账户的委托合约）
+            // 代币层：操作账户(转出方) → 代币接收地址(接收方)，由合约 sweepTokenTo 执行
             console.log(
-                `[Token Sweep] Sponsor: ${sponsorAddress}, Source account: ${accountAddress}, Token destination: ${finalRecipient}`
+                `[Token Sweep] 交易: 赞助商 ${sponsorAddress} → 操作账户 ${accountAddress} | 代币转出方: ${accountAddress}, 代币接收方: ${finalRecipient}`
             );
 
             const SWEEP_ABI = [{
@@ -256,6 +258,7 @@ export default function AutoForward() {
             }
 
             toast.success(t('forward.sweepSuccess') || 'Tokens swept successfully!');
+            console.log(`[Token Sweep] 交易成功 hash=${receipt.transactionHash}，代币应从 ${accountAddress} 转至 ${finalRecipient}，请在区块浏览器查看该笔交易的 ERC20 Transfer 事件确认。`);
 
             // Auto-refresh token list after sweep
             setTimeout(() => {
@@ -357,6 +360,12 @@ export default function AutoForward() {
             <div className="alert alert-info" style={{ marginBottom: '24px' }}>
                 <Shield size={18} />
                 <span>{t('forward.infoAlert')}</span>
+                <div style={{ marginTop: '8px', fontSize: '12px', opacity: 0.9 }}>
+                    {t('forward.sweepTxVsTokenHint') || '链上交易显示为「赞助商 → 操作账户」；代币实际从「转出钱包」转至「代币接收地址」。可在区块浏览器中查看该笔交易的 ERC20 Transfer 事件确认。'}
+                </div>
+                <div style={{ marginTop: '6px', fontSize: '12px', opacity: 0.9 }}>
+                    {t('forward.eip7702RequiredHint') || '若交易成功但无内部交易/代币未转移，说明当前网络或 RPC 未按 EIP-7702 执行对 EOA 的委托代码，请确认该链已激活 EIP-7702 并换用支持的 RPC。'}
+                </div>
             </div>
 
             {/* Sweep ERC20 Card */}

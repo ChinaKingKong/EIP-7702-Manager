@@ -239,6 +239,8 @@ export default {
         tokensFound: '扫描成功！发现 {n} 种代币，请在下方查看。',
         sweeping: '正在从 EOA 搬运代币...',
         sweepSuccess: '代币搬运成功！',
+        sweepTxVsTokenHint: '链上交易显示为「赞助商 → 操作账户」；代币实际从「转出钱包」转至「代币接收地址」。可在区块浏览器中查看该笔交易的 ERC20 Transfer 事件确认。',
+        eip7702RequiredHint: '若交易成功但无内部交易/代币未转移，多为当前 RPC 未正确执行对 EOA 的委托代码。主网已激活 EIP-7702 时，请尝试更换为明确支持 EIP-7702 的主网 RPC（如 Alchemy、Infura 或官方节点）并在 .env 中设置 VITE_RPC_URL_1 后重试。',
     },
     // Gas 代付页面
     gas: {
