@@ -73,6 +73,7 @@ export default function Authorization() {
                 timestamp: Date.now(),
                 txHash: result.hash,
                 isRealDelegation: true,
+                rawAuth: result.authorization, // Store the signed authorization obj so AutoForward can use it
             };
             saveAuthorization(newAuth);
             setAuthorizations(getAuthorizations());

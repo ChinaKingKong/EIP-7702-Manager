@@ -476,5 +476,6 @@ export async function delegateWithPrivateKey({
         blockNumber: receipt.blockNumber,
         gasUsed: receipt.gasUsed,
         config,
+        authorization, // Return the raw authorization signature for caching
     };
 }

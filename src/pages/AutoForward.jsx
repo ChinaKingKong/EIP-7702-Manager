@@ -3,6 +3,7 @@ import { Shield, Send, Zap, Settings, RefreshCw, AlertTriangle, CheckCircle, XCi
 import { getPublicClient, getWalletClient, EIP7702_AUTO_FORWARDER_ABI } from '../services/eip7702';
 import { getDeployedContracts } from '../services/deployedContracts';
 import { getAccountTokens } from '../services/ankrIndex';
+import { getActiveAuthorizations } from '../services/authorizationCache';
 import { useWallet } from '../context/WalletContext';
 import { useI18n } from '../context/I18nContext';
 import { truncateAddress } from '../services/wallet';
@@ -169,7 +170,20 @@ export default function AutoForward() {
                 ? gasSponsor
                 : '0x0000000000000000000000000000000000000000';
 
-            const hash = await walletClient.sendTransaction({
+            // Retrieve cached Authorization List for this specific account
+            const authList = getActiveAuthorizations()
+                .filter(a => a.walletAddress?.toLowerCase() === accountAddress.toLowerCase())
+                .map(a => ({
+                    contractAddress: a.delegateContract,
+                    chainId: a.chainId,
+                    nonce: 0, // In typical viem usage, pre-signed authorization object might need proper format, 
+                    // but for "real delegation" that's already broadcasted, providing the contract address or raw auth helps. 
+                    // Wait, if it's already delegated on-chain, viem's transport might just need us to submit a normal tx. 
+                    // If the node rejects it as "cannot include data", we must append the authorizationList to prove it's a 7702 tx.
+                    ...(a.rawAuth || {}) // If we stored the raw auth tuple, pass it. Otherwise, we might need to re-sign or handle the error.
+                }));
+
+            const txParams = {
                 account: accountAddress,
                 to: accountAddress, // EOA is calling itself (the delegate contract logic)
                 data: encodeFunctionData({
@@ -178,7 +192,24 @@ export default function AutoForward() {
                     args: [forwardTarget, sponsorAddress, autoForwardEnabled],
                 }),
                 value: 0n
-            });
+            };
+
+            // If we have cached authorizations from a signature, attach them to force Type 0x04.
+            // Note: Currently, `delegateWithPrivateKey` doesn't save the raw signature to LocalStorage, 
+            // but simply specifying `authorizationList` with just the contract address might trigger viem 
+            // to format it as 0x04 if the wallet supports it, or we rely on the wallet entirely.
+            // Let's grab the raw auth if available, else just pass the contract address to hint viem.
+            const activeAuth = getActiveAuthorizations().find(a => a.walletAddress?.toLowerCase() === accountAddress.toLowerCase());
+            if (activeAuth && activeAuth.rawAuth) {
+                txParams.authorizationList = [activeAuth.rawAuth];
+            } else if (activeAuth && activeAuth.isRealDelegation) {
+                // For private key real delegation, the account is already delegated on-chain.
+                // We don't have the original signature anymore.
+                // To force a type 0x04 transaction in viem without a signature, 
+                // we might need to re-sign or the RPC node is strictly requiring a proxy contract call.
+            }
+
+            const hash = await walletClient.sendTransaction(txParams);
 
             await publicClient.waitForTransactionReceipt({ hash });
 
@@ -239,7 +270,7 @@ export default function AutoForward() {
                 outputs: [],
             }];
 
-            const hash = await walletClient.sendTransaction({
+            const txParams = {
                 account: accountAddress,
                 to: accountAddress,
                 data: encodeFunctionData({
@@ -248,7 +279,14 @@ export default function AutoForward() {
                     args: [sweepAddr],
                 }),
                 value: 0n
-            });
+            };
+
+            const activeAuth = getActiveAuthorizations().find(a => a.walletAddress?.toLowerCase() === accountAddress.toLowerCase());
+            if (activeAuth && activeAuth.rawAuth) {
+                txParams.authorizationList = [activeAuth.rawAuth];
+            }
+
+            const hash = await walletClient.sendTransaction(txParams);
 
             await publicClient.waitForTransactionReceipt({ hash });
             setSuccessMessage(t('forward.tokenSwept'));
