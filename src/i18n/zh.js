@@ -28,6 +28,7 @@ export default {
         mainnet: 'Ethereum 主网',
         sepolia: 'Sepolia 测试网',
         holesky: 'Holesky 测试网',
+        copySuccess: '复制成功',
     },
 
     // 侧边栏 & 导航
@@ -149,6 +150,7 @@ export default {
         autoForward: '自动转发',
         enabledYes: '✅ 已开启',
         enabledNo: '❌ 未开启',
+        initialized: '已初始化',
         initializedYes: '✅ 是',
         initializedNo: '❌ 否',
         successMessage: '🎉 你的 EOA 现在是一个自动转发智能账户！往 ',

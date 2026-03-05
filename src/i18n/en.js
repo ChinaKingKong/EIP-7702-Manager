@@ -28,6 +28,7 @@ export default {
         mainnet: 'Ethereum Mainnet',
         sepolia: 'Sepolia Testnet',
         holesky: 'Holesky Testnet',
+        copySuccess: 'Copied to clipboard',
     },
 
     // Sidebar & Navigation
@@ -149,6 +150,7 @@ export default {
         autoForward: 'Auto-Forward',
         enabledYes: '✅ Enabled',
         enabledNo: '❌ Disabled',
+        initialized: 'Initialized',
         initializedYes: '✅ Yes',
         initializedNo: '❌ No',
         successMessage: '🎉 Your EOA is now an auto-forwarding smart account! ETH sent to ',

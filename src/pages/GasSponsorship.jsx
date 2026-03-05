@@ -6,6 +6,7 @@ import { useWallet } from '../context/WalletContext';
 import { useI18n } from '../context/I18nContext';
 import { truncateAddress } from '../services/wallet';
 import { encodeGasSponsorshipIntent, executeSponsoredIntent } from '../services/eip7702';
+import toast from 'react-hot-toast';
 
 export default function GasSponsorship() {
     const { isConnected, address, chainId, balance } = useWallet();
@@ -180,7 +181,9 @@ export default function GasSponsorship() {
     };
 
     const copyToClipboard = (text) => {
-        navigator.clipboard.writeText(text).catch(() => { });
+        navigator.clipboard.writeText(text).then(() => {
+            toast.success(t('common.copySuccess'));
+        }).catch(() => { });
     };
 
     const formatTime = (ts) => {

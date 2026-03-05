@@ -6,6 +6,7 @@ import { revokeAuthorization, delegateWithPrivateKey } from '../services/eip7702
 import { truncateAddress } from '../services/wallet';
 import { getDeployedContracts } from '../services/deployedContracts';
 import { getAuthorizations, saveAuthorization, updateAuthorization } from '../services/authorizationCache';
+import toast from 'react-hot-toast';
 
 export default function Authorization() {
     const { isConnected, address, chainId } = useWallet();
@@ -113,7 +114,9 @@ export default function Authorization() {
     };
 
     const copyToClipboard = (text) => {
-        navigator.clipboard.writeText(text).catch(() => { });
+        navigator.clipboard.writeText(text).then(() => {
+            toast.success(t('common.copySuccess'));
+        }).catch(() => { });
     };
 
     const formatTime = (ts) => {

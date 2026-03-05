@@ -7,6 +7,7 @@ import { useI18n } from '../context/I18nContext';
 import { CONTRACT_REGISTRY } from '../services/contractABI';
 import { saveDeployedContract } from '../services/deployedContracts';
 import { RPC_URLS } from '../config';
+import toast from 'react-hot-toast';
 
 const CHAINS = { 1: mainnet, 11155111: sepolia, 17000: holesky };
 
@@ -109,7 +110,11 @@ export default function DeployContract() {
         }
     };
 
-    const copyToClipboard = (text) => navigator.clipboard.writeText(text);
+    const copyToClipboard = (text) => {
+        navigator.clipboard.writeText(text).then(() => {
+            toast.success(t('common.copySuccess'));
+        }).catch(() => { });
+    };
 
     const getExplorerUrl = (hash, type = 'tx') => {
         const base = EXPLORERS[chainId] || 'https://sepolia.etherscan.io';

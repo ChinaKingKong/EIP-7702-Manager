@@ -1,5 +1,6 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { Toaster } from 'react-hot-toast';
 import { WalletProvider } from './context/WalletContext';
 import { I18nProvider } from './context/I18nContext';
 import Layout from './components/Layout';
@@ -13,6 +14,7 @@ export default function App() {
   return (
     <I18nProvider>
       <WalletProvider>
+        <Toaster position="top-center" toastOptions={{ style: { background: 'var(--bg-card)', color: 'var(--text-primary)', border: '1px solid var(--border-subtle)' } }} />
         <BrowserRouter>
           <Routes>
             <Route element={<Layout />}>
