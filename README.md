@@ -1,83 +1,73 @@
 # EIP-7702 Manager Dashboard
 
-A modern, decentralized application (dApp) built to manage and demonstrate the capabilities of Ethereum Improvement Proposal (EIP) 7702. 
+基于 EIP-7702 的委托与代币管理前端：支持 EOA 委托给智能合约、赞助商代付 Gas、以及将 EOA 持有的 ERC20 代币搬运到指定地址。
 
-The EIP-7702 Manager allows Externally Owned Accounts (EOAs) to temporarily act as Smart Contract Accounts during a transaction, enabling advanced features like gas sponsorship, transaction batching, and automated asset forwarding—all while maintaining the security and control of a standard wallet.
+## 功能概览
 
-## 🌟 Key Features
+* **转发授权**：使用转出钱包私钥 + 委托合约 + 转发目标，执行 EIP-7702 委托并初始化（或更新）链上配置。可选填写「Gas 赞助商私钥」，由赞助商支付 Gas 并将链上 Gas 代付人设为该赞助商，便于后续代币搬运。
+* **代币搬运**：仅支持赞助模式。填写转出钱包私钥、Gas 赞助商私钥（必填）、代币接收地址（必填），选择与转发授权一致的委托合约后，由赞助商代付 Gas 调用操作账户的 `sweepTokenTo(token, 接收地址)`，将 ERC20 从转出钱包转到指定地址。
+* **部署合约**：在支持的链上部署 EIP7702AutoForwarder 委托合约。
+* **Gas 代付**：EIP-712 + EIP-7702 的异步 Gas 赞助流程（签署意图、赞助方代付）。
+* **多链与 i18n**：支持 Ethereum 主网、Sepolia、Holesky；界面支持简体中文与英文。
 
-* **EIP-7702 Authorization Management:** Grant, view, and revoke smart contract delegation authorizations for your EOA.
-* **Gas Sponsorship (Paymaster):** Experience zero-gas transactions. Deploy and interact with contracts without needing native ETH in the operating wallet.
-* **Auto-Forwarding / Sweeping:** Configure rules to automatically forward incoming native tokens (ETH). Supports optional custom recipient addresses for ERC-20 asset sweeps.
-* **Multi-Chain Asset Scanner:** Integrated Ankr Advanced API to automatically discover and sweep ERC-20 tokens across Sepolia, Holesky, and Mainnet.
-* **Optimized for Mainnet:** Enhanced deployment logic with pre-flight balance checks, gas estimation, and buffers to ensure stability on high-traffic networks.
-* **Premium UX/UI:** Smooth loading transitions, real-time toast notifications, and unified design aesthetics.
-* **Internationalization (i18n):** Full support for English and Simplified Chinese (简体中文).
+## 技术栈
 
-## 🛠 Tech Stack
+* React 18 + Vite
+* 样式：自定义 CSS + CSS 变量（深色主题）
+* 链上交互：[Viem](https://viem.sh/)
+* 路由：React Router v6；通知：React Hot Toast；图标：Lucide React
 
-* **Frontend Framework:** React 18 + Vite
-* **Styling:** Custom CSS with CSS Variables (Dark theme optimized)
-* **Web3 Integration:** [Viem](https://viem.sh/) (for interacting with Ethereum/EVM chains)
-* **Routing:** React Router v6
-* **Notifications:** React Hot Toast
-* **Icons:** Lucide React
+## 快速开始
 
-## 🚀 Getting Started
+### 环境要求
 
-### Prerequisites
+* Node.js 18+
+* npm 或 yarn
 
-* Node.js (v18+ recommended)
-* npm or yarn
-* A Web3 Wallet (e.g., MetaMask, Rabby) connected to a supported testnet (Sepolia/Holesky).
+### 安装与运行
 
-### Installation
-
-1. **Clone the repository:**
+1. 克隆并安装依赖：
    ```bash
    git clone https://github.com/ChinaKingKong/EIP-7702-Manager.git
    cd EIP-7702-Manager
-   ```
-
-2. **Install dependencies:**
-   ```bash
    npm install
    ```
 
-3. **Configure Environment Variables:**
-   Create a `.env` file in the root directory based on `.env.example` (or configure directly):
+2. 配置环境变量（根目录 `.env`，参考 `.env.example`）：
    ```env
-   # --- Vite Client Environment Variables ---
-   VITE_RPC_URL_1=https://rpc.ankr.com/eth/YOUR_API_KEY
-   VITE_RPC_URL_11155111=https://rpc.ankr.com/eth_sepolia/YOUR_API_KEY
-   VITE_RPC_URL_17000=https://rpc.ankr.com/eth_holesky/YOUR_API_KEY
+   # 主网 RPC（代币搬运建议使用支持 EIP-7702 的节点，如 Infura）
+   VITE_RPC_URL_1=https://mainnet.infura.io/v3/YOUR_PROJECT_ID
+   # 测试网（可选）
+   VITE_RPC_URL_11155111=https://rpc.ankr.com/eth_sepolia
+   VITE_RPC_URL_17000=https://rpc.ankr.com/eth_holesky
    ```
 
-4. **Start the development server:**
+3. 启动开发服务：
    ```bash
    npm run dev
    ```
-   The app will be running at `http://localhost:5173`.
+   访问 `http://localhost:5173`。
 
-## 🌐 Deployment
+### 构建与部署
 
-This project uses `BrowserRouter`. If deploying to a static host like Vercel or Nginx, you must configure rewrite rules to point all routes to `index.html`.
+```bash
+npm run build
+```
 
-* **Vercel:** A `vercel.json` file is already included in the repository. Simply connect your GitHub repo to Vercel and it will work out of the box.
-* **Nginx:** Configure your location block:
-  ```nginx
-  location / {
-    try_files $uri $uri/ /index.html;
-  }
-  ```
+使用 `BrowserRouter`，静态部署时需将路由回退到 `index.html`（如 Vercel 已包含 `vercel.json`；Nginx 使用 `try_files $uri $uri/ /index.html;`）。
 
-## 🔐 Security Notice
+## 使用说明（代币搬运）
 
-This dashboard interacts with experimental EIP-7702 features. 
-* Always use **Testnet networks** (Sepolia/Holesky) and **Test wallets** when experimenting.
-* Do not enter the private key of a wallet containing real mainnet assets.
-* Understand that delegating your EOA to a smart contract grants that contract complete control over your account's execution context during the transaction.
+1. 在 **转发授权** 页：填写转出钱包私钥、选择委托合约、填写转发目标；**若要在代币搬运时由赞助商代付 Gas，必须填写与搬运页相同的「Gas 赞助商私钥」**，否则链上 Gas 代付人为空，搬运会报错。
+2. 在 **代币搬运** 页：填写转出钱包私钥、Gas 赞助商私钥（必填）、代币接收地址（必填），选择与转发授权相同的委托合约，扫描或输入代币合约地址后执行搬运。
+3. 若交易成功但无内部交易/代币未转移：多为当前 RPC 未正确执行对 EOA 的委托代码。主网已激活 EIP-7702 时，可更换为明确支持 EIP-7702 的主网 RPC（如 Infura）并设置 `VITE_RPC_URL_1` 后重试。
 
-## 📄 License
+## 安全提示
 
-MIT License
+* 本应用涉及 EIP-7702 实验特性与私钥输入，请优先在测试网与测试钱包上使用。
+* 勿将持有主网资产的钱包私钥填入。
+* 委托 EOA 给合约后，该合约在交易上下文中可代表 EOA 执行逻辑，请仅委托可信合约。
+
+## License
+
+MIT
