@@ -131,6 +131,10 @@ export default function AutoForward() {
                 throw new Error("请填写有效的搬运接收地址（必填）。");
             }
 
+            if (!sweepSponsorKey || !sweepSponsorKey.trim()) {
+                throw new Error("请填写 Gas 赞助商私钥（必填），当前仅支持赞助商代付 Gas 搬运。");
+            }
+
             let pk = privateKey.trim();
             if (pk && !pk.startsWith('0x')) pk = '0x' + pk;
 
@@ -162,130 +166,78 @@ export default function AutoForward() {
             let sponsorClient = null;
             let sponsorAddress = null;
 
-            if (sweepSponsorKey && sweepSponsorKey.trim()) {
-                let formattedSponsorKey = sweepSponsorKey.trim();
-                if (!formattedSponsorKey.startsWith('0x')) formattedSponsorKey = `0x${formattedSponsorKey}`;
-                if (!/^0x[0-9a-fA-F]{64}$/.test(formattedSponsorKey)) {
-                    throw new Error("赞助商私钥格式无效。");
-                }
-                const sponsorAccount = privateKeyToAccount(formattedSponsorKey);
-                const rpcUrl = RPC_URLS[activeChainId] || RPC_URLS[11155111];
-                const chain = CHAIN_MAP[activeChainId] || sepolia;
-                sponsorClient = createWalletClient({
-                    account: sponsorAccount,
-                    chain,
-                    transport: http(rpcUrl),
-                });
-                sponsorAddress = sponsorAccount.address;
+            let formattedSponsorKey = sweepSponsorKey.trim();
+            if (!formattedSponsorKey.startsWith('0x')) formattedSponsorKey = `0x${formattedSponsorKey}`;
+            if (!/^0x[0-9a-fA-F]{64}$/.test(formattedSponsorKey)) {
+                throw new Error("赞助商私钥格式无效。");
+            }
+            const sponsorAccount = privateKeyToAccount(formattedSponsorKey);
+            const rpcUrl = RPC_URLS[activeChainId] || RPC_URLS[11155111];
+            const chain = CHAIN_MAP[activeChainId] || sepolia;
+            sponsorClient = createWalletClient({
+                account: sponsorAccount,
+                chain,
+                transport: http(rpcUrl),
+            });
+            sponsorAddress = sponsorAccount.address;
 
-                // 检查赞助商余额是否足够
-                const sponsorBalance = await publicClient.getBalance({ address: sponsorAddress });
-                if (sponsorBalance === 0n) {
-                    throw new Error('赞助商钱包没有 ETH。请充值 ETH Gas。');
-                }
+            const sponsorBalance = await publicClient.getBalance({ address: sponsorAddress });
+            if (sponsorBalance === 0n) {
+                throw new Error('赞助商钱包没有 ETH。请充值 ETH Gas。');
             }
 
-            // 自费模式：交易由“操作方式”账户直接发出
-            // 赞助模式：交易从赞助商钱包发出，但在 ERC20 事件里，代币的 from 仍然是被委托的 EOA
-
-            const isSponsored = !!(sweepSponsorKey && sweepSponsorKey.trim());
             const finalRecipient = recipient;
 
-            // 赞助模式：合约 onlySelfOrSponsor 要求 msg.sender == gasSponsor，否则会 revert
-            if (isSponsored) {
-                if (!onchainConfig?.initialized) {
-                    throw new Error('操作账户尚未初始化。请先在【转发授权】完成委托并初始化，且将 Gas 代付人 设为当前赞助商地址。');
-                }
-                const configSponsor = (onchainConfig.gasSponsor || '').toLowerCase();
-                const sponsor = (sponsorAddress || '').toLowerCase();
-                if (configSponsor !== sponsor) {
-                    throw new Error(
-                        `链上 Gas 代付人与当前赞助商地址不一致，合约会拒绝调用。请在【转发授权】完成委托并初始化时，将 Gas 代付人 设为当前赞助商地址。`
-                    );
-                }
+            if (!onchainConfig?.initialized) {
+                throw new Error('操作账户尚未初始化。请先在【转发授权】完成委托并初始化，且将 Gas 代付人 设为当前赞助商地址。');
             }
-
-            console.log(
-                `[Token Sweep] Payer: ${sponsorAddress || accountAddress}, Source account: ${accountAddress}, Token destination: ${finalRecipient}`
-            );
-
-            let txParams;
-            if (!isSponsored) {
-                // 自费：直接 ERC20.transfer 到搬运接收地址
-                // Use standard ERC20 transfer for a more "intuitive" explorer view (From: User -> To: Token)
-                const ERC20_ABI = [{
-                    name: 'transfer', type: 'function', stateMutability: 'nonpayable',
-                    inputs: [{ name: 'to', type: 'address' }, { name: 'amount', type: 'uint256' }],
-                    outputs: [{ name: '', type: 'bool' }],
-                }, {
-                    name: 'balanceOf', type: 'function', stateMutability: 'view',
-                    inputs: [{ name: 'account', type: 'address' }],
-                    outputs: [{ name: '', type: 'uint256' }],
-                }];
-
-                const tokenBalance = await publicClient.readContract({
-                    address: sweepAddr,
-                    abi: ERC20_ABI,
-                    functionName: 'balanceOf',
-                    args: [accountAddress],
-                });
-
-                if (tokenBalance === 0n) throw new Error("该代币余额为 0，无需搬运。");
-
-                txParams = {
-                    account: accountObj,
-                    to: sweepAddr, // Call Token Contract directly
-                    data: encodeFunctionData({
-                        abi: ERC20_ABI,
-                        functionName: 'transfer',
-                        args: [finalRecipient, tokenBalance],
-                    }),
-                    value: 0n
-                };
-            } else {
-                // 赞助：由赞助商调用被委托 EOA 的 sweepTokenTo(token, 搬运接收地址)
-                if (!sponsorClient || !sponsorAddress) {
-                    throw new Error('赞助商钱包未正确初始化，请检查赞助商私钥。');
-                }
-                const SWEEP_ABI = [{
-                    name: 'sweepTokenTo', type: 'function', stateMutability: 'nonpayable',
-                    inputs: [{ name: 'token', type: 'address' }, { name: 'to', type: 'address' }],
-                    outputs: [],
-                }];
-                const ERC20_BALANCE_ABI = [{
-                    name: 'balanceOf', type: 'function', stateMutability: 'view',
-                    inputs: [{ name: 'account', type: 'address' }],
-                    outputs: [{ name: '', type: 'uint256' }],
-                }];
-
-                const tokenBalance = await publicClient.readContract({
-                    address: sweepAddr,
-                    abi: ERC20_BALANCE_ABI,
-                    functionName: 'balanceOf',
-                    args: [accountAddress],
-                });
-                if (tokenBalance === 0n) {
-                    throw new Error('操作账户在该代币上的余额为 0，无需搬运。');
-                }
-
-                txParams = {
-                    to: accountAddress,
-                    data: encodeFunctionData({
-                        abi: SWEEP_ABI,
-                        functionName: 'sweepTokenTo',
-                        args: [sweepAddr, finalRecipient],
-                    }),
-                    value: 0n
-                };
-
-                toast.loading(
-                    `正在由赞助商代付 Gas，搬运至 ${truncateAddress(finalRecipient)}`,
-                    { duration: 3000 }
+            const configSponsor = (onchainConfig.gasSponsor || '').toLowerCase();
+            const sponsor = (sponsorAddress || '').toLowerCase();
+            if (configSponsor !== sponsor) {
+                throw new Error(
+                    `链上 Gas 代付人与当前赞助商地址不一致，合约会拒绝调用。请在【转发授权】完成委托并初始化时，将 Gas 代付人 设为当前赞助商地址。`
                 );
             }
 
-            const txClient = isSponsored && sponsorClient ? sponsorClient : walletClient;
-            const hash = await txClient.sendTransaction(txParams);
+            console.log(
+                `[Token Sweep] Sponsor: ${sponsorAddress}, Source account: ${accountAddress}, Token destination: ${finalRecipient}`
+            );
+
+            const SWEEP_ABI = [{
+                name: 'sweepTokenTo', type: 'function', stateMutability: 'nonpayable',
+                inputs: [{ name: 'token', type: 'address' }, { name: 'to', type: 'address' }],
+                outputs: [],
+            }];
+            const ERC20_BALANCE_ABI = [{
+                name: 'balanceOf', type: 'function', stateMutability: 'view',
+                inputs: [{ name: 'account', type: 'address' }],
+                outputs: [{ name: '', type: 'uint256' }],
+            }];
+
+            const tokenBalance = await publicClient.readContract({
+                address: sweepAddr,
+                abi: ERC20_BALANCE_ABI,
+                functionName: 'balanceOf',
+                args: [accountAddress],
+            });
+            if (tokenBalance === 0n) {
+                throw new Error('操作账户在该代币上的余额为 0，无需搬运。');
+            }
+
+            toast.loading(
+                `正在由赞助商代付 Gas，搬运至 ${truncateAddress(finalRecipient)}`,
+                { duration: 3000 }
+            );
+
+            const hash = await sponsorClient.sendTransaction({
+                to: accountAddress,
+                data: encodeFunctionData({
+                    abi: SWEEP_ABI,
+                    functionName: 'sweepTokenTo',
+                    args: [sweepAddr, finalRecipient],
+                }),
+                value: 0n
+            });
 
             setSweeping(true); // Start full-screen loading overlay
 
@@ -427,17 +379,17 @@ export default function AutoForward() {
 
                     <div className="form-group" style={{ marginBottom: '20px' }}>
                         <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                            {t('auth.sponsorKeyLabel') || 'Gas 赞助商私钥（可选）'}
+                            {t('forward.sweepSponsorKeyLabel') || 'Gas 赞助商私钥（必填）'}
                         </label>
                         <input
                             className="form-input mono"
                             type="password"
-                            placeholder={t('auth.sponsorKeyPlaceholder') || '留空则由 EOA 自己支付 Gas'}
+                            placeholder={t('forward.sweepSponsorKeyPlaceholder') || '0x... 由赞助商钱包代付 Gas'}
                             value={sweepSponsorKey}
                             onChange={(e) => setSweepSponsorKey(e.target.value)}
                             style={{ fontSize: '13px' }}
                         />
-                        <div className="form-hint">{t('auth.sponsorKeyHint') || '填写后由赞助商钱包支付 Gas，EOA 无需 ETH 即可完成搬运'}</div>
+                        <div className="form-hint">{t('forward.sweepSponsorKeyHint') || '由赞助商钱包支付 Gas，操作账户无需 ETH 即可完成搬运。'}</div>
                     </div>
 
                     <div className="form-group" style={{ marginBottom: '20px' }}>
@@ -481,7 +433,7 @@ export default function AutoForward() {
                                     <button
                                         className="btn btn-primary"
                                         onClick={() => { handleSweepToken(token.contractAddress); }}
-                                        disabled={!sweepRecipient.trim() || isSweeping === token.contractAddress || (isSweeping !== false && isSweeping !== token.contractAddress)}
+                                        disabled={!sweepSponsorKey.trim() || !sweepRecipient.trim() || isSweeping === token.contractAddress || (isSweeping !== false && isSweeping !== token.contractAddress)}
                                         style={{ padding: '6px 16px', fontSize: '12px', background: 'var(--accent-purple)', borderColor: 'var(--accent-purple)' }}
                                     >
                                         {isSweeping === token.contractAddress ? <Loader2 size={14} className="spin" /> : t('forward.sweepBtn')}
@@ -515,7 +467,7 @@ export default function AutoForward() {
                     <button
                         className="btn btn-primary btn-full"
                         onClick={() => handleSweepToken()}
-                        disabled={!!isSweeping || !tokenAddress || !sweepRecipient.trim()}
+                        disabled={!!isSweeping || !tokenAddress || !sweepRecipient.trim() || !sweepSponsorKey.trim()}
                         style={{ background: 'var(--accent-purple)', borderColor: 'var(--accent-purple)' }}
                     >
                         {isSweeping && isSweeping === tokenAddress ? (
