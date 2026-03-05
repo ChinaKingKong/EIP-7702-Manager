@@ -212,7 +212,7 @@ export default {
 
     // Auto-Forward Configuration page
     forward: {
-        infoAlert: 'Configure auto-forwarding for your EIP-7702 delegated wallet. Received ETH will be automatically forwarded, and ERC20 tokens can be swept manually.',
+        infoAlert: 'Received ETH will be automatically forwarded, and ERC20 tokens can be swept manually.',
         configTitle: 'Forwarding Configuration',
         selectContract: 'Delegate Contract',
         chooseContract: 'Select a deployed contract...',

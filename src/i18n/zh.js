@@ -171,7 +171,7 @@ export default {
 
     // 自动转发配置页面
     forward: {
-        infoAlert: '配置 EIP-7702 委托钱包的自动转发功能。收到的 ETH 将自动转发，ERC20 代币可手动搬运。',
+        infoAlert: '收到的 ETH 将自动转发，ERC20 代币可手动搬运。',
         configTitle: '转发配置',
         selectContract: '委托合约',
         chooseContract: '选择已部署的合约...',
