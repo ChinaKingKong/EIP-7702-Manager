@@ -1,16 +1,82 @@
-# React + Vite
+# EIP-7702 Manager Dashboard
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A modern, decentralized application (dApp) built to manage and demonstrate the capabilities of Ethereum Improvement Proposal (EIP) 7702. 
 
-Currently, two official plugins are available:
+The EIP-7702 Manager allows Externally Owned Accounts (EOAs) to temporarily act as Smart Contract Accounts during a transaction, enabling advanced features like gas sponsorship, transaction batching, and automated asset forwarding—all while maintaining the security and control of a standard wallet.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## 🌟 Key Features
 
-## React Compiler
+* **EIP-7702 Authorization Management:** Grant, view, and revoke smart contract delegation authorizations for your EOA.
+* **Gas Sponsorship (Paymaster):** Experience zero-gas transactions. Deploy and interact with contracts without needing native ETH in the operating wallet.
+* **Auto-Forwarding / Sweeping:** Configure rules to automatically forward incoming native tokens (ETH) and ERC-20 assets to a designated cold wallet or vault.
+* **Multi-Chain Asset Scanner:** Integrated Ankr Advanced API to automatically discover and sweep all ERC-20 tokens across supported testnets (Sepolia, Holesky) and Mainnet.
+* **Contract Deployment:** Easily deploy the required `EIP7702AutoForwarder` contract directly from the dashboard.
+* **Internationalization (i18n):** Full support for English and Simplified Chinese (简体中文).
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## 🛠 Tech Stack
 
-## Expanding the ESLint configuration
+* **Frontend Framework:** React 18 + Vite
+* **Styling:** Custom CSS with CSS Variables (Dark theme optimized)
+* **Web3 Integration:** [Viem](https://viem.sh/) (for interacting with Ethereum/EVM chains)
+* **Routing:** React Router v6
+* **Notifications:** React Hot Toast
+* **Icons:** Lucide React
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+## 🚀 Getting Started
+
+### Prerequisites
+
+* Node.js (v18+ recommended)
+* npm or yarn
+* A Web3 Wallet (e.g., MetaMask, Rabby) connected to a supported testnet (Sepolia/Holesky).
+
+### Installation
+
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/ChinaKingKong/EIP-7702-Manager.git
+   cd EIP-7702-Manager
+   ```
+
+2. **Install dependencies:**
+   ```bash
+   npm install
+   ```
+
+3. **Configure Environment Variables:**
+   Create a `.env` file in the root directory based on `.env.example` (or configure directly):
+   ```env
+   # --- Vite Client Environment Variables ---
+   VITE_RPC_URL_1=https://rpc.ankr.com/eth/YOUR_API_KEY
+   VITE_RPC_URL_11155111=https://rpc.ankr.com/eth_sepolia/YOUR_API_KEY
+   VITE_RPC_URL_17000=https://rpc.ankr.com/eth_holesky/YOUR_API_KEY
+   ```
+
+4. **Start the development server:**
+   ```bash
+   npm run dev
+   ```
+   The app will be running at `http://localhost:5173`.
+
+## 🌐 Deployment
+
+This project uses `BrowserRouter`. If deploying to a static host like Vercel or Nginx, you must configure rewrite rules to point all routes to `index.html`.
+
+* **Vercel:** A `vercel.json` file is already included in the repository. Simply connect your GitHub repo to Vercel and it will work out of the box.
+* **Nginx:** Configure your location block:
+  ```nginx
+  location / {
+    try_files $uri $uri/ /index.html;
+  }
+  ```
+
+## 🔐 Security Notice
+
+This dashboard interacts with experimental EIP-7702 features. 
+* Always use **Testnet networks** (Sepolia/Holesky) and **Test wallets** when experimenting.
+* Do not enter the private key of a wallet containing real mainnet assets.
+* Understand that delegating your EOA to a smart contract grants that contract complete control over your account's execution context during the transaction.
+
+## 📄 License
+
+MIT License
