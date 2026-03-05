@@ -264,7 +264,7 @@ export default {
         sweepSponsorKeyLabel: 'Gas Sponsor Private Key (Required)',
         sweepSponsorKeyPlaceholder: '0x... Sponsor pays gas',
         sweepSponsorKeyHint: 'Sponsor wallet pays gas; operation account needs no ETH.',
-        sweepRecipientLabel: 'Sweep Recipient Address (Required)',
+        sweepRecipientLabel: 'Token Recipient Address (Required)',
         sweepRecipientPlaceholder: '0x... (Required, tokens will be sent to this address)',
         sweepRecipientHint: 'Tokens will be sent to this address. Please verify carefully.',
         tokenSwept: 'Token swept successfully!',

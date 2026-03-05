@@ -125,7 +125,7 @@ export default function AutoForward() {
 
             const recipient = sweepRecipient.trim();
             if (!recipient || !/^0x[a-fA-F0-9]{40}$/.test(recipient)) {
-                throw new Error("请填写有效的搬运接收地址（必填）。");
+                throw new Error("请填写有效的代币接收地址（必填）。");
             }
 
             if (!sweepSponsorKey || !sweepSponsorKey.trim()) {
@@ -398,7 +398,7 @@ export default function AutoForward() {
 
                     <div className="form-group" style={{ marginBottom: '20px' }}>
                         <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                            {t('forward.sweepRecipientLabel') || '搬运接收地址（必填）'}
+                            {t('forward.sweepRecipientLabel') || '代币接收地址（必填）'}
                         </label>
                         <input
                             className="form-input mono"

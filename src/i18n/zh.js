@@ -223,7 +223,7 @@ export default {
         sweepSponsorKeyLabel: 'Gas 赞助商私钥（必填）',
         sweepSponsorKeyPlaceholder: '0x... 由赞助商钱包代付 Gas',
         sweepSponsorKeyHint: '由赞助商钱包支付 Gas，操作账户无需 ETH 即可完成搬运。',
-        sweepRecipientLabel: '搬运接收地址（必填）',
+        sweepRecipientLabel: '代币接收地址（必填）',
         sweepRecipientPlaceholder: '0x...（必填，代币将转入此地址）',
         sweepRecipientHint: '代币将转入此地址，请仔细核对。',
         tokenSwept: '代币搬运成功！',
