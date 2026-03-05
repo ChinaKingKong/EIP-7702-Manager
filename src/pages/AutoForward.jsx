@@ -414,7 +414,7 @@ export default function AutoForward() {
                             value={privateKey}
                             onChange={(e) => setPrivateKey(e.target.value)}
                         />
-                        <div className="alert alert-error" style={{ marginTop: '10px', padding: '10px 14px', fontSize: '12px', lineHeight: '1.5' }}>
+                        <div className="alert alert-warning" style={{ marginTop: '10px', padding: '10px 14px', fontSize: '12px', lineHeight: '1.5' }}>
                             <AlertTriangle size={14} style={{ flexShrink: 0, marginTop: '2px' }} />
                             <span>{t('forward.pkRequiredHint') || '搬运代币需要输入 EOA 私钥。MetaMask 等浏览器钱包暂不支持 EIP-7702 签名，仅连接钱包无法完成搬运操作。'}</span>
                         </div>
