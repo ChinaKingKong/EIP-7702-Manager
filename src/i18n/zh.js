@@ -277,6 +277,7 @@ export default {
     // 部署合约页面
     deploy: {
         infoAlert: '将 EIP-7702 委托合约部署到区块链。请先连接钱包并切换到目标网络。',
+        unsupportedChain: '不支持的网络',
         deployContract: '部署合约',
         selectContract: '选择合约',
         customContract: '自定义合约（粘贴 ABI 和 Bytecode）',

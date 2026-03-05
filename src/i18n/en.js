@@ -279,6 +279,7 @@ export default {
     // Deploy Contract page
     deploy: {
         infoAlert: 'Deploy the EIP-7702 delegate contract to the blockchain. Connect your wallet and switch to the desired network before deploying.',
+        unsupportedChain: 'Unsupported Network',
         deployContract: 'Deploy Contract',
         selectContract: 'Select Contract',
         customContract: 'Custom Contract (Paste ABI & Bytecode)',

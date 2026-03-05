@@ -67,11 +67,11 @@ export default function DeployContract() {
         setStep(2);
 
         try {
-            const chain = CHAINS[chainId] || sepolia;
+            const chain = CHAINS[chainId];
+            if (!chain) {
+                throw new Error(t('deploy.unsupportedChain') || `Unsupported Chain ID: ${chainId}`);
+            }
             const rpcUrl = RPC_URLS[chainId];
-
-            const abi = isCustom ? parsedCustomAbi : selectedContract.abi;
-            const bytecode = isCustom ? customBytecode.trim() : selectedContract.bytecode;
 
             const walletClient = createWalletClient({
                 chain,
@@ -84,10 +84,45 @@ export default function DeployContract() {
                 transport: rpcUrl ? http(rpcUrl) : custom(window.ethereum),
             });
 
+            // --- Pre-deployment Checks ---
+            const balance = await publicClient.getBalance({ address });
+
+            // For deployment, data is the bytecode
+            const abi = isCustom ? parsedCustomAbi : selectedContract.abi;
+            const bytecode = isCustom ? customBytecode.trim() : selectedContract.bytecode;
+
+            console.log("Estimating gas for deployment...");
+            let gasLimit;
+            try {
+                gasLimit = await publicClient.estimateGas({
+                    account: address,
+                    data: bytecode,
+                });
+                // Add 20% buffer to gas limit
+                gasLimit = (gasLimit * 120n) / 100n;
+            } catch (estErr) {
+                console.warn("Gas estimation failed, using fallback", estErr);
+                gasLimit = 3000000n; // fallback to 3M
+            }
+
+            const { maxFeePerGas } = await publicClient.estimateFeesPerGas();
+            const currentGasPrice = maxFeePerGas || await publicClient.getGasPrice();
+            const estimatedCost = gasLimit * currentGasPrice;
+
+            console.log(`Deployment Balance: ${balance}, Estimated Cost: ${estimatedCost}, Gas Limit: ${gasLimit}`);
+
+            if (balance < estimatedCost) {
+                const req = Number(estimatedCost) / 1e18;
+                const avl = Number(balance) / 1e18;
+                throw new Error(`Insufficient funds. Required: ~${req.toFixed(5)} ETH, Available: ${avl.toFixed(5)} ETH (including gas)`);
+            }
+            // --- End Pre-checks ---
+
             const hash = await walletClient.deployContract({
                 abi,
                 bytecode,
                 account: address,
+                gas: gasLimit, // Use our buffered estimation
             });
 
             setTxHash(hash);
@@ -103,7 +138,8 @@ export default function DeployContract() {
             setStep(3);
         } catch (err) {
             console.error('Deploy error:', err);
-            setError(err.shortMessage || err.message || t('deploy.failed'));
+            const errMsg = err.shortMessage || err.message || t('deploy.failed');
+            setError(errMsg);
             setStep(1);
         } finally {
             setDeploying(false);
