@@ -41,6 +41,7 @@
    VITE_RPC_URL_11155111=https://rpc.ankr.com/eth_sepolia
    VITE_RPC_URL_17000=https://rpc.ankr.com/eth_holesky
    ```
+   **注意**：`VITE_*` 在构建时注入，修改 `.env` 后必须重新执行 `npm run build`（或 `npm run dev` 会热加载）后才会生效。
 
 3. 启动开发服务：
    ```bash

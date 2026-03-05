@@ -143,6 +143,9 @@ export default function AutoForward() {
             const accountAddress = account.address;
             const rpcUrl = RPC_URLS[activeChainId] || RPC_URLS[11155111];
             const chain = CHAIN_MAP[activeChainId] || sepolia;
+            // 调试：确认实际使用的 RPC（改 .env 后需重新 npm run build 才会生效）
+            const rpcDisplay = rpcUrl ? rpcUrl.replace(/\/v3\/[a-f0-9]+/i, '/v3/***').replace(/\/[a-f0-9]{64}$/i, '/***') : 'default';
+            console.log('[Token Sweep] 当前链', activeChainId, 'RPC:', rpcDisplay);
             const publicClient = createPublicClient({ chain, transport: http(rpcUrl) });
 
             // 可选：使用赞助商私钥，通过 EIP-7702 原生机制代扣 Gas
