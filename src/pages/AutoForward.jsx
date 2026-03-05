@@ -185,6 +185,7 @@ export default function AutoForward() {
             }];
             let configInitialized = false;
             let configGasSponsor = '';
+            let configReadError = null;
             try {
                 const configResult = await publicClient.readContract({
                     address: accountAddress,
@@ -194,13 +195,19 @@ export default function AutoForward() {
                 configInitialized = configResult[3];
                 configGasSponsor = (configResult[1] || '').toLowerCase();
             } catch (e) {
+                configReadError = e;
                 console.warn('读取链上配置失败', e);
             }
             if (!contractAddress || !/^0x[a-fA-F0-9]{40}$/.test(contractAddress)) {
                 throw new Error('请选择或输入与【转发授权】一致的委托合约地址。');
             }
             if (!configInitialized) {
-                throw new Error('操作账户尚未初始化。请先在【转发授权】完成委托并初始化，且将 Gas 代付人 设为当前赞助商地址。');
+                const chainName = activeChainId === 1 ? 'Ethereum 主网' : activeChainId === 11155111 ? 'Sepolia' : activeChainId === 17000 ? 'Holesky' : `链 ${activeChainId}`;
+                const isNoData = configReadError && (String(configReadError.message || '').includes('no data') || String(configReadError.message || '').includes('0x'));
+                const msg = isNoData
+                    ? `当前网络（${chainName}）上该操作账户尚未完成 EIP-7702 委托，无法读取配置。请先在【转发授权】页选择同一网络并完成委托与初始化，且将 Gas 代付人 设为当前赞助商地址。`
+                    : '操作账户尚未初始化。请先在【转发授权】完成委托并初始化，且将 Gas 代付人 设为当前赞助商地址。';
+                throw new Error(msg);
             }
             const sponsor = (sponsorAddress || '').toLowerCase();
             const zeroAddr = '0x0000000000000000000000000000000000000000';
