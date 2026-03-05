@@ -230,6 +230,47 @@ export async function revokeAuthorization({ account, chainId = 1 }) {
     return { hash, receipt, authorization: authToZero };
 }
 
+/**
+ * Revoke an EIP-7702 authorization using a private key.
+ * Sends a type 0x04 transaction directly to the RPC.
+ *
+ * @param {Object} params
+ * @param {string} params.privateKey - Account's private key
+ * @param {number} params.chainId
+ * @returns {Object} { hash, receipt }
+ */
+export async function revokeWithPrivateKey({ privateKey, chainId = 11155111 }) {
+    if (!privateKey) throw new Error('Missing private key');
+
+    if (!privateKey.startsWith('0x')) privateKey = `0x${privateKey}`;
+    const account = privateKeyToAccount(privateKey);
+    const chain = CHAIN_MAP[chainId];
+    const rpcUrl = RPC_URLS[chainId];
+
+    const publicClient = createPublicClient({ chain, transport: http(rpcUrl) });
+    const walletClient = createWalletClient({ account, chain, transport: http(rpcUrl) });
+
+    // 1. Sign an authorization pointing to the zero address
+    const authToZero = await walletClient.signAuthorization({
+        contractAddress: '0x0000000000000000000000000000000000000000',
+    });
+
+    // 2. Broadcast a transaction applying this zero-address authorization
+    const hash = await walletClient.sendTransaction({
+        authorizationList: [authToZero],
+        to: account.address,
+        value: 0n,
+    });
+
+    const receipt = await publicClient.waitForTransactionReceipt({ hash });
+
+    if (receipt.status !== 'success') {
+        throw new Error('Revocation transaction reverted');
+    }
+
+    return { hash, receipt };
+}
+
 // ==========================================
 // 4. Gas Sponsorship (Async Intent Flow)
 // ==========================================

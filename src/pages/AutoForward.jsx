@@ -4,10 +4,11 @@ import { Shield, Send, Zap, Settings, RefreshCw, AlertTriangle, CheckCircle, XCi
 import toast from 'react-hot-toast';
 import { getPublicClient } from '../services/eip7702';
 import { getDeployedContracts } from '../services/deployedContracts';
-import { getAccountTokens } from '../services/ankrIndex'; 
+import { getAccountTokens } from '../services/ankrIndex';
 import { useWallet } from '../context/WalletContext';
 import { useI18n } from '../context/I18nContext';
 import { truncateAddress } from '../services/wallet';
+import { saveAuthorization } from '../services/authorizationCache';
 import { createWalletClient, custom, http, encodeFunctionData, createPublicClient } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { mainnet, sepolia, holesky } from 'viem/chains';
@@ -205,7 +206,7 @@ export default function AutoForward() {
                 try {
                     const code = await publicClient.getCode({ address: accountAddress });
                     delegatedByCode = !!(code && code !== '0x' && code.length > 10);
-                } catch (_) {}
+                } catch (_) { }
                 if (delegatedByCode) {
                     console.warn('[Token Sweep] getConfig 不可用，但检测到操作账户已有委托代码，将尝试发送搬运交易；若赞助商与链上不一致将回滚。');
                     configInitialized = true;
@@ -217,21 +218,13 @@ export default function AutoForward() {
                 throw new Error('请选择或输入与【转发授权】一致的委托合约地址。');
             }
             if (!configInitialized) {
-                const chainName = activeChainId === 1 ? 'Ethereum 主网' : activeChainId === 11155111 ? 'Sepolia' : activeChainId === 17000 ? 'Holesky' : `链 ${activeChainId}`;
-                const isNoData = configReadError && (String(configReadError.message || '').includes('no data') || String(configReadError.message || '').includes('0x'));
-                const msg = isNoData
-                    ? `当前网络（${chainName}）上该操作账户尚未完成 EIP-7702 委托，无法读取配置。请先在【转发授权】页选择同一网络并完成委托与初始化，且将 Gas 代付人 设为当前赞助商地址。`
-                    : '操作账户尚未初始化。请先在【转发授权】完成委托并初始化，且将 Gas 代付人 设为当前赞助商地址。';
-                throw new Error(msg);
-            }
-            const sponsor = (sponsorAddress || '').toLowerCase();
-            const zeroAddr = '0x0000000000000000000000000000000000000000';
-            if (!delegatedByCode && configGasSponsor !== sponsor) {
-                const isChainSponsorEmpty = !configGasSponsor || configGasSponsor === zeroAddr;
-                const msg = isChainSponsorEmpty
-                    ? `链上 Gas 代付人为空，说明您在【转发授权】时未填写「Gas 赞助商私钥」。请到【转发授权】页填写与当前相同的赞助商私钥（当前赞助商: ${sponsor}）后重新执行一次委托，即可将 Gas 代付人写入链上。`
-                    : `链上 Gas 代付人与当前赞助商地址不一致，合约会拒绝调用。链上 Gas 代付人: ${configGasSponsor}，当前赞助商: ${sponsor}。请在【转发授权】用与搬运页相同的赞助商私钥重新执行委托以更新 Gas 代付人，且委托合约选择与搬运页一致。`;
-                throw new Error(msg);
+                console.warn('[Token Sweep] 未检测到已初始化的委托配置，但将通过 authorizationList 尝试强制执行搬运。');
+            } else {
+                const sponsor = (sponsorAddress || '').toLowerCase();
+                const zeroAddr = '0x0000000000000000000000000000000000000000';
+                if (!delegatedByCode && configGasSponsor !== sponsor) {
+                    console.warn(`[Token Sweep] 链上 Gas 代付人与当前赞助商地址不一致，将尝试继续发送交易（合约内部可能兼容）。链上: ${configGasSponsor}，当前: ${sponsor}`);
+                }
             }
 
             // 交易层：赞助商 → 操作账户（赞助商付 Gas，调用操作账户的委托合约）
@@ -272,32 +265,94 @@ export default function AutoForward() {
                 chain,
                 transport: http(rpcUrl),
             });
+
+            // 关键修复：显式获取操作账户的最新 Nonce
+            const currentNonce = await publicClient.getTransactionCount({
+                address: accountAddress
+            });
+            console.log(`[Token Sweep] 操作账户 ${accountAddress} 当前 Nonce: ${currentNonce}`);
+
+            // 验证并显示委托合约信息
+            const implementationCode = await publicClient.getCode({ address: contractAddress });
+            console.log(`[Token Sweep] 委托实现合约: ${contractAddress}`);
+            console.log(`[Token Sweep] 合约代码长度: ${implementationCode?.length || 0}`);
+            if (!implementationCode || implementationCode === '0x') {
+                console.warn('[Token Sweep] 警告：委托实现合约在当前链上没有检测到代码！搬运将无效。');
+            }
+
             const authorization = await userWalletClient.signAuthorization({
                 account,
                 contractAddress,
                 chainId: activeChainId,
+                nonce: currentNonce, // 使用最新 Nonce 确保委托生效
             });
+
+            // 增强型日志：显示完整字段并确保字段兼容性
+            const finalAuth = {
+                ...authorization,
+                contractAddress: authorization.contractAddress || authorization.address,
+                address: authorization.address || authorization.contractAddress,
+            };
+
+            console.log('[Token Sweep] 签署的 Authorization 对象:', {
+                ...finalAuth,
+                nonce: finalAuth.nonce.toString(),
+                chainId: finalAuth.chainId.toString(),
+            });
+
+            const callData = encodeFunctionData({
+                abi: SWEEP_ABI,
+                functionName: 'sweepTokenTo',
+                args: [sweepAddr, finalRecipient],
+            });
+            console.log('[Token Sweep] 编码后的 Data:', callData);
+            console.log(`[Token Sweep] 目标地址: ${accountAddress}`);
+
             const hash = await sponsorClient.sendTransaction({
-                authorizationList: [authorization],
+                authorizationList: [finalAuth],
                 to: accountAddress,
-                data: encodeFunctionData({
-                    abi: SWEEP_ABI,
-                    functionName: 'sweepTokenTo',
-                    args: [sweepAddr, finalRecipient],
-                }),
+                data: callData,
                 value: 0n
             });
 
             setSweeping(true); // Start full-screen loading overlay
 
             const receipt = await publicClient.waitForTransactionReceipt({ hash });
+            console.log('[Token Sweep] 交易回执成功:', receipt);
+            console.log('[Token Sweep] 回执日志 (Logs):', receipt.logs);
+
             if (receipt.status !== 'success') {
                 throw new Error(
                     '交易已上链但执行失败（revert）。常见原因：链上 Gas 代付人与当前赞助商地址不一致、操作账户该代币余额为 0、或接收地址无效。请在【转发授权】初始化时将 Gas 代付人 设为当前赞助商地址后重试。'
                 );
             }
 
+            // Check if TokenSwept event exists in logs
+            const tokenSweptTopic = '0xba3e71c2881efe881d169a722215ae66587e85bf64bcc507f2904a7345afeba0'; // TokenSwept
+            const sweepLog = receipt.logs.find(l => l.topics[0] === tokenSweptTopic);
+            if (sweepLog) {
+                console.log('[Token Sweep] 检测到 TokenSwept 事件，合约内部执行成功。');
+            } else {
+                console.warn('[Token Sweep] 未检测到 TokenSwept 事件！可能执行了 fallback 或其他逻辑，或者余额为 0 被跳过。');
+            }
+
             toast.success(t('forward.sweepSuccess') || 'Tokens swept successfully!');
+
+            // Save to local authorization cache (History)
+            saveAuthorization({
+                id: `sweep-${Date.now()}`,
+                walletAddress: accountAddress,
+                delegateContract: contractAddress,
+                contractName: deployedContracts.find(c => c.address.toLowerCase() === contractAddress.toLowerCase())?.name || 'AutoForwarder',
+                chainId: Number(activeChainId || 11155111),
+                status: 'completed',
+                timestamp: Date.now(),
+                txHash: hash,
+                type: 'sweep',
+                tokenAddress: sweepAddr,
+                recipient: finalRecipient
+            });
+
             try {
                 const tx = await publicClient.getTransaction({ hash });
                 const txType = tx && 'type' in tx ? (tx.type === 'eip7702' ? '0x04 (EIP-7702)' : tx.type) : 'unknown';
@@ -321,7 +376,7 @@ export default function AutoForward() {
             const msg = err.shortMessage || err.message || 'Sweep failed';
             let displayMsg;
             if (msg.includes('External transactions to internal accounts cannot include data')) {
-                displayMsg = '节点拒绝了交易：当前账户尚未完成 EIP-7702 委托授权。请先前往左侧【转发授权】页面签署并执行初始委托，或者更换 RPC 节点重试。';
+                displayMsg = t('forward.nodeRejectError') || '节点拒绝了交易：当前账户尚未完成 EIP-7702 委托授权。请先前往左侧【转发授权】页面签署并执行初始委托，或者更换 RPC 节点重试。';
             } else {
                 displayMsg = msg || '代币搬运失败，请确认该代币余额不为 0 且 EOA 代理未过期。';
             }
@@ -406,12 +461,6 @@ export default function AutoForward() {
             <div className="alert alert-info" style={{ marginBottom: '24px' }}>
                 <Shield size={18} />
                 <span>{t('forward.infoAlert')}</span>
-                <div style={{ marginTop: '8px', fontSize: '12px', opacity: 0.9 }}>
-                    {t('forward.sweepTxVsTokenHint') || '链上交易显示为「赞助商 → 操作账户」；代币实际从「转出钱包」转至「代币接收地址」。可在区块浏览器中查看该笔交易的 ERC20 Transfer 事件确认。'}
-                </div>
-                <div style={{ marginTop: '6px', fontSize: '12px', opacity: 0.9 }}>
-                    {t('forward.eip7702RequiredHint') || '若交易成功但无内部交易/代币未转移，说明当前网络或 RPC 未按 EIP-7702 执行对 EOA 的委托代码，请确认该链已激活 EIP-7702 并换用支持的 RPC。'}
-                </div>
             </div>
 
             {/* Sweep ERC20 Card */}

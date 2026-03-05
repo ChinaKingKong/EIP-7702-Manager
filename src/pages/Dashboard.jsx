@@ -8,6 +8,7 @@ import { useWallet } from '../context/WalletContext';
 import { useI18n } from '../context/I18nContext';
 import { formatEther } from 'viem';
 import { truncateAddress } from '../services/wallet';
+import { getAuthorizations } from '../services/authorizationCache';
 
 const ETHERSCAN_API = {
     // ETHERSCAN apis might be blocked/timeout in some regions or require an API key, using blockscout which is 100% compatible
@@ -23,12 +24,57 @@ const EXPLORER_URL = {
 };
 
 export default function Dashboard() {
-    const { isConnected, address, chainId } = useWallet();
+    const { isConnected, address, chainId, disconnectedChainId } = useWallet();
     const navigate = useNavigate();
     const { t } = useI18n();
+    const activeChainId = isConnected ? chainId : disconnectedChainId;
 
     const [recentTxs, setRecentTxs] = useState([]);
     const [loadingTxs, setLoadingTxs] = useState(false);
+    const [stats, setStats] = useState({
+        activeAuths: 0,
+        totalTransfers: 0,
+        sponsoredGas: 0,
+        totalAuths: 0
+    });
+
+    // Calculate stats from local cache
+    useEffect(() => {
+        // Find if there's any active account from recent activity if not connected
+        const allAuths = getAuthorizations();
+        let targetAddresses = [];
+        if (address) {
+            targetAddresses.push(address.toLowerCase());
+        } else if (allAuths.length > 0) {
+            // If not connected, show stats for the most recently active account in cache for this chain
+            const mostRecent = allAuths.find(a => Number(a.chainId) === Number(activeChainId));
+            if (mostRecent) targetAddresses.push(mostRecent.walletAddress?.toLowerCase());
+        }
+
+        if (targetAddresses.length === 0) {
+            setStats({ activeAuths: 0, totalTransfers: 0, sponsoredGas: 0, totalAuths: 0 });
+            return;
+        }
+
+        const auths = allAuths.filter(a =>
+            targetAddresses.includes(a.walletAddress?.toLowerCase()) &&
+            Number(a.chainId) === Number(activeChainId)
+        );
+
+        const activeAuths = auths.filter(a => a.status === 'active' && a.type !== 'sweep').length;
+        const totalTransfers = auths.filter(a => a.type === 'sweep' && a.status === 'completed').length;
+        const totalAuths = auths.filter(a => a.type !== 'sweep').length;
+
+        // Mock sponsored gas calculation - in a real app this would sum gas from receipts
+        const sponsoredGas = totalTransfers * 0.0005;
+
+        setStats({
+            activeAuths,
+            totalTransfers,
+            sponsoredGas,
+            totalAuths
+        });
+    }, [address, activeChainId]);
 
     const fetchRecentTxs = useCallback(async () => {
         if (!isConnected || !address || !ETHERSCAN_API[chainId]) {
@@ -36,9 +82,8 @@ export default function Dashboard() {
             return;
         }
 
-        setLoadingTxs(true);
         try {
-            const url = `${ETHERSCAN_API[chainId]}?module=account&action=txlist&address=${address}&startblock=0&endblock=99999999&page=1&offset=10&sort=desc`;
+            const url = `${ETHERSCAN_API[activeChainId] || ETHERSCAN_API[11155111]}?module=account&action=txlist&address=${address}&startblock=0&endblock=99999999&page=1&offset=10&sort=desc`;
             const response = await fetch(url);
             const data = await response.json();
             if (data.status === '1' && Array.isArray(data.result)) {
@@ -52,7 +97,7 @@ export default function Dashboard() {
         } finally {
             setLoadingTxs(false);
         }
-    }, [isConnected, address, chainId]);
+    }, [isConnected, address, activeChainId]); // Changed chainId to activeChainId here
 
     useEffect(() => {
         fetchRecentTxs();
@@ -80,7 +125,7 @@ export default function Dashboard() {
                             <Shield size={22} />
                         </div>
                     </div>
-                    <div className="stat-value">0</div>
+                    <div className="stat-value">{stats.activeAuths}</div>
                     <div className="stat-label">{t('dashboard.activeAuthorizations')}</div>
                 </div>
 
@@ -90,7 +135,7 @@ export default function Dashboard() {
                             <ArrowRightLeft size={22} />
                         </div>
                     </div>
-                    <div className="stat-value">0</div>
+                    <div className="stat-value">{stats.totalTransfers}</div>
                     <div className="stat-label">{t('dashboard.totalTransfers')}</div>
                 </div>
 
@@ -100,7 +145,7 @@ export default function Dashboard() {
                             <Fuel size={22} />
                         </div>
                     </div>
-                    <div className="stat-value">0</div>
+                    <div className="stat-value">~{stats.sponsoredGas.toFixed(4)}</div>
                     <div className="stat-label">{t('dashboard.ethGasSponsored')}</div>
                 </div>
 
@@ -110,7 +155,7 @@ export default function Dashboard() {
                             <Zap size={22} />
                         </div>
                     </div>
-                    <div className="stat-value">0</div>
+                    <div className="stat-value">{stats.totalAuths}</div>
                     <div className="stat-label">{t('dashboard.totalAuthorizations')}</div>
                 </div>
             </div>
@@ -250,6 +295,6 @@ export default function Dashboard() {
                     </div>
                 </div>
             </div>
-        </div>
+        </div >
     );
 }

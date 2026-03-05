@@ -13,16 +13,19 @@ export function getAuthorizations() {
     }
 }
 
+const serialize = (list) => JSON.stringify(list, (key, value) =>
+    typeof value === 'bigint' ? value.toString() : value
+);
+
 export function saveAuthorization(auth) {
     const list = getAuthorizations();
-    // Avoid duplicates by id
     const exists = list.some((a) => a.id === auth.id);
-    if (!exists) {
-        list.unshift(auth);
-        try {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
-        } catch { }
-    }
+    if (exists) return list;
+
+    list.unshift(auth);
+    try {
+        localStorage.setItem(STORAGE_KEY, serialize(list));
+    } catch (err) { }
     return list;
 }
 
@@ -31,7 +34,7 @@ export function updateAuthorization(authId, updates) {
         a.id === authId ? { ...a, ...updates } : a
     );
     try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+        localStorage.setItem(STORAGE_KEY, serialize(list));
     } catch { }
     return list;
 }
@@ -39,7 +42,7 @@ export function updateAuthorization(authId, updates) {
 export function removeAuthorization(authId) {
     const list = getAuthorizations().filter((a) => a.id !== authId);
     try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+        localStorage.setItem(STORAGE_KEY, serialize(list));
     } catch { }
     return list;
 }

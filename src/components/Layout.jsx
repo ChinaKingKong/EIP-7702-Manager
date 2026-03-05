@@ -79,11 +79,7 @@ export default function Layout() {
             {/* Main Content */}
             <main className="main-content">
                 <header className="content-header">
-                    <div className="content-header-left">
-                        <h2>{t('header.title')}</h2>
-                        <p>{t('header.subtitle')}</p>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginLeft: 'auto' }}>
                         <NetworkSwitcher />
                         <LanguageSwitcher />
                         <WalletConnect />

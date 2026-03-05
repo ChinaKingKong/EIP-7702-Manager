@@ -134,7 +134,10 @@ export default {
         failedToSign: 'Failed to sign authorization',
         noAuthorizations: 'No authorizations yet',
         noAuthorizationsDesc: 'Signed authorizations will appear here',
-        revokeRequiresWallet: 'Revoke requires connected wallet',
+        revokeRequiresWallet: 'Revocation requires connected wallet or private key',
+        revokePermissionError: 'Permission error: Please enter the private key for this account or connect the correct wallet.',
+        revokeSuccess: 'Revocation successful! Account restored to standard EOA.',
+        revokeOnChain: 'Revoke delegation on-chain',
 
         realDelegationTitle: 'EIP-7702 Delegation (Type 0x04)',
         realDelegationWarning: 'Private key is only used locally in this browser and never uploaded.',
@@ -282,8 +285,8 @@ export default {
         tokensFound: 'Scan successful! Found {n} tokens. Check them below.',
         sweeping: 'Sweeping tokens from EOA...',
         sweepSuccess: 'Tokens swept successfully!',
-        sweepTxVsTokenHint: 'On-chain tx shows Sponsor → Operation account; tokens actually move from the sweep-from wallet to the token recipient. Check the ERC20 Transfer event for this tx in a block explorer to confirm.',
-        eip7702RequiredHint: 'Token sweep uses type 0x04 + authorization. If mainnet still shows no internal txs or token transfer, execution layer or explorer support for EIP-7702 may be incomplete; try the flow on Sepolia/Holesky testnet.',
+        delegateContractHint: 'Select or enter the same delegate contract address used in [Forwarding Auth].',
+        nodeRejectError: 'Node rejected the transaction: The current account has not completed EIP-7702 delegation. Please go to the [Forwarding Auth] page to sign and execute the initial delegation, or try a different RPC node.',
     },
 
     // Deploy Contract page

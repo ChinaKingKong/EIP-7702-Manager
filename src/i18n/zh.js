@@ -134,7 +134,10 @@ export default {
         failedToSign: '授权签署失败',
         noAuthorizations: '暂无授权记录',
         noAuthorizationsDesc: '已签署的授权将会显示在这里',
-        revokeRequiresWallet: '撤销需连接钱包',
+        revokeRequiresWallet: '撤销需连接钱包或输入私钥',
+        revokePermissionError: '权限错误：请先输入该账户的私钥或连接正确的钱包以进行撤销。',
+        revokeSuccess: '撤销成功！账户已恢复为普通 EOA。',
+        revokeOnChain: '在链上撤销该委托',
 
         realDelegationTitle: 'EIP-7702 真实委托 (Type 0x04)',
         realDelegationWarning: '私钥仅在浏览器本地使用，不会上传到任何服务器。',
@@ -241,8 +244,8 @@ export default {
         tokensFound: '扫描成功！发现 {n} 种代币，请在下方查看。',
         sweeping: '正在从 EOA 搬运代币...',
         sweepSuccess: '代币搬运成功！',
-        sweepTxVsTokenHint: '链上交易显示为「赞助商 → 操作账户」；代币实际从「转出钱包」转至「代币接收地址」。可在区块浏览器中查看该笔交易的 ERC20 Transfer 事件确认。',
-        eip7702RequiredHint: '代币搬运使用 type 0x04 + 授权。若主网仍无内部交易/代币未转，多为执行层或区块浏览器对 EIP-7702 执行阶段支持不完整，建议在 Sepolia/Holesky 测试网验证搬运流程。',
+        delegateContractHint: '请选择或输入与【转发授权】一致的委托合约地址。',
+        nodeRejectError: '节点拒绝了交易：当前账户尚未完成 EIP-7702 委托授权。请先前往左侧【转发授权】页面签署并执行初始委托，或者更换 RPC 节点重试。',
     },
     // Gas 代付页面
     gas: {

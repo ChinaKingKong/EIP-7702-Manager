@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Shield, CheckCircle, XCircle, AlertTriangle, Copy, ExternalLink, Trash2, Inbox, Loader2, Wallet, Key, Zap } from 'lucide-react';
 import { useWallet } from '../context/WalletContext';
 import { useI18n } from '../context/I18nContext';
-import { revokeAuthorization, delegateWithPrivateKey } from '../services/eip7702';
+import { revokeAuthorization, revokeWithPrivateKey, delegateWithPrivateKey } from '../services/eip7702';
 import { truncateAddress } from '../services/wallet';
 import { getDeployedContracts } from '../services/deployedContracts';
 import { getAuthorizations, saveAuthorization, updateAuthorization } from '../services/authorizationCache';
@@ -36,18 +36,21 @@ export default function Authorization() {
     }, []);
     const contractAddress = selectedContract || customContract;
 
-    // 展示授权历史用的地址：已连接钱包地址 或 私钥推导地址（使用私钥时也加载历史）
-    const displayAddress = (() => {
-        if (address) return address;
+    // 追踪的地址列表：包含已连接钱包地址 和 私钥推导地址
+    const trackedAddresses = (() => {
+        const addrs = [];
+        if (address) addrs.push(address.toLowerCase());
+
         const pk = privateKey.trim();
-        if (!pk) return null;
-        const formatted = pk.startsWith('0x') ? pk : `0x${pk}`;
-        if (!/^0x[0-9a-fA-F]{64}$/.test(formatted)) return null;
-        try {
-            return privateKeyToAccount(formatted).address;
-        } catch {
-            return null;
+        if (pk) {
+            const formatted = pk.startsWith('0x') ? pk : `0x${pk}`;
+            if (/^0x[0-9a-fA-F]{64}$/.test(formatted)) {
+                try {
+                    addrs.push(privateKeyToAccount(formatted).address.toLowerCase());
+                } catch { }
+            }
         }
+        return [...new Set(addrs)]; // 去重
     })();
 
     const statusMessages = {
@@ -81,23 +84,27 @@ export default function Authorization() {
                 onStatus: (status) => setDelegateStatus(statusMessages[status] || status),
             });
 
+
             setDelegateResult(result);
 
             // Save to local authorization cache
             const newAuth = {
-                id: `auth-${Date.now()}`,
+                id: `auth-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
                 walletAddress: result.account,
                 delegateContract: contractAddress,
-                contractName: deployedContracts.find(c => c.address.toLowerCase() === selectedContract.toLowerCase())?.name || 'Custom Contract',
-                chainId: activeChainId || 11155111,
+                contractName: deployedContracts.find(c => c.address.toLowerCase() === contractAddress.toLowerCase())?.name || t('nav.autoForwardConfig'),
+                chainId: Number(activeChainId || 11155111),
                 status: 'active',
                 timestamp: Date.now(),
                 txHash: result.hash,
                 isRealDelegation: true,
-                rawAuth: result.authorization, // Store the signed authorization obj so AutoForward can use it
+                rawAuth: result.authorization,
             };
+
             saveAuthorization(newAuth);
-            setAuthorizations(getAuthorizations());
+
+            const updatedList = getAuthorizations();
+            setAuthorizations(updatedList);
 
         } catch (err) {
             setError(err.shortMessage || err.message);
@@ -106,6 +113,17 @@ export default function Authorization() {
             setDelegateStatus('');
         }
     };
+
+    // Listen for localStorage changes (sync history across tabs/pages)
+    useEffect(() => {
+        const handleStorageChange = (e) => {
+            if (e.key === 'eip7702_authorizations') {
+                setAuthorizations(getAuthorizations());
+            }
+        };
+        window.addEventListener('storage', handleStorageChange);
+        return () => window.removeEventListener('storage', handleStorageChange);
+    }, []);
 
     const handleRevoke = async (authId) => {
         const auth = authorizations.find(a => a.id === authId);
@@ -120,13 +138,34 @@ export default function Authorization() {
         setError(null);
 
         try {
-            await revokeAuthorization({
-                account: address,
-                chainId: auth.chainId || chainId
-            });
+            // Priority 1: Use private key if it matches the auth's walletAddress
+            const pk = privateKey.trim();
+            const formattedPk = pk.startsWith('0x') ? pk : `0x${pk}`;
+            let pkAddress = null;
+            if (/^0x[0-9a-fA-F]{64}$/.test(formattedPk)) {
+                try {
+                    pkAddress = privateKeyToAccount(formattedPk).address;
+                } catch (_) { }
+            }
+
+            if (pkAddress && pkAddress.toLowerCase() === auth.walletAddress.toLowerCase()) {
+                await revokeWithPrivateKey({
+                    privateKey: formattedPk,
+                    chainId: auth.chainId || activeChainId
+                });
+            } else if (address && address.toLowerCase() === auth.walletAddress.toLowerCase()) {
+                // Priority 2: Use connected wallet
+                await revokeAuthorization({
+                    account: address,
+                    chainId: auth.chainId || chainId
+                });
+            } else {
+                throw new Error(t('auth.revokePermissionError') || 'Please enter the private key for this account or connect the correct wallet.');
+            }
 
             updateAuthorization(authId, { status: 'revoked' });
             setAuthorizations(getAuthorizations());
+            toast.success(t('auth.revokeSuccess') || 'Revocation successful');
         } catch (err) {
             console.error('Revocation failed:', err);
             setError(err.shortMessage || err.message || 'Failed to revoke authorization');
@@ -333,27 +372,35 @@ export default function Authorization() {
             <div className="card">
                 <div className="card-header">
                     <h3>{t('auth.authHistory')}</h3>
-                    {displayAddress && (
+                    {trackedAddresses.length > 0 && (
                         <span className="badge badge-info">
-                            {authorizations.filter(a => a.status === 'active' && a.walletAddress?.toLowerCase() === displayAddress.toLowerCase() && a.chainId === activeChainId).length} {t('common.active')}
+                            {authorizations.filter(a => a.status === 'active' && trackedAddresses.includes(a.walletAddress?.toLowerCase()) && Number(a.chainId) === Number(activeChainId)).length} {t('common.active')}
                         </span>
                     )}
                 </div>
                 <div className="card-body" style={{ padding: '0' }}>
-                    {!displayAddress ? (
+                    {trackedAddresses.length === 0 ? (
                         <div className="empty-state">
                             <Wallet size={40} />
                             <div className="empty-state-title">{t('common.connectWalletOrEnterKeyToViewHistory')}</div>
                             <div className="empty-state-desc">{t('auth.connectWalletToViewHistory')}</div>
                         </div>
-                    ) : authorizations.filter(a => a.walletAddress?.toLowerCase() === displayAddress.toLowerCase() && a.chainId === activeChainId).length === 0 ? (
+                    ) : authorizations.filter(a =>
+                        trackedAddresses.includes(a.walletAddress?.toLowerCase()) &&
+                        Number(a.chainId) === Number(activeChainId) &&
+                        a.type !== 'sweep'
+                    ).length === 0 ? (
                         <div className="empty-state">
                             <Inbox size={40} />
                             <div className="empty-state-title">{t('auth.noAuthorizations')}</div>
                             <div className="empty-state-desc">{t('auth.noAuthorizationsDesc')}</div>
                         </div>
                     ) : (
-                        authorizations.filter(a => a.walletAddress?.toLowerCase() === displayAddress.toLowerCase() && a.chainId === activeChainId).map((auth) => (
+                        authorizations.filter(a =>
+                            trackedAddresses.includes(a.walletAddress?.toLowerCase()) &&
+                            Number(a.chainId) === Number(activeChainId) &&
+                            a.type !== 'sweep'
+                        ).map((auth) => (
                             <div
                                 key={auth.id}
                                 style={{
@@ -371,29 +418,35 @@ export default function Authorization() {
                                 </div>
                                 <div style={{ flex: 1 }}>
                                     <div style={{ fontWeight: 600, fontSize: '14px' }}>
-                                        {auth.contractName}
+                                        {auth.type === 'sweep' ? t('forward.sweepTokenLabel') : auth.contractName}
                                         {auth.isRealDelegation && (
                                             <span className="badge badge-active" style={{ marginLeft: '8px', fontSize: '10px' }}>{t('auth.realDelegationBadge')}</span>
                                         )}
+                                        {auth.type === 'sweep' && (
+                                            <span className="badge badge-info" style={{ marginLeft: '8px', fontSize: '10px', background: 'var(--accent-purple)', borderColor: 'var(--accent-purple)' }}>{t('forward.sweep')}</span>
+                                        )}
                                     </div>
                                     <div style={{ fontSize: '12px', color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)', marginTop: '2px' }}>
-                                        {truncateAddress(auth.delegateContract)}
+                                        {auth.type === 'sweep' ? `${t('auth.contract')}: ${truncateAddress(auth.delegateContract)}` : truncateAddress(auth.delegateContract)}
                                     </div>
                                     <div style={{ fontSize: '11px', color: 'var(--text-tertiary)', marginTop: '4px' }}>
-                                        {formatTime(auth.timestamp)}
+                                        {auth.type === 'sweep' ? `${t('forward.sweepRecipientLabel')}: ${truncateAddress(auth.recipient)}` : formatTime(auth.timestamp)}
                                     </div>
                                 </div>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                    <span className={`badge ${auth.status === 'active' ? 'badge-active' : 'badge-revoked'}`}>
-                                        {auth.status === 'active' ? t('common.active') : t('common.revoked')}
+                                    <span className={`badge ${auth.status === 'active' ? 'badge-active' :
+                                        auth.status === 'completed' ? 'badge-active' : 'badge-revoked'
+                                        }`} style={auth.status === 'completed' ? { background: 'var(--accent-green)', borderColor: 'var(--accent-green)' } : {}}>
+                                        {auth.status === 'active' ? t('common.active') :
+                                            auth.status === 'completed' ? t('common.completed') : t('common.revoked')}
                                     </span>
                                     {auth.status === 'active' && (
                                         <button
                                             className="btn btn-danger"
                                             style={{ padding: '6px 10px', fontSize: '12px' }}
                                             onClick={() => handleRevoke(auth.id)}
-                                            disabled={isRevoking === auth.id || !address || address.toLowerCase() !== auth.walletAddress.toLowerCase()}
-                                            title={!address ? t('auth.revokeRequiresWallet') : address.toLowerCase() !== auth.walletAddress.toLowerCase() ? t('auth.revokePermissionError') : t('auth.revokeOnChain')}
+                                            disabled={isRevoking === auth.id}
+                                            title={t('auth.revoke')}
                                         >
                                             {isRevoking === auth.id ? <Loader2 size={16} className="spin" /> : <Trash2 size={16} />}
                                         </button>
