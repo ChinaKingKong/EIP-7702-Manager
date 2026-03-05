@@ -276,7 +276,13 @@ export default function AutoForward() {
             }
 
             toast.success(t('forward.sweepSuccess') || 'Tokens swept successfully!');
-            console.log(`[Token Sweep] 交易成功 hash=${receipt.transactionHash}，代币应从 ${accountAddress} 转至 ${finalRecipient}，请在区块浏览器查看该笔交易的 ERC20 Transfer 事件确认。`);
+            try {
+                const tx = await publicClient.getTransaction({ hash });
+                const txType = tx && 'type' in tx ? (tx.type === 'eip7702' ? '0x04 (EIP-7702)' : tx.type) : 'unknown';
+                console.log(`[Token Sweep] 交易成功 hash=${receipt.transactionHash}，上链类型=${txType}，代币应从 ${accountAddress} 转至 ${finalRecipient}。若区块浏览器无 Internal Txns，主网执行层可能仍未完整支持，建议在 Sepolia/Holesky 测试网验证。`);
+            } catch (_) {
+                console.log(`[Token Sweep] 交易成功 hash=${receipt.transactionHash}，代币应从 ${accountAddress} 转至 ${finalRecipient}，请在区块浏览器查看该笔交易的 ERC20 Transfer 事件确认。`);
+            }
 
             // Auto-refresh token list after sweep
             setTimeout(() => {

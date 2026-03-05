@@ -240,7 +240,7 @@ export default {
         sweeping: '正在从 EOA 搬运代币...',
         sweepSuccess: '代币搬运成功！',
         sweepTxVsTokenHint: '链上交易显示为「赞助商 → 操作账户」；代币实际从「转出钱包」转至「代币接收地址」。可在区块浏览器中查看该笔交易的 ERC20 Transfer 事件确认。',
-        eip7702RequiredHint: '代币搬运已改为使用 EIP-7702 type 0x04 交易（每次附带授权），以在主网正确执行委托代码。若仍无内部交易/代币未转，请确认委托合约与转发授权一致并在区块浏览器查看该笔交易的 Logs。',
+        eip7702RequiredHint: '代币搬运使用 type 0x04 + 授权。若主网仍无内部交易/代币未转，多为执行层或区块浏览器对 EIP-7702 执行阶段支持不完整，建议在 Sepolia/Holesky 测试网验证搬运流程。',
     },
     // Gas 代付页面
     gas: {

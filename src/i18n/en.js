@@ -281,7 +281,7 @@ export default {
         sweeping: 'Sweeping tokens from EOA...',
         sweepSuccess: 'Tokens swept successfully!',
         sweepTxVsTokenHint: 'On-chain tx shows Sponsor → Operation account; tokens actually move from the sweep-from wallet to the token recipient. Check the ERC20 Transfer event for this tx in a block explorer to confirm.',
-        eip7702RequiredHint: 'Token sweep now uses EIP-7702 type 0x04 transactions (with authorization each time) so delegated code runs on mainnet. If there are still no internal txs or token transfer, confirm the delegate contract matches the one used in Authorization and check the tx Logs in a block explorer.',
+        eip7702RequiredHint: 'Token sweep uses type 0x04 + authorization. If mainnet still shows no internal txs or token transfer, execution layer or explorer support for EIP-7702 may be incomplete; try the flow on Sepolia/Holesky testnet.',
     },
 
     // Deploy Contract page
