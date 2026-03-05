@@ -214,6 +214,7 @@ export default {
         sweepTokenLabel: '搬运 ERC20 代币',
         tokenAddressPlaceholder: '0x...（ERC20 代币合约地址）',
         sweep: '搬运',
+        sweepBtn: '搬运',
         sweepHint: '将钱包 A 中该 ERC20 代币的全部余额转到钱包 B。',
         tokenSwept: '代币搬运成功！',
         operationMode: '操作方式 (私钥 或 已连接钱包)',

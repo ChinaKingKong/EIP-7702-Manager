@@ -255,6 +255,7 @@ export default {
         sweepTokenLabel: 'Sweep ERC20 Token',
         tokenAddressPlaceholder: '0x... (ERC20 token contract address)',
         sweep: 'Sweep',
+        sweepBtn: 'Sweep',
         sweepHint: 'Transfer all balance of this ERC20 token from Wallet A to Wallet B.',
         tokenSwept: 'Token swept successfully!',
         operationMode: 'Operation Mode (Private Key or Connected Wallet)',

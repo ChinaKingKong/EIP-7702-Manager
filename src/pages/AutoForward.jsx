@@ -194,13 +194,14 @@ export default function AutoForward() {
     };
 
     // 操作：搬运 ERC20 代币
-    const handleSweepToken = async () => {
+    const handleSweepToken = async (targetToken = null) => {
+        const sweepAddr = targetToken || tokenAddress;
         setError('');
         setSuccessMessage('');
-        setIsSweeping(true);
+        setIsSweeping(sweepAddr); // Store the address to indicate which token is sweeping
 
         try {
-            if (!tokenAddress || !/^0x[a-fA-F0-9]{40}$/.test(tokenAddress)) {
+            if (!sweepAddr || !/^0x[a-fA-F0-9]{40}$/.test(sweepAddr)) {
                 throw new Error("请输入有效的 ERC20 代币合约地址");
             }
 
@@ -239,7 +240,7 @@ export default function AutoForward() {
                 data: encodeFunctionData({
                     abi: SWEEP_ABI,
                     functionName: 'sweepToken',
-                    args: [tokenAddress],
+                    args: [sweepAddr],
                 }),
                 value: 0n
             });
@@ -436,50 +437,23 @@ export default function AutoForward() {
                                     </div>
                                     <button
                                         className="btn btn-primary"
-                                        onClick={() => { setTokenAddress(token.contractAddress); handleSweepToken(); }}
-                                        disabled={isSweeping}
+                                        onClick={() => { handleSweepToken(token.contractAddress); }}
+                                        disabled={isSweeping === token.contractAddress || isSweeping !== false && isSweeping !== token.contractAddress}
                                         style={{ padding: '6px 16px', fontSize: '12px', background: 'var(--accent-purple)', borderColor: 'var(--accent-purple)' }}
                                     >
-                                        {isSweeping && tokenAddress === token.contractAddress ? <Loader2 size={14} className="spin" /> : 'Sweep'}
+                                        {isSweeping === token.contractAddress ? <Loader2 size={14} className="spin" /> : t('forward.sweepBtn')}
                                     </button>
                                 </div>
                             ))}
                         </div>
                     )}
 
-                    <hr className="divider" style={{ margin: '24px 0', borderColor: 'var(--border-subtle)' }} />
-
-                    <div className="form-group">
-                        <label className="form-label">{t('forward.manualSweepLabel') || '手动输入合约地址搬运'}</label>
-                        <input
-                            className="form-input mono"
-                            type="text"
-                            placeholder={t('forward.tokenAddressPlaceholder')}
-                            value={tokenAddress}
-                            onChange={(e) => setTokenAddress(e.target.value)}
-                        />
-                        <div className="form-hint">{t('forward.sweepHint')}</div>
-                    </div>
-
-                    {error && !isUpdating && !isSweeping && (
+                    {error && !isUpdating && isSweeping === false && (
                         <div className="alert alert-error" style={{ marginBottom: '16px' }}>
                             <XCircle size={18} style={{ flexShrink: 0, marginTop: '2px' }} />
                             <span style={{ wordBreak: 'break-all', fontSize: '13px', lineHeight: '1.4' }}>{error}</span>
                         </div>
                     )}
-
-                    <button
-                        className="btn btn-primary btn-full"
-                        onClick={handleSweepToken}
-                        disabled={isSweeping || !tokenAddress}
-                        style={{ background: 'var(--accent-purple)', borderColor: 'var(--accent-purple)' }}
-                    >
-                        {isSweeping ? (
-                            <><Loader2 size={18} className="spin" /> {t('forward.forwarding')}</>
-                        ) : (
-                            <><Send size={18} /> 立即转移代币 (Sweep)</>
-                        )}
-                    </button>
                 </div>
             </div>
 
