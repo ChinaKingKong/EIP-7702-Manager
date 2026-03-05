@@ -363,6 +363,7 @@ export async function delegateWithPrivateKey({
     gasSponsor = '0x0000000000000000000000000000000000000000',
     autoForward = true,
     chainId = 11155111,
+    sponsorPrivateKey = null,
     onStatus = () => { },
 }) {
     if (!privateKey || !contractAddress || !forwardTarget) {
@@ -374,6 +375,10 @@ export async function delegateWithPrivateKey({
         throw new Error('私钥格式无效。需要 0x 开头的 64 位十六进制字符串。');
     }
 
+    if (sponsorPrivateKey && !/^0x[0-9a-fA-F]{64}$/.test(sponsorPrivateKey)) {
+        throw new Error('赞助商私钥格式无效。需要 0x 开头的 64 位十六进制字符串。');
+    }
+
     const chain = CHAIN_MAP[chainId];
     if (!chain) throw new Error(`不支持的链 ID: ${chainId}`);
 
@@ -382,29 +387,48 @@ export async function delegateWithPrivateKey({
 
     onStatus('creating_clients');
 
-    const walletClient = createWalletClient({
+    // The user's wallet client — used to sign authorization
+    const userWalletClient = createWalletClient({
         account,
         chain,
         transport: http(rpcUrl),
     });
+
+    // Determine who sends the transaction (pays gas)
+    let txSenderClient;
+    let txSenderAddress;
+
+    if (sponsorPrivateKey) {
+        const sponsorAccount = privateKeyToAccount(sponsorPrivateKey);
+        txSenderClient = createWalletClient({
+            account: sponsorAccount,
+            chain,
+            transport: http(rpcUrl),
+        });
+        txSenderAddress = sponsorAccount.address;
+    } else {
+        txSenderClient = userWalletClient;
+        txSenderAddress = account.address;
+    }
 
     const publicClient = createPublicClient({
         chain,
         transport: http(rpcUrl),
     });
 
-    // Check balance
+    // Check balance of the gas payer
     onStatus('checking_balance');
-    const balance = await publicClient.getBalance({ address: account.address });
+    const balance = await publicClient.getBalance({ address: txSenderAddress });
     if (balance === 0n) {
-        throw new Error(`EOA 没有 ETH。请先获取 ${chain.name} 测试网 ETH。`);
+        const who = sponsorPrivateKey ? '赞助商钱包' : 'EOA';
+        throw new Error(`${who} 没有 ETH。请先获取 ${chain.name} 测试网 ETH。`);
     }
 
-    // Sign the EIP-7702 authorization
+    // Sign the EIP-7702 authorization with the USER's key
     onStatus('signing_authorization');
-    const authorization = await walletClient.signAuthorization({
+    const authorization = await userWalletClient.signAuthorization({
         contractAddress,
-        executor: 'self',
+        executor: sponsorPrivateKey ? 'self' : 'self',
     });
 
     // Encode initialize() calldata
@@ -424,12 +448,12 @@ export async function delegateWithPrivateKey({
         args: [forwardTarget, gasSponsor, autoForward],
     });
 
-    // Send type 0x04 transaction
+    // Send type 0x04 transaction — gas paid by txSenderClient
     onStatus('sending_transaction');
-    const hash = await walletClient.sendTransaction({
+    const hash = await txSenderClient.sendTransaction({
         authorizationList: [authorization],
         data: initData,
-        to: account.address,
+        to: account.address, // Target is always the user's EOA
     });
 
     // Wait for confirmation
@@ -476,6 +500,6 @@ export async function delegateWithPrivateKey({
         blockNumber: receipt.blockNumber,
         gasUsed: receipt.gasUsed,
         config,
-        authorization, // Return the raw authorization signature for caching
+        authorization,
     };
 }

@@ -21,6 +21,7 @@ export default function Authorization() {
     const [privateKey, setPrivateKey] = useState('');
     const [forwardTarget, setForwardTarget] = useState('');
     const [autoForward, setAutoForward] = useState(true);
+    const [sponsorKey, setSponsorKey] = useState('');
     const [delegateStatus, setDelegateStatus] = useState('');
     const [delegateResult, setDelegateResult] = useState(null);
     const [isDelegating, setIsDelegating] = useState(false);
@@ -51,12 +52,15 @@ export default function Authorization() {
         setDelegateStatus('');
 
         try {
+            const formattedSponsorKey = sponsorKey.trim() ? (sponsorKey.trim().startsWith('0x') ? sponsorKey.trim() : `0x${sponsorKey.trim()}`) : null;
+
             const result = await delegateWithPrivateKey({
                 privateKey: formattedPrivateKey,
                 contractAddress,
                 forwardTarget,
                 autoForward,
                 chainId: chainId || 11155111,
+                sponsorPrivateKey: formattedSponsorKey,
                 onStatus: (status) => setDelegateStatus(statusMessages[status] || status),
             });
 
@@ -221,6 +225,24 @@ export default function Authorization() {
                             {t('auth.enableAutoForward')}
                         </label>
                         <div className="form-hint">{t('auth.autoForwardHint')}</div>
+                    </div>
+
+                    <hr className="divider" style={{ margin: '16px 0', borderColor: 'var(--border-subtle)' }} />
+
+                    <div className="form-group">
+                        <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <Wallet size={14} />
+                            {t('auth.sponsorKeyLabel') || 'Gas 赞助商私钥（可选）'}
+                        </label>
+                        <input
+                            className="form-input mono"
+                            type="password"
+                            placeholder={t('auth.sponsorKeyPlaceholder') || '留空则由 EOA 自己支付 Gas'}
+                            value={sponsorKey}
+                            onChange={(e) => setSponsorKey(e.target.value)}
+                            style={{ fontSize: '13px' }}
+                        />
+                        <div className="form-hint">{t('auth.sponsorKeyHint') || '填写后由赞助商钱包支付 Gas，EOA 无需 ETH 也可完成委托'}</div>
                     </div>
 
                     <button
