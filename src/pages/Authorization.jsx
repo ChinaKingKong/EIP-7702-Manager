@@ -9,8 +9,10 @@ import { getAuthorizations, saveAuthorization, updateAuthorization } from '../se
 import toast from 'react-hot-toast';
 
 export default function Authorization() {
-    const { isConnected, address, chainId } = useWallet();
+    const { isConnected, address, chainId, disconnectedChainId } = useWallet();
     const { t } = useI18n();
+
+    const activeChainId = isConnected ? chainId : disconnectedChainId;
     const [selectedContract, setSelectedContract] = useState('');
     const [customContract, setCustomContract] = useState('');
     const [authorizations, setAuthorizations] = useState(() => getAuthorizations());
@@ -59,7 +61,7 @@ export default function Authorization() {
                 contractAddress,
                 forwardTarget,
                 autoForward,
-                chainId: chainId || 11155111,
+                chainId: activeChainId || 11155111,
                 sponsorPrivateKey: formattedSponsorKey,
                 onStatus: (status) => setDelegateStatus(statusMessages[status] || status),
             });
@@ -72,7 +74,7 @@ export default function Authorization() {
                 walletAddress: result.account,
                 delegateContract: contractAddress,
                 contractName: deployedContracts.find(c => c.address.toLowerCase() === selectedContract.toLowerCase())?.name || 'Custom Contract',
-                chainId: chainId || 11155111,
+                chainId: activeChainId || 11155111,
                 status: 'active',
                 timestamp: Date.now(),
                 txHash: result.hash,

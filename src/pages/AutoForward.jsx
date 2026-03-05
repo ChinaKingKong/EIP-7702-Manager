@@ -16,8 +16,9 @@ import { RPC_URLS } from '../config';
 const CHAIN_MAP = { 1: mainnet, 11155111: sepolia, 17000: holesky };
 
 export default function AutoForward() {
-    const { isConnected, address: connectedAddress, chainId } = useWallet();
+    const { isConnected, address: connectedAddress, chainId, disconnectedChainId } = useWallet();
     const { t } = useI18n();
+    const activeChainId = isConnected ? chainId : disconnectedChainId;
 
     // 状态管理
     const [deployedContracts, setDeployedContracts] = useState([]);
@@ -244,8 +245,8 @@ export default function AutoForward() {
                 const account = privateKeyToAccount(pk);
                 accountObj = account;
                 accountAddress = account.address;
-                const rpcUrl = RPC_URLS[chainId] || RPC_URLS[11155111];
-                const chain = CHAIN_MAP[chainId] || sepolia;
+                const rpcUrl = RPC_URLS[activeChainId] || RPC_URLS[11155111];
+                const chain = CHAIN_MAP[activeChainId] || sepolia;
                 walletClient = createWalletClient({
                     account,
                     chain,
@@ -272,8 +273,8 @@ export default function AutoForward() {
                     throw new Error("赞助商私钥格式无效。");
                 }
                 const sponsorAccount = privateKeyToAccount(formattedSponsorKey);
-                const rpcUrl = RPC_URLS[chainId] || RPC_URLS[11155111];
-                const chain = CHAIN_MAP[chainId] || sepolia;
+                const rpcUrl = RPC_URLS[activeChainId] || RPC_URLS[11155111];
+                const chain = CHAIN_MAP[activeChainId] || sepolia;
                 txSenderClient = createWalletClient({
                     account: sponsorAccount,
                     chain,
@@ -360,12 +361,12 @@ export default function AutoForward() {
             if (!targetAddress) throw new Error("无法确定要扫描的 EOA 地址，请连接钱包或输入私钥");
 
             const supportedChains = [1, 11155111, 17000];
-            if (!supportedChains.includes(chainId)) {
-                setSweepError(`当前网络 (Chain ID: ${chainId}) 暂时不支持自动资产扫描，请手动输入合约地址。目前仅支持 Ethereum 主网、Sepolia 和 Holesky。`);
+            if (!supportedChains.includes(activeChainId)) {
+                setSweepError(`当前网络 (Chain ID: ${activeChainId}) 暂时不支持自动资产扫描，请手动输入合约地址。目前仅支持 Ethereum 主网、Sepolia 和 Holesky。`);
                 return;
             }
 
-            const tokens = await getAccountTokens(targetAddress, chainId);
+            const tokens = await getAccountTokens(targetAddress, activeChainId);
             setDiscoveredTokens(tokens);
             if (tokens.length === 0) {
                 setSuccessMessage(t('forward.noTokensFound') || "扫描完成，您的钱包中暂无 ERC20 代币。");
