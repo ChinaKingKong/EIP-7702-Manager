@@ -23,6 +23,8 @@ export default function AutoForward() {
     // 状态管理
     const [deployedContracts, setDeployedContracts] = useState([]);
     const [selectedContract, setSelectedContract] = useState('');
+    const [customContract, setCustomContract] = useState(''); // 与转发授权一致：可输入或从列表选委托合约
+    const contractAddress = selectedContract || customContract;
     const [privateKey, setPrivateKey] = useState('');
     const [sweepSponsorKey, setSweepSponsorKey] = useState('');
     const [sweepRecipient, setSweepRecipient] = useState('');
@@ -47,7 +49,7 @@ export default function AutoForward() {
         const contracts = getDeployedContracts();
         setDeployedContracts(contracts);
         if (contracts.length > 0) {
-            setSelectedContract(contracts[0].address);
+            setSelectedContract((prev) => prev || contracts[0].address);
         }
     }, []);
 
@@ -197,7 +199,7 @@ export default function AutoForward() {
             const sponsor = (sponsorAddress || '').toLowerCase();
             if (configGasSponsor !== sponsor) {
                 throw new Error(
-                    `链上 Gas 代付人与当前赞助商地址不一致，合约会拒绝调用。请在【转发授权】完成委托并初始化时，将 Gas 代付人 设为当前赞助商地址。`
+                    `链上 Gas 代付人与当前赞助商地址不一致，合约会拒绝调用。链上 Gas 代付人: ${configGasSponsor || '0x0'}，当前赞助商: ${sponsor}。请在【转发授权】完成委托并初始化时，将 Gas 代付人 设为当前赞助商地址（与搬运页填写的赞助商私钥一致），且委托合约选择与搬运页一致。`
                 );
             }
 
@@ -378,6 +380,31 @@ export default function AutoForward() {
                             <AlertTriangle size={14} style={{ flexShrink: 0, marginTop: '2px' }} />
                             <span>{t('forward.pkRequiredHint') || '请输入转出钱包私钥（必填），代币将从该地址转出。'}</span>
                         </div>
+                    </div>
+
+                    <div className="form-group" style={{ marginBottom: '20px' }}>
+                        <label className="form-label">{t('auth.delegateContract') || '委托合约'}</label>
+                        <input
+                            className="form-input mono"
+                            type="text"
+                            list="auto-forward-deployed-contracts-list"
+                            placeholder={t('auth.chooseDelegateContract') || '选择或输入合约地址 0x...（与转发授权时一致）'}
+                            value={customContract || selectedContract}
+                            onChange={(e) => {
+                                const v = e.target.value;
+                                setCustomContract(v);
+                                setSelectedContract(v);
+                            }}
+                            style={{ fontSize: '13px' }}
+                        />
+                        <datalist id="auto-forward-deployed-contracts-list">
+                            {deployedContracts.map((c) => (
+                                <option key={c.address} value={c.address}>
+                                    {c.name} — {truncateAddress(c.address)}
+                                </option>
+                            ))}
+                        </datalist>
+                        <div className="form-hint">{t('forward.delegateContractHint') || '请选择与【转发授权】中相同的委托合约地址，否则链上配置可能不一致。'}</div>
                     </div>
 
                     <div className="form-group" style={{ marginBottom: '20px' }}>
