@@ -179,7 +179,7 @@ export default function Authorization() {
                         <select
                             className="form-select"
                             value={selectedContract}
-                            onChange={(e) => setSelectedContract(e.target.value)}
+                            onChange={(e) => { setSelectedContract(e.target.value); if (e.target.value) setCustomContract(''); }}
                         >
                             <option value="">{t('auth.chooseDelegateContract')}</option>
                             {deployedContracts.map((c) => (
@@ -190,18 +190,16 @@ export default function Authorization() {
                         </select>
                     </div>
 
-                    {!selectedContract && (
-                        <div className="form-group">
-                            <label className="form-label">{t('auth.customContractAddressLabel')}</label>
-                            <input
-                                className="form-input mono"
-                                type="text"
-                                placeholder="0x..."
-                                value={customContract}
-                                onChange={(e) => setCustomContract(e.target.value)}
-                            />
-                        </div>
-                    )}
+                    <div className="form-group">
+                        <label className="form-label">{t('auth.customContractAddressLabel')}</label>
+                        <input
+                            className="form-input mono"
+                            type="text"
+                            placeholder={t('auth.customContractPlaceholder') || '手动输入合约地址 0x...'}
+                            value={selectedContract || customContract}
+                            onChange={(e) => { setSelectedContract(''); setCustomContract(e.target.value); }}
+                        />
+                    </div>
 
                     <div className="form-group">
                         <label className="form-label">{t('auth.forwardTargetLabel')}</label>
