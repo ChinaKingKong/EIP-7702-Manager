@@ -290,7 +290,12 @@ export default function AutoForward() {
             setIsScanningTokens(false);
         }
     };
-
+    // Auto-scan tokens when network changes if user has already scanned before
+    useEffect(() => {
+        if (isConnected && (discoveredTokens.length > 0 || successMessage.includes('扫描'))) {
+            handleScanTokens();
+        }
+    }, [chainId]);
 
     return (
         <div>
