@@ -272,8 +272,10 @@ export default {
         scanning: 'Scanning...',
         manualSweepLabel: 'Manual Sweep by Contract Address',
         sweepNotice: 'Note: Due to the ERC20 transfer mechanism, your smart wallet cannot automatically intercept incoming tokens. Please proactively use this function to gather (sweep) any received tokens to the forwarding target address.',
-        noTokensFound: 'Scan complete. No ERC20 tokens with > 0 balance found.',
-        tokensFound: 'Scan successful! Found {n} tokens with balance.',
+        noTokensFound: 'Scan complete. No ERC20 tokens found in your wallet.',
+        tokensFound: 'Scan successful! Found {n} tokens. Check them below.',
+        sweeping: 'Sweeping tokens from EOA...',
+        sweepSuccess: 'Tokens swept successfully!',
     },
 
     // Deploy Contract page

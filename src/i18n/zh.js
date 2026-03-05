@@ -232,7 +232,9 @@ export default {
         manualSweepLabel: '手动输入合约地址搬运',
         sweepNotice: '注意：由于 ERC20 `transfer` 机制，您的智能钱包无法得知何时收到了代币。请在收到代币后，主动调用此功能将其自动汇聚（一键搬运）到被设置为转发目标的地址中。',
         noTokensFound: '扫描完成，您的钱包中暂无 ERC20 代币。',
-        tokensFound: '扫描成功！发现 {n} 种拥有余额的特征代币。',
+        tokensFound: '扫描成功！发现 {n} 种代币，请在下方查看。',
+        sweeping: '正在从 EOA 搬运代币...',
+        sweepSuccess: '代币搬运成功！',
     },
     // Gas 代付页面
     gas: {

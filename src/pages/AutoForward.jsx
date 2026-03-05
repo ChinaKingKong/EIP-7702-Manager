@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Shield, Send, Zap, Settings, RefreshCw, AlertTriangle, CheckCircle, XCircle, Loader2, Search, Coins } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { getPublicClient, getWalletClient, EIP7702_AUTO_FORWARDER_ABI } from '../services/eip7702';
@@ -47,6 +48,7 @@ export default function AutoForward() {
     const [configError, setConfigError] = useState('');
     const [sweepError, setSweepError] = useState('');
     const [successMessage, setSuccessMessage] = useState('');
+    const [sweeping, setSweeping] = useState(false); // Global full-screen loading state
 
     // 组件挂载时获取已部署的合约
     useEffect(() => {
@@ -230,7 +232,7 @@ export default function AutoForward() {
         const sweepAddr = typeof targetToken === 'string' ? targetToken : tokenAddress;
         setSweepError('');
         setSuccessMessage('');
-        setIsSweeping(sweepAddr); // Store the address to indicate which token is sweeping
+        setIsSweeping(sweepAddr); // Store the address for the button spinner
 
         try {
             if (!sweepAddr || !/^0x[a-fA-F0-9]{40}$/.test(sweepAddr)) {
@@ -306,7 +308,7 @@ export default function AutoForward() {
             const args = isCustomRecipient ? [sweepAddr, sweepRecipient.trim()] : [sweepAddr];
 
             const txParams = {
-                account: txSenderClient.account,
+                account: accountObj,
                 to: accountAddress, // The EOA with EIP-7702 delegation
                 data: encodeFunctionData({
                     abi: SWEEP_ABI,
@@ -316,31 +318,32 @@ export default function AutoForward() {
                 value: 0n
             };
 
-            // In private key mode, sign a fresh authorization so the tx is type 0x04
-            if (pk && /^0x[0-9a-fA-F]{64}$/.test(pk)) {
-                const activeAuth = getActiveAuthorizations().find(a => a.walletAddress?.toLowerCase() === accountAddress.toLowerCase());
-                let delegateAddr = activeAuth?.delegateContract;
-                // Fallback: use the first deployed contract if no cached auth
-                if (!delegateAddr && deployedContracts.length > 0) {
-                    delegateAddr = deployedContracts[0].address;
-                }
-                if (delegateAddr) {
-                    const authorization = await walletClient.signAuthorization({
-                        contractAddress: delegateAddr,
-                        executor: sweepSponsorKey ? 'self' : 'self',
-                    });
-                    txParams.authorizationList = [authorization];
-                }
-            }
+            // NOTE: We REMOVED the redundant signAuthorization call from here.
+            // If the EOA is already delegated (which it should be if the contract code exists at EOA),
+            // a normal transaction with data to the EOA will be handled by the delegate contract.
+            // Extra authorizations just consume gas and can cause nonce issues or redundant code set.
 
             const hash = await txSenderClient.sendTransaction(txParams);
 
+            setSweeping(true); // Start full-screen loading overlay
+
             await publicClient.waitForTransactionReceipt({ hash });
-            setSuccessMessage(t('forward.tokenSwept'));
+
+            toast.success(t('forward.sweepSuccess') || 'Tokens swept successfully!');
+
+            // Auto-refresh token list after sweep
+            setTimeout(() => {
+                handleScanTokens();
+            }, 1000);
+
+            // Close loading with delay to match index.css animation timing
+            setTimeout(() => {
+                setSweeping(false);
+            }, 1600);
 
         } catch (err) {
             console.error(err);
-            const msg = err.message || '';
+            const msg = err.shortMessage || err.message || 'Sweep failed';
             let displayMsg;
             if (msg.includes('External transactions to internal accounts cannot include data')) {
                 displayMsg = '节点拒绝了交易：当前账户尚未完成 EIP-7702 委托授权。请先前往左侧【转发授权】页面签署并执行初始委托，或者更换 RPC 节点重试。';
@@ -397,7 +400,33 @@ export default function AutoForward() {
     }, [chainId]);
 
     return (
-        <div>
+        <div className="page-enter">
+            {/* Full-screen loading overlay when sweeping */}
+            {sweeping && createPortal(
+                <div className="lang-loading-overlay">
+                    <div className="lang-loading-content">
+                        <div className="lang-loading-rings">
+                            <div className="lang-ring lang-ring-1" />
+                            <div className="lang-ring lang-ring-2" />
+                            <div className="lang-ring lang-ring-3" />
+                        </div>
+                        <div className="lang-loading-logo">
+                            <img src="/logo.png" alt="Logo" />
+                        </div>
+                        <div className="lang-loading-text">
+                            <Loader2 size={16} className="spin" />
+                            <span>{t('forward.sweeping') || 'Sweeping...'}</span>
+                        </div>
+                        <div className="lang-particles">
+                            {Array.from({ length: 12 }).map((_, i) => (
+                                <div key={i} className="lang-particle" style={{ '--i': i }} />
+                            ))}
+                        </div>
+                    </div>
+                </div>,
+                document.body
+            )}
+
             <div className="alert alert-info" style={{ marginBottom: '24px' }}>
                 <Shield size={18} />
                 <span>{t('forward.infoAlert')}</span>
