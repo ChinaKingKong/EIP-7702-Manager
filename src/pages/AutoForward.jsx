@@ -16,7 +16,7 @@ import { RPC_URLS } from '../config';
 const CHAIN_MAP = { 1: mainnet, 11155111: sepolia, 17000: holesky };
 
 export default function AutoForward() {
-    const { isConnected, address: connectedAddress, chainId, disconnectedChainId } = useWallet();
+    const { isConnected, chainId, disconnectedChainId } = useWallet();
     const { t } = useI18n();
     const activeChainId = isConnected ? chainId : disconnectedChainId;
 
@@ -32,11 +32,7 @@ export default function AutoForward() {
     // ERC20 Sweep 状态
     const [tokenAddress, setTokenAddress] = useState('');
     const [discoveredTokens, setDiscoveredTokens] = useState([]);
-    const [isScanningTokens, setIsScanningTokens] = useState(false);
-
-    // 当前链上状态
-    const [onchainConfig, setOnchainConfig] = useState(null);
-    const [isLoadingConfig, setIsLoadingConfig] = useState(false);
+    const [isScanningTokens, setIsScanningTokens] = useState(false); 
 
     // 交互状态
     const [isSweeping, setIsSweeping] = useState(false);
