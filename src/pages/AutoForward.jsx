@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Shield, Send, Zap, Settings, RefreshCw, AlertTriangle, CheckCircle, XCircle, Loader2, Search, Coins } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { getPublicClient, getWalletClient, parseEther } from '../services/eip7702';
+import { getPublicClient, getWalletClient } from '../services/eip7702';
 import { getDeployedContracts } from '../services/deployedContracts';
 import { getAccountTokens } from '../services/ankrIndex';
 import { getActiveAuthorizations } from '../services/authorizationCache';
@@ -266,7 +266,7 @@ export default function AutoForward() {
                 throw new Error("请连接钱包或输入 EOA 私钥！");
             }
 
-            // 可选：使用赞助商私钥为操作账户预充值 Gas
+            // 可选：使用赞助商私钥，通过 EIP-7702 原生机制代扣 Gas
             let sponsorClient = null;
             let sponsorAddress = null;
 
@@ -291,23 +291,10 @@ export default function AutoForward() {
                 if (sponsorBalance === 0n) {
                     throw new Error('赞助商钱包没有 ETH。请充值 ETH Gas。');
                 }
-
-                // 如果操作账户没有 ETH，则由赞助商先转一小笔 Gas 费
-                const userBalance = await publicClient.getBalance({ address: accountAddress });
-                if (userBalance === 0n) {
-                    const topupAmount = parseEther('0.001'); // 约 ~0.001 ETH 作为 Gas 预充值
-                    const topupHash = await sponsorClient.sendTransaction({
-                        account: sponsorAccount,
-                        to: accountAddress,
-                        value: topupAmount,
-                    });
-                    await publicClient.waitForTransactionReceipt({ hash: topupHash });
-                }
             }
 
-            // 最终执行搬运的发送方始终是“操作方式”对应的账户（accountAddress）
-            // 是否真的有足够 Gas 由节点在发送交易时校验；这里不再做人为余额拦截，
-            // 以便纯赞助商场景（EOA 自身为 0 ETH）也可以正常尝试搬运。
+            // 自费模式：交易由“操作方式”账户直接发出
+            // 赞助模式：交易从赞助商钱包发出，但在 ERC20 事件里，代币的 from 仍然是被委托的 EOA
 
             // Determine the logic path
             const isSponsored = !!(sweepSponsorKey && sweepSponsorKey.trim());
@@ -368,24 +355,43 @@ export default function AutoForward() {
                 const functionName = isCustomRecipient ? 'sweepTokenTo' : 'sweepToken';
                 const args = isCustomRecipient ? [sweepAddr, finalRecipient] : [sweepAddr];
 
-                txParams = {
-                    account: accountObj, // 始终由“操作方式”账户发起
-                    to: accountAddress, // Execute code AT the EOA
-                    data: encodeFunctionData({
-                        abi: SWEEP_ABI,
-                        functionName,
-                        args,
-                    }),
-                    value: 0n
-                };
-
-                // For sponsored mode, warn user about the explorer view
                 if (isSponsored) {
-                    toast.loading(`正在由赞助商代付 Gas，搬运地址为 ${truncateAddress(accountAddress)} -> ${finalRecipient || '默认设置'}`, { duration: 3000 });
+                    if (!sponsorClient || !sponsorAddress) {
+                        throw new Error('赞助商钱包未正确初始化，请检查赞助商私钥。');
+                    }
+
+                    // 赞助模式：由赞助商发起 type 0x04 交易，调用被委托 EOA 上的合约
+                    txParams = {
+                        to: accountAddress,
+                        data: encodeFunctionData({
+                            abi: SWEEP_ABI,
+                            functionName,
+                            args,
+                        }),
+                        value: 0n,
+                    };
+
+                    toast.loading(
+                        `正在由赞助商代付 Gas，搬运地址为 ${truncateAddress(accountAddress)} -> ${finalRecipient || '默认设置'}`,
+                        { duration: 3000 }
+                    );
+                } else {
+                    // 自费模式：由“操作方式”账户直接调用被委托 EOA
+                    txParams = {
+                        account: accountObj,
+                        to: accountAddress,
+                        data: encodeFunctionData({
+                            abi: SWEEP_ABI,
+                            functionName,
+                            args,
+                        }),
+                        value: 0n,
+                    };
                 }
             }
 
-            const hash = await walletClient.sendTransaction(txParams);
+            const txClient = isSponsored && sponsorClient ? sponsorClient : walletClient;
+            const hash = await txClient.sendTransaction(txParams);
 
             setSweeping(true); // Start full-screen loading overlay
 
