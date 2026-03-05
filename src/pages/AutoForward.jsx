@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Shield, Send, Zap, Settings, RefreshCw, AlertTriangle, CheckCircle, XCircle, Loader2, Search, Coins } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { getPublicClient, getWalletClient, EIP7702_AUTO_FORWARDER_ABI } from '../services/eip7702';
+import { getPublicClient, getWalletClient, parseEther } from '../services/eip7702';
 import { getDeployedContracts } from '../services/deployedContracts';
 import { getAccountTokens } from '../services/ankrIndex';
 import { getActiveAuthorizations } from '../services/authorizationCache';
@@ -266,8 +266,9 @@ export default function AutoForward() {
                 throw new Error("请连接钱包或输入 EOA 私钥！");
             }
 
-            let txSenderClient = walletClient;
-            let txSenderAddress = accountAddress;
+            // 可选：使用赞助商私钥为操作账户预充值 Gas
+            let sponsorClient = null;
+            let sponsorAddress = null;
 
             if (sweepSponsorKey && sweepSponsorKey.trim()) {
                 let formattedSponsorKey = sweepSponsorKey.trim();
@@ -278,19 +279,39 @@ export default function AutoForward() {
                 const sponsorAccount = privateKeyToAccount(formattedSponsorKey);
                 const rpcUrl = RPC_URLS[activeChainId] || RPC_URLS[11155111];
                 const chain = CHAIN_MAP[activeChainId] || sepolia;
-                txSenderClient = createWalletClient({
+                sponsorClient = createWalletClient({
                     account: sponsorAccount,
                     chain,
                     transport: http(rpcUrl),
                 });
-                txSenderAddress = sponsorAccount.address;
+                sponsorAddress = sponsorAccount.address;
+
+                // 检查赞助商余额是否足够
+                const sponsorBalance = await publicClient.getBalance({ address: sponsorAddress });
+                if (sponsorBalance === 0n) {
+                    throw new Error('赞助商钱包没有 ETH。请充值 ETH Gas。');
+                }
+
+                // 如果操作账户没有 ETH，则由赞助商先转一小笔 Gas 费
+                const userBalance = await publicClient.getBalance({ address: accountAddress });
+                if (userBalance === 0n) {
+                    const topupAmount = parseEther('0.003'); // 约 ~0.003 ETH 作为 Gas 预充值
+                    if (sponsorBalance < topupAmount) {
+                        throw new Error('赞助商钱包余额不足以为当前账户预充值 Gas。');
+                    }
+                    const topupHash = await sponsorClient.sendTransaction({
+                        account: sponsorAccount,
+                        to: accountAddress,
+                        value: topupAmount,
+                    });
+                    await publicClient.waitForTransactionReceipt({ hash: topupHash });
+                }
             }
 
-            // Check balance of the transaction sender (who pays gas)
-            const balance = await publicClient.getBalance({ address: txSenderAddress });
+            // 最终执行搬运的发送方始终是“操作方式”对应的账户（accountAddress）
+            const balance = await publicClient.getBalance({ address: accountAddress });
             if (balance === 0n) {
-                const who = sweepSponsorKey ? '赞助商钱包' : '当前账户';
-                throw new Error(`${who} 没有 ETH。请充值 ETH Gas。`);
+                throw new Error('当前账户没有 ETH。请充值 ETH Gas，或填写赞助商私钥为其预充值后重试。');
             }
 
             // Determine the logic path
@@ -299,7 +320,9 @@ export default function AutoForward() {
             const finalRecipient = isCustomRecipient ? sweepRecipient.trim() : (onchainConfig?.forwardTarget || '');
 
             // 1. Log the intent for clarity
-            console.log(`[Token Sweep] Payer: ${txSenderAddress}, Source account: ${accountAddress}, Token destination: ${finalRecipient || 'Default Forward Target'}`);
+            console.log(
+                `[Token Sweep] Payer: ${sponsorAddress || accountAddress}, Source account: ${accountAddress}, Token destination: ${finalRecipient || 'Default Forward Target'}`
+            );
 
             let txParams;
             if (!isSponsored && isCustomRecipient) {
@@ -351,7 +374,7 @@ export default function AutoForward() {
                 const args = isCustomRecipient ? [sweepAddr, finalRecipient] : [sweepAddr];
 
                 txParams = {
-                    account: txSenderClient.account, // Sponsor or User
+                    account: accountObj, // 始终由“操作方式”账户发起
                     to: accountAddress, // Execute code AT the EOA
                     data: encodeFunctionData({
                         abi: SWEEP_ABI,
@@ -367,7 +390,7 @@ export default function AutoForward() {
                 }
             }
 
-            const hash = await txSenderClient.sendTransaction(txParams);
+            const hash = await walletClient.sendTransaction(txParams);
 
             setSweeping(true); // Start full-screen loading overlay
 
