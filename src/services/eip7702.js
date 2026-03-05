@@ -421,7 +421,7 @@ export async function delegateWithPrivateKey({
     const balance = await publicClient.getBalance({ address: txSenderAddress });
     if (balance === 0n) {
         const who = sponsorPrivateKey ? '赞助商钱包' : 'EOA';
-        throw new Error(`${who} 没有 ETH。请先获取 ${chain.name} 测试网 ETH。`);
+        throw new Error(`${who} 没有 ETH。请充值 ETH Gas。`);
     }
 
     // Sign the EIP-7702 authorization with the USER's key
