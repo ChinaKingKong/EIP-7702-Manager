@@ -429,8 +429,6 @@ export default function AutoForward() {
                         </div>
                     </div>
 
-                    <hr className="divider" />
-
                     <div className="form-group" style={{ marginBottom: '20px' }}>
                         <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                             {t('auth.sponsorKeyLabel') || 'Gas 赞助商私钥（可选）'}
@@ -461,8 +459,6 @@ export default function AutoForward() {
                         <div className="form-hint">{t('forward.sweepRecipientHint') || '指定一个代币接收地址，若留空则尝试转发到上方的【转发目标地址】。'}</div>
                     </div>
 
-                    <hr className="divider" />
-
                     <p style={{ fontSize: '14px', color: 'var(--text-secondary)', marginBottom: '20px' }}>
                         {t('forward.step4Desc')} <br />
                         {t('forward.sweepNotice')}
@@ -474,8 +470,6 @@ export default function AutoForward() {
                             {isScanningTokens ? <><Loader2 size={14} className="spin" /> {t('forward.scanning') || '扫描中...'}</> : <><Search size={14} /> {t('forward.scanAssetsBtn') || '扫描钱包资产'}</>}
                         </button>
                     </div>
-
-                    <hr className="divider" />
 
                     {discoveredTokens.length > 0 && (
                         <div style={{ marginBottom: '24px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
