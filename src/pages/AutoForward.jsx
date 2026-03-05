@@ -286,7 +286,7 @@ export default function AutoForward() {
                 txSenderAddress = sponsorAccount.address;
             }
 
-            // check sponsor or user balance
+            // Check balance of the transaction sender (who pays gas)
             const balance = await publicClient.getBalance({ address: txSenderAddress });
             if (balance === 0n) {
                 const who = sweepSponsorKey ? '赞助商钱包' : '当前账户';
@@ -308,8 +308,8 @@ export default function AutoForward() {
             const args = isCustomRecipient ? [sweepAddr, sweepRecipient.trim()] : [sweepAddr];
 
             const txParams = {
-                account: accountObj,
-                to: accountAddress, // The EOA with EIP-7702 delegation
+                account: txSenderClient.account, // Use the correct sender account (sponsor or user)
+                to: accountAddress, // The target EOA whose assets are being swept
                 data: encodeFunctionData({
                     abi: SWEEP_ABI,
                     functionName,
