@@ -23,6 +23,7 @@ export default function AutoForward() {
     const [deployedContracts, setDeployedContracts] = useState([]);
     const [selectedContract, setSelectedContract] = useState('');
     const [privateKey, setPrivateKey] = useState('');
+    const [sweepSponsorKey, setSweepSponsorKey] = useState('');
 
     // 配置表单状态
     const [forwardTarget, setForwardTarget] = useState('');
@@ -261,6 +262,33 @@ export default function AutoForward() {
                 throw new Error("请连接钱包或输入 EOA 私钥！");
             }
 
+            let txSenderClient = walletClient;
+            let txSenderAddress = accountAddress;
+
+            if (sweepSponsorKey && sweepSponsorKey.trim()) {
+                let formattedSponsorKey = sweepSponsorKey.trim();
+                if (!formattedSponsorKey.startsWith('0x')) formattedSponsorKey = `0x${formattedSponsorKey}`;
+                if (!/^0x[0-9a-fA-F]{64}$/.test(formattedSponsorKey)) {
+                    throw new Error("赞助商私钥格式无效。");
+                }
+                const sponsorAccount = privateKeyToAccount(formattedSponsorKey);
+                const rpcUrl = RPC_URLS[chainId] || RPC_URLS[11155111];
+                const chain = CHAIN_MAP[chainId] || sepolia;
+                txSenderClient = createWalletClient({
+                    account: sponsorAccount,
+                    chain,
+                    transport: http(rpcUrl),
+                });
+                txSenderAddress = sponsorAccount.address;
+            }
+
+            // check sponsor or user balance
+            const balance = await publicClient.getBalance({ address: txSenderAddress });
+            if (balance === 0n) {
+                const who = sweepSponsorKey ? '赞助商钱包' : '当前账户';
+                throw new Error(`${who} 没有 ETH。请充值 ETH Gas。`);
+            }
+
             const SWEEP_ABI = [{
                 name: 'sweepToken', type: 'function', stateMutability: 'nonpayable',
                 inputs: [{ name: 'token', type: 'address' }],
@@ -268,8 +296,8 @@ export default function AutoForward() {
             }];
 
             const txParams = {
-                account: accountObj,
-                to: accountAddress,
+                account: txSenderClient.account,
+                to: accountAddress, // The EOA with EIP-7702 delegation
                 data: encodeFunctionData({
                     abi: SWEEP_ABI,
                     functionName: 'sweepToken',
@@ -289,13 +317,13 @@ export default function AutoForward() {
                 if (delegateAddr) {
                     const authorization = await walletClient.signAuthorization({
                         contractAddress: delegateAddr,
-                        executor: 'self',
+                        executor: sweepSponsorKey ? 'self' : 'self',
                     });
                     txParams.authorizationList = [authorization];
                 }
             }
 
-            const hash = await walletClient.sendTransaction(txParams);
+            const hash = await txSenderClient.sendTransaction(txParams);
 
             await publicClient.waitForTransactionReceipt({ hash });
             setSuccessMessage(t('forward.tokenSwept'));
@@ -389,6 +417,23 @@ export default function AutoForward() {
                             <AlertTriangle size={14} style={{ flexShrink: 0, marginTop: '2px' }} />
                             <span>{t('forward.pkRequiredHint') || '搬运代币需要输入 EOA 私钥。MetaMask 等浏览器钱包暂不支持 EIP-7702 签名，仅连接钱包无法完成搬运操作。'}</span>
                         </div>
+                    </div>
+
+                    <hr className="divider" style={{ margin: '0 0 20px 0' }} />
+
+                    <div className="form-group" style={{ marginBottom: '20px' }}>
+                        <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            {t('auth.sponsorKeyLabel') || 'Gas 赞助商私钥（可选）'}
+                        </label>
+                        <input
+                            className="form-input mono"
+                            type="password"
+                            placeholder={t('auth.sponsorKeyPlaceholder') || '留空则由 EOA 自己支付 Gas'}
+                            value={sweepSponsorKey}
+                            onChange={(e) => setSweepSponsorKey(e.target.value)}
+                            style={{ fontSize: '13px' }}
+                        />
+                        <div className="form-hint">{t('auth.sponsorKeyHint') || '填写后由赞助商钱包支付 Gas，EOA 无需 ETH 即可完成搬运'}</div>
                     </div>
 
                     <hr className="divider" style={{ margin: '0 0 20px 0' }} />
