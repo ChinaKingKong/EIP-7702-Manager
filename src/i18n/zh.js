@@ -38,7 +38,7 @@ export default {
         sectionResources: '资源',
         dashboard: '仪表盘',
         authorization: '转发授权',
-        autoForwardConfig: '自动转发',
+        autoForwardConfig: '搬运代币',
 
         gasSponsorship: 'Gas 代付',
         deployContract: '部署合约',

@@ -38,7 +38,7 @@ export default {
         sectionResources: 'Resources',
         dashboard: 'Dashboard',
         authorization: 'Forwarding Auth',
-        autoForwardConfig: 'Auto Forward',
+        autoForwardConfig: 'Sweep Tokens',
 
         gasSponsorship: 'Gas Sponsorship',
         deployContract: 'Deploy Contract',

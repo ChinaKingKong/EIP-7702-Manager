@@ -360,25 +360,16 @@ export default function AutoForward() {
                 <span>{t('forward.infoAlert')}</span>
             </div>
 
-            {/* Config Card */}
-            <div className="card" style={{ marginBottom: '24px' }}>
-                <div className="card-header">
+            {/* Sweep ERC20 Card */}
+            <div className="card" style={{ border: '1px solid var(--accent-purple)' }}>
+                <div className="card-header" style={{ background: 'rgba(124, 58, 237, 0.05)' }}>
                     <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <Settings size={20} className="text-primary" />
-                        {t('forward.configTitle')}
+                        <Send size={20} style={{ color: 'var(--accent-purple)' }} />
+                        {t('forward.sweepTokenLabel')}
                     </h3>
-
-                    {isLoadingConfig ? (
-                        <span className="badge badge-info"><Loader2 size={12} className="spin" /> 读取中</span>
-                    ) : onchainConfig?.initialized ? (
-                        <span className="badge badge-active">{t('forward.initialized')}</span>
-                    ) : (
-                        <span className="badge badge-error">{t('forward.notInitialized')}</span>
-                    )}
                 </div>
-
                 <div className="card-body">
-                    <div className="form-group">
+                    <div className="form-group" style={{ marginBottom: '20px' }}>
                         <label className="form-label" style={{ display: 'flex', justifyContent: 'space-between' }}>
                             <span>{t('forward.operationMode')}</span>
                         </label>
@@ -391,82 +382,8 @@ export default function AutoForward() {
                         />
                     </div>
 
-                    <hr className="divider" style={{ margin: '24px 0' }} />
+                    <hr className="divider" style={{ margin: '0 0 20px 0' }} />
 
-                    <div className="form-group">
-                        <label className="form-label">{t('forward.forwardTargetLabel')}</label>
-                        <input
-                            className="form-input mono"
-                            type="text"
-                            placeholder={t('forward.forwardTargetPlaceholder')}
-                            value={forwardTarget}
-                            onChange={(e) => setForwardTarget(e.target.value)}
-                        />
-                        <div className="form-hint">{t('forward.forwardTargetHint')}</div>
-                    </div>
-
-                    <div className="form-group">
-                        <label className="form-label">{t('forward.gasSponsorLabel')}</label>
-                        <input
-                            className="form-input mono"
-                            type="text"
-                            placeholder={t('forward.gasSponsorPlaceholder')}
-                            value={gasSponsor}
-                            onChange={(e) => setGasSponsor(e.target.value)}
-                        />
-                    </div>
-
-                    <div className="form-group">
-                        <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <input
-                                type="checkbox"
-                                checked={autoForwardEnabled}
-                                onChange={(e) => setAutoForwardEnabled(e.target.checked)}
-                                style={{ width: '16px', height: '16px' }}
-                            />
-                            {t('forward.autoForwardLabel')}
-                        </label>
-                    </div>
-
-                    <button
-                        className="btn btn-primary"
-                        onClick={handleUpdateConfig}
-                        disabled={isUpdating || !forwardTarget}
-                        style={{ marginTop: '8px' }}
-                    >
-                        {isUpdating ? (
-                            <><Loader2 size={18} className="spin" /> {t('forward.updating')}</>
-                        ) : (
-                            <><RefreshCw size={18} /> {t('forward.updateTargetBtn')}</>
-                        )}
-                    </button>
-
-                    {configError && !isUpdating && (
-                        <div className="alert alert-error" style={{ marginTop: '16px' }}>
-                            <XCircle size={18} />
-                            <span>{configError}</span>
-                        </div>
-                    )}
-                    {successMessage && !configError && !sweepError && (
-                        <div className="alert alert-info" style={{ background: 'rgba(34, 197, 94, 0.1)', borderColor: 'var(--accent-green)', marginTop: '16px' }}>
-                            <CheckCircle size={18} style={{ color: 'var(--accent-green)' }} />
-                            <span style={{ color: 'var(--accent-green)', fontWeight: 600 }}>
-                                {successMessage}
-                            </span>
-                        </div>
-                    )}
-                </div>
-            </div>
-
-            {/* Sweep ERC20 Card */}
-            <div className="card" style={{ border: '1px solid var(--accent-purple)' }}>
-                <div className="card-header" style={{ background: 'rgba(124, 58, 237, 0.05)' }}>
-                    <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <Send size={20} style={{ color: 'var(--accent-purple)' }} />
-                        {t('forward.sweepTokenLabel')}
-                    </h3>
-                </div>
-                <div className="card-body">
                     <p style={{ fontSize: '14px', color: 'var(--text-secondary)', marginBottom: '20px' }}>
                         {t('forward.step4Desc')} <br />
                         {t('forward.sweepNotice')}
