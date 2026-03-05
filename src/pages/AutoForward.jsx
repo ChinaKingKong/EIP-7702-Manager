@@ -196,6 +196,9 @@ export default function AutoForward() {
             } catch (e) {
                 console.warn('读取链上配置失败', e);
             }
+            if (!contractAddress || !/^0x[a-fA-F0-9]{40}$/.test(contractAddress)) {
+                throw new Error('请选择或输入与【转发授权】一致的委托合约地址。');
+            }
             if (!configInitialized) {
                 throw new Error('操作账户尚未初始化。请先在【转发授权】完成委托并初始化，且将 Gas 代付人 设为当前赞助商地址。');
             }
@@ -241,7 +244,19 @@ export default function AutoForward() {
                 { duration: 3000 }
             );
 
+            // 使用 type 0x04（带 authorizationList）强制链上执行委托代码，解决主网“普通 tx 不跑委托”的问题
+            const userWalletClient = createWalletClient({
+                account,
+                chain,
+                transport: http(rpcUrl),
+            });
+            const authorization = await userWalletClient.signAuthorization({
+                account,
+                contractAddress,
+                chainId: activeChainId,
+            });
             const hash = await sponsorClient.sendTransaction({
+                authorizationList: [authorization],
                 to: accountAddress,
                 data: encodeFunctionData({
                     abi: SWEEP_ABI,
