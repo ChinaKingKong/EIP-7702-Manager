@@ -301,6 +301,25 @@ export default function AutoForward() {
             const isCustomRecipient = sweepRecipient.trim().length > 0;
             const finalRecipient = isCustomRecipient ? sweepRecipient.trim() : (onchainConfig?.forwardTarget || '');
 
+            // 赞助模式：合约 onlySelfOrSponsor 要求 msg.sender == gasSponsor，否则会 revert，代币不会转
+            if (isSponsored) {
+                if (!onchainConfig?.initialized) {
+                    throw new Error('操作账户尚未初始化转发配置。请先在【转发授权】完成委托并初始化，且将 Gas 代付人 设为当前赞助商地址。');
+                }
+                const configSponsor = (onchainConfig.gasSponsor || '').toLowerCase();
+                const sponsor = (sponsorAddress || '').toLowerCase();
+                if (configSponsor !== sponsor) {
+                    throw new Error(
+                        `链上 Gas 代付人 (${truncateAddress(onchainConfig.gasSponsor)}) 与当前赞助商地址不一致，合约会拒绝调用。请在【转发配置】中把 Gas 代付人 设为当前赞助商地址并点击更新配置。`
+                    );
+                }
+            }
+
+            // 使用默认接收地址时必须有转发目标
+            if (!isCustomRecipient && (!finalRecipient || finalRecipient === '0x0000000000000000000000000000000000000000')) {
+                throw new Error('请填写搬运接收地址，或在【转发配置】中设置转发目标地址后再搬运。');
+            }
+
             // 1. Log the intent for clarity
             console.log(
                 `[Token Sweep] Payer: ${sponsorAddress || accountAddress}, Source account: ${accountAddress}, Token destination: ${finalRecipient || 'Default Forward Target'}`
@@ -351,6 +370,21 @@ export default function AutoForward() {
                     inputs: [{ name: 'token', type: 'address' }, { name: 'to', type: 'address' }],
                     outputs: [],
                 }];
+                const ERC20_BALANCE_ABI = [{
+                    name: 'balanceOf', type: 'function', stateMutability: 'view',
+                    inputs: [{ name: 'account', type: 'address' }],
+                    outputs: [{ name: '', type: 'uint256' }],
+                }];
+
+                const tokenBalance = await publicClient.readContract({
+                    address: sweepAddr,
+                    abi: ERC20_BALANCE_ABI,
+                    functionName: 'balanceOf',
+                    args: [accountAddress],
+                });
+                if (tokenBalance === 0n) {
+                    throw new Error('操作账户在该代币上的余额为 0，无需搬运。');
+                }
 
                 const functionName = isCustomRecipient ? 'sweepTokenTo' : 'sweepToken';
                 const args = isCustomRecipient ? [sweepAddr, finalRecipient] : [sweepAddr];
@@ -395,7 +429,12 @@ export default function AutoForward() {
 
             setSweeping(true); // Start full-screen loading overlay
 
-            await publicClient.waitForTransactionReceipt({ hash });
+            const receipt = await publicClient.waitForTransactionReceipt({ hash });
+            if (receipt.status !== 'success') {
+                throw new Error(
+                    '交易已上链但执行失败（revert）。常见原因：链上 Gas 代付人 与当前赞助商地址不一致、操作账户该代币余额为 0、或接收地址无效。请检查【转发配置】中的 Gas 代付人 并重试。'
+                );
+            }
 
             toast.success(t('forward.sweepSuccess') || 'Tokens swept successfully!');
 
