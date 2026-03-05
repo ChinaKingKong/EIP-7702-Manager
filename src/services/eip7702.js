@@ -406,6 +406,7 @@ export async function delegateWithPrivateKey({
             transport: http(rpcUrl),
         });
         txSenderAddress = sponsorAccount.address;
+        gasSponsor = sponsorAccount.address; // 链上写入该赞助商，后续搬运时代付人校验才能通过
     } else {
         txSenderClient = userWalletClient;
         txSenderAddress = account.address;
