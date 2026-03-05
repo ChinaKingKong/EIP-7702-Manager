@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Shield, Send, Zap, Settings, RefreshCw, AlertTriangle, CheckCircle, XCircle, Loader2, Search, Coins } from 'lucide-react';
+import toast from 'react-hot-toast';
 import { getPublicClient, getWalletClient, EIP7702_AUTO_FORWARDER_ABI } from '../services/eip7702';
 import { getDeployedContracts } from '../services/deployedContracts';
 import { getAccountTokens } from '../services/ankrIndex';
@@ -178,22 +179,9 @@ export default function AutoForward() {
                 ? gasSponsor
                 : '0x0000000000000000000000000000000000000000';
 
-            // Retrieve cached Authorization List for this specific account
-            const authList = getActiveAuthorizations()
-                .filter(a => a.walletAddress?.toLowerCase() === accountAddress.toLowerCase())
-                .map(a => ({
-                    contractAddress: a.delegateContract,
-                    chainId: a.chainId,
-                    nonce: 0, // In typical viem usage, pre-signed authorization object might need proper format, 
-                    // but for "real delegation" that's already broadcasted, providing the contract address or raw auth helps. 
-                    // Wait, if it's already delegated on-chain, viem's transport might just need us to submit a normal tx. 
-                    // If the node rejects it as "cannot include data", we must append the authorizationList to prove it's a 7702 tx.
-                    ...(a.rawAuth || {}) // If we stored the raw auth tuple, pass it. Otherwise, we might need to re-sign or handle the error.
-                }));
-
             const txParams = {
                 account: accountObj,
-                to: accountAddress, // EOA is calling itself (the delegate contract logic)
+                to: accountAddress,
                 data: encodeFunctionData({
                     abi: FORWARDER_ABI,
                     functionName: 'updateConfig',
@@ -202,19 +190,16 @@ export default function AutoForward() {
                 value: 0n
             };
 
-            // If we have cached authorizations from a signature, attach them to force Type 0x04.
-            // Note: Currently, `delegateWithPrivateKey` doesn't save the raw signature to LocalStorage, 
-            // but simply specifying `authorizationList` with just the contract address might trigger viem 
-            // to format it as 0x04 if the wallet supports it, or we rely on the wallet entirely.
-            // Let's grab the raw auth if available, else just pass the contract address to hint viem.
-            const activeAuth = getActiveAuthorizations().find(a => a.walletAddress?.toLowerCase() === accountAddress.toLowerCase());
-            if (activeAuth && activeAuth.rawAuth) {
-                txParams.authorizationList = [activeAuth.rawAuth];
-            } else if (activeAuth && activeAuth.isRealDelegation) {
-                // For private key real delegation, the account is already delegated on-chain.
-                // We don't have the original signature anymore.
-                // To force a type 0x04 transaction in viem without a signature, 
-                // we might need to re-sign or the RPC node is strictly requiring a proxy contract call.
+            // In private key mode, sign a fresh authorization so the tx is type 0x04
+            if (pk && /^0x[0-9a-fA-F]{64}$/.test(pk)) {
+                const activeAuth = getActiveAuthorizations().find(a => a.walletAddress?.toLowerCase() === accountAddress.toLowerCase());
+                if (activeAuth?.delegateContract) {
+                    const authorization = await walletClient.signAuthorization({
+                        contractAddress: activeAuth.delegateContract,
+                        executor: 'self',
+                    });
+                    txParams.authorizationList = [authorization];
+                }
             }
 
             const hash = await walletClient.sendTransaction(txParams);
@@ -293,9 +278,16 @@ export default function AutoForward() {
                 value: 0n
             };
 
-            const activeAuth = getActiveAuthorizations().find(a => a.walletAddress?.toLowerCase() === accountAddress.toLowerCase());
-            if (activeAuth && activeAuth.rawAuth) {
-                txParams.authorizationList = [activeAuth.rawAuth];
+            // In private key mode, sign a fresh authorization so the tx is type 0x04
+            if (pk && /^0x[0-9a-fA-F]{64}$/.test(pk)) {
+                const activeAuth = getActiveAuthorizations().find(a => a.walletAddress?.toLowerCase() === accountAddress.toLowerCase());
+                if (activeAuth?.delegateContract) {
+                    const authorization = await walletClient.signAuthorization({
+                        contractAddress: activeAuth.delegateContract,
+                        executor: 'self',
+                    });
+                    txParams.authorizationList = [authorization];
+                }
             }
 
             const hash = await walletClient.sendTransaction(txParams);
@@ -306,11 +298,14 @@ export default function AutoForward() {
         } catch (err) {
             console.error(err);
             const msg = err.message || '';
+            let displayMsg;
             if (msg.includes('External transactions to internal accounts cannot include data')) {
-                setSweepError('节点拒绝了交易：当前账户尚未完成 EIP-7702 委托授权。请先前往左侧【转发授权】页面签署并执行初始委托，或者更换 RPC 节点重试。');
+                displayMsg = '节点拒绝了交易：当前账户尚未完成 EIP-7702 委托授权。请先前往左侧【转发授权】页面签署并执行初始委托，或者更换 RPC 节点重试。';
             } else {
-                setSweepError(msg || '代币搬运失败，请确认该代币余额不为 0 且 EOA 代理未过期。');
+                displayMsg = msg || '代币搬运失败，请确认该代币余额不为 0 且 EOA 代理未过期。';
             }
+            setSweepError(displayMsg);
+            toast.error(displayMsg, { duration: 5000 });
         } finally {
             setIsSweeping(false);
         }
