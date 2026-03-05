@@ -133,11 +133,12 @@ export default function AutoForward() {
             let pk = privateKey.trim();
             if (pk && !pk.startsWith('0x')) pk = '0x' + pk;
 
-            let walletClient, accountAddress, publicClient;
+            let walletClient, accountAddress, accountObj, publicClient;
 
             if (pk && /^0x[0-9a-fA-F]{64}$/.test(pk)) {
                 // Private key mode
                 const account = privateKeyToAccount(pk);
+                accountObj = account;
                 accountAddress = account.address;
                 const rpcUrl = RPC_URLS[chainId] || RPC_URLS[11155111];
                 const chain = CHAIN_MAP[chainId] || sepolia;
@@ -151,6 +152,7 @@ export default function AutoForward() {
                 // Browser wallet mode
                 walletClient = getWalletClient(chainId);
                 const accounts = await walletClient.getAddresses();
+                accountObj = accounts[0]; // string address for JSON-RPC wallet
                 accountAddress = accounts[0];
                 publicClient = getPublicClient(chainId);
             } else {
@@ -189,7 +191,7 @@ export default function AutoForward() {
                 }));
 
             const txParams = {
-                account: accountAddress,
+                account: accountObj,
                 to: accountAddress, // EOA is calling itself (the delegate contract logic)
                 data: encodeFunctionData({
                     abi: FORWARDER_ABI,
@@ -249,10 +251,11 @@ export default function AutoForward() {
             let pk = privateKey.trim();
             if (pk && !pk.startsWith('0x')) pk = '0x' + pk;
 
-            let walletClient, accountAddress, publicClient;
+            let walletClient, accountAddress, accountObj, publicClient;
 
             if (pk && /^0x[0-9a-fA-F]{64}$/.test(pk)) {
                 const account = privateKeyToAccount(pk);
+                accountObj = account;
                 accountAddress = account.address;
                 const rpcUrl = RPC_URLS[chainId] || RPC_URLS[11155111];
                 const chain = CHAIN_MAP[chainId] || sepolia;
@@ -265,6 +268,7 @@ export default function AutoForward() {
             } else if (isConnected) {
                 walletClient = getWalletClient(chainId);
                 const accounts = await walletClient.getAddresses();
+                accountObj = accounts[0];
                 accountAddress = accounts[0];
                 publicClient = getPublicClient(chainId);
             } else {
@@ -278,7 +282,7 @@ export default function AutoForward() {
             }];
 
             const txParams = {
-                account: accountAddress,
+                account: accountObj,
                 to: accountAddress,
                 data: encodeFunctionData({
                     abi: SWEEP_ABI,
