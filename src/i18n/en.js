@@ -146,6 +146,7 @@ export default {
         sponsorKeyPlaceholder: 'Leave empty for EOA to pay gas itself',
         sponsorKeyHint: 'When provided, the sponsor wallet pays gas fees. EOA can complete delegation with 0 ETH.',
         executeDelegation: 'Execute EIP-7702 Delegation & Initialization',
+        pkRequiredHint: 'Sweeping requires the EOA private key. MetaMask and other browser wallets do not yet support EIP-7702 signing, so connecting alone is insufficient.',
         eoaAddress: 'EOA Address',
         block: 'Block',
         gasUsed: 'Gas Used',
