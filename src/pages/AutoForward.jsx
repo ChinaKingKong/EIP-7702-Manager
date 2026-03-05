@@ -32,7 +32,11 @@ export default function AutoForward() {
     // ERC20 Sweep 状态
     const [tokenAddress, setTokenAddress] = useState('');
     const [discoveredTokens, setDiscoveredTokens] = useState([]);
-    const [isScanningTokens, setIsScanningTokens] = useState(false); 
+    const [isScanningTokens, setIsScanningTokens] = useState(false);
+
+    // 当前链上配置（仅展示用，搬运时仍实时读链）
+    const [onchainConfig, setOnchainConfig] = useState(null);
+    const [isLoadingConfig, setIsLoadingConfig] = useState(false);
 
     // 交互状态
     const [isSweeping, setIsSweeping] = useState(false);
