@@ -20,6 +20,7 @@ export function WalletProvider({ children }) {
         isConnected: false,
         isConnecting: false,
         error: null,
+        disconnectedChainId: 1, // Default to Mainnet (1) when not connected
     });
 
     const updateBalance = useCallback(async (address) => {
@@ -56,8 +57,13 @@ export function WalletProvider({ children }) {
         }
     }, []);
 
+    const setDisconnectedChainId = useCallback((newChainId) => {
+        setWallet((prev) => ({ ...prev, disconnectedChainId: newChainId }));
+    }, []);
+
     const disconnect = useCallback(() => {
-        setWallet({
+        setWallet(prev => ({
+            ...prev,
             address: null,
             balance: '0',
             chainId: 0,
@@ -65,7 +71,7 @@ export function WalletProvider({ children }) {
             isConnected: false,
             isConnecting: false,
             error: null,
-        });
+        }));
     }, []);
 
     useEffect(() => {
@@ -101,6 +107,7 @@ export function WalletProvider({ children }) {
         ...wallet,
         connect,
         disconnect,
+        setDisconnectedChainId,
         truncateAddress: () => truncateAddress(wallet.address),
     };
 

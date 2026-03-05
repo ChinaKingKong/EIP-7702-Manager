@@ -10,15 +10,22 @@ const NETWORKS = [
 ];
 
 export default function NetworkSwitcher() {
-    const { isConnected, chainId } = useWallet();
+    const { isConnected, chainId, disconnectedChainId, setDisconnectedChainId } = useWallet();
     const { t } = useI18n();
     const [open, setOpen] = useState(false);
     const [switching, setSwitching] = useState(false);
 
-    const currentNetwork = NETWORKS.find((n) => n.chainId === chainId);
+    const effectiveChainId = isConnected ? chainId : disconnectedChainId;
+    const currentNetwork = NETWORKS.find((n) => n.chainId === effectiveChainId);
 
     const handleSwitch = async (net) => {
-        if (!window.ethereum || net.chainId === chainId) {
+        if (!isConnected) {
+            setDisconnectedChainId(net.chainId);
+            setOpen(false);
+            return;
+        }
+
+        if (!window.ethereum || net.chainId === effectiveChainId) {
             setOpen(false);
             return;
         }
@@ -59,7 +66,7 @@ export default function NetworkSwitcher() {
             <button
                 className="btn btn-glass"
                 onClick={() => setOpen(!open)}
-                disabled={!isConnected || switching}
+                disabled={switching}
                 style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -67,8 +74,8 @@ export default function NetworkSwitcher() {
                     padding: '8px 14px',
                     fontSize: '13px',
                     fontWeight: 600,
-                    cursor: isConnected ? 'pointer' : 'default',
-                    opacity: isConnected ? 1 : 0.5,
+                    cursor: switching ? 'default' : 'pointer',
+                    opacity: switching ? 0.5 : 1,
                 }}
             >
                 <div
@@ -120,17 +127,17 @@ export default function NetworkSwitcher() {
                                     gap: '10px',
                                     width: '100%',
                                     padding: '10px',
-                                    background: net.chainId === chainId ? 'var(--bg-glass)' : 'transparent',
+                                    background: net.chainId === effectiveChainId ? 'var(--bg-glass)' : 'transparent',
                                     border: 'none',
                                     borderRadius: '8px',
                                     cursor: 'pointer',
                                     color: 'var(--text-primary)',
                                     fontSize: '13px',
-                                    fontWeight: net.chainId === chainId ? 600 : 400,
+                                    fontWeight: net.chainId === effectiveChainId ? 600 : 400,
                                     transition: 'background 0.15s',
                                 }}
-                                onMouseEnter={(e) => { if (net.chainId !== chainId) e.target.style.background = 'var(--bg-glass)'; }}
-                                onMouseLeave={(e) => { if (net.chainId !== chainId) e.target.style.background = 'transparent'; }}
+                                onMouseEnter={(e) => { if (net.chainId !== effectiveChainId) e.target.style.background = 'var(--bg-glass)'; }}
+                                onMouseLeave={(e) => { if (net.chainId !== effectiveChainId) e.target.style.background = 'transparent'; }}
                             >
                                 <div
                                     style={{
@@ -142,7 +149,7 @@ export default function NetworkSwitcher() {
                                     }}
                                 />
                                 <span>{net.name}</span>
-                                {net.chainId === chainId && (
+                                {net.chainId === effectiveChainId && (
                                     <span style={{ marginLeft: 'auto', fontSize: '11px', color: 'var(--accent-green)' }}>✓</span>
                                 )}
                             </button>
