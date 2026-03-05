@@ -197,10 +197,13 @@ export default function AutoForward() {
                 throw new Error('操作账户尚未初始化。请先在【转发授权】完成委托并初始化，且将 Gas 代付人 设为当前赞助商地址。');
             }
             const sponsor = (sponsorAddress || '').toLowerCase();
+            const zeroAddr = '0x0000000000000000000000000000000000000000';
             if (configGasSponsor !== sponsor) {
-                throw new Error(
-                    `链上 Gas 代付人与当前赞助商地址不一致，合约会拒绝调用。链上 Gas 代付人: ${configGasSponsor || '0x0'}，当前赞助商: ${sponsor}。请在【转发授权】完成委托并初始化时，将 Gas 代付人 设为当前赞助商地址（与搬运页填写的赞助商私钥一致），且委托合约选择与搬运页一致。`
-                );
+                const isChainSponsorEmpty = !configGasSponsor || configGasSponsor === zeroAddr;
+                const msg = isChainSponsorEmpty
+                    ? `链上 Gas 代付人为空，说明您在【转发授权】时未填写「Gas 赞助商私钥」。请到【转发授权】页填写与当前相同的赞助商私钥（当前赞助商: ${sponsor}）后重新执行一次委托，即可将 Gas 代付人写入链上。`
+                    : `链上 Gas 代付人与当前赞助商地址不一致，合约会拒绝调用。链上 Gas 代付人: ${configGasSponsor}，当前赞助商: ${sponsor}。请在【转发授权】用与搬运页相同的赞助商私钥重新执行委托以更新 Gas 代付人，且委托合约选择与搬运页一致。`;
+                throw new Error(msg);
             }
 
             console.log(

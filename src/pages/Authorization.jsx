@@ -236,6 +236,10 @@ export default function Authorization() {
                             style={{ fontSize: '13px' }}
                         />
                         <div className="form-hint">{t('auth.sponsorKeyHint') || '填写后由赞助商钱包支付 Gas，EOA 无需 ETH 也可完成委托'}</div>
+                        <div className="alert alert-warning" style={{ marginTop: '8px', padding: '8px 12px', fontSize: '12px', lineHeight: '1.5' }}>
+                            <AlertTriangle size={14} style={{ flexShrink: 0, marginTop: '2px' }} />
+                            <span>{t('auth.sponsorKeyRequiredForSweep') || '若要在【搬运代币】页由赞助商代付 Gas，此处必须填写与搬运页相同的赞助商私钥，否则链上 Gas 代付人为空，搬运会报错。'}</span>
+                        </div>
                     </div>
 
                     <button
