@@ -4,8 +4,7 @@ import { Shield, Send, Zap, Settings, RefreshCw, AlertTriangle, CheckCircle, XCi
 import toast from 'react-hot-toast';
 import { getPublicClient } from '../services/eip7702';
 import { getDeployedContracts } from '../services/deployedContracts';
-import { getAccountTokens } from '../services/ankrIndex';
-import { getActiveAuthorizations } from '../services/authorizationCache';
+import { getAccountTokens } from '../services/ankrIndex'; 
 import { useWallet } from '../context/WalletContext';
 import { useI18n } from '../context/I18nContext';
 import { truncateAddress } from '../services/wallet';
