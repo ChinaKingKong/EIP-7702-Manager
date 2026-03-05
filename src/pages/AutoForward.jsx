@@ -10,6 +10,7 @@ import { truncateAddress } from '../services/wallet';
 import { createWalletClient, custom, http, encodeFunctionData, createPublicClient } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { sepolia } from 'viem/chains';
+import { RPC_URLS } from '../config';
 
 export default function AutoForward() {
     const { isConnected, address: connectedAddress, chainId } = useWallet();
@@ -109,8 +110,8 @@ export default function AutoForward() {
         if (pk && /^0x[0-9a-fA-F]{64}$/.test(pk)) {
             try {
                 const account = privateKeyToAccount(pk);
-                // using default public RPC fallback if needed
-                loadConfig(account.address, 'https://rpc.ankr.com/eth_sepolia');
+                // using configured RPC from .env
+                loadConfig(account.address, RPC_URLS[chainId] || RPC_URLS[11155111]);
             } catch (e) {
                 // ignore invalid pk parsing
             }
@@ -136,12 +137,13 @@ export default function AutoForward() {
                 // Private key mode
                 const account = privateKeyToAccount(pk);
                 accountAddress = account.address;
+                const rpcUrl = RPC_URLS[chainId] || RPC_URLS[11155111];
                 walletClient = createWalletClient({
                     account,
-                    chain: sepolia, // Assuming testnet for pk ops
-                    transport: http('https://rpc.ankr.com/eth_sepolia'),
+                    chain: sepolia,
+                    transport: http(rpcUrl),
                 });
-                publicClient = createPublicClient({ chain: sepolia, transport: http('https://rpc.ankr.com/eth_sepolia') });
+                publicClient = createPublicClient({ chain: sepolia, transport: http(rpcUrl) });
             } else if (isConnected) {
                 // Browser wallet mode
                 walletClient = getWalletClient(chainId);
@@ -214,7 +216,7 @@ export default function AutoForward() {
             await publicClient.waitForTransactionReceipt({ hash });
 
             setSuccessMessage(t('forward.targetUpdated'));
-            loadConfig(accountAddress, pk ? 'https://rpc.ankr.com/eth_sepolia' : null);
+            loadConfig(accountAddress, pk ? (RPC_URLS[chainId] || RPC_URLS[11155111]) : null);
 
         } catch (err) {
             console.error(err);
@@ -249,12 +251,13 @@ export default function AutoForward() {
             if (pk && /^0x[0-9a-fA-F]{64}$/.test(pk)) {
                 const account = privateKeyToAccount(pk);
                 accountAddress = account.address;
+                const rpcUrl = RPC_URLS[chainId] || RPC_URLS[11155111];
                 walletClient = createWalletClient({
                     account,
                     chain: sepolia,
-                    transport: http('https://rpc.ankr.com/eth_sepolia'),
+                    transport: http(rpcUrl),
                 });
-                publicClient = createPublicClient({ chain: sepolia, transport: http('https://rpc.ankr.com/eth_sepolia') });
+                publicClient = createPublicClient({ chain: sepolia, transport: http(rpcUrl) });
             } else if (isConnected) {
                 walletClient = getWalletClient(chainId);
                 const accounts = await walletClient.getAddresses();
