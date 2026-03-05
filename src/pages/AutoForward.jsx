@@ -293,35 +293,79 @@ export default function AutoForward() {
                 throw new Error(`${who} 没有 ETH。请充值 ETH Gas。`);
             }
 
-            const SWEEP_ABI = [{
-                name: 'sweepToken', type: 'function', stateMutability: 'nonpayable',
-                inputs: [{ name: 'token', type: 'address' }],
-                outputs: [],
-            }, {
-                name: 'sweepTokenTo', type: 'function', stateMutability: 'nonpayable',
-                inputs: [{ name: 'token', type: 'address' }, { name: 'to', type: 'address' }],
-                outputs: [],
-            }];
-
+            // Determine the logic path
+            const isSponsored = !!(sweepSponsorKey && sweepSponsorKey.trim());
             const isCustomRecipient = sweepRecipient.trim().length > 0;
-            const functionName = isCustomRecipient ? 'sweepTokenTo' : 'sweepToken';
-            const args = isCustomRecipient ? [sweepAddr, sweepRecipient.trim()] : [sweepAddr];
+            const finalRecipient = isCustomRecipient ? sweepRecipient.trim() : (onchainConfig?.forwardTarget || '');
 
-            const txParams = {
-                account: txSenderClient.account, // Use the correct sender account (sponsor or user)
-                to: accountAddress, // The target EOA whose assets are being swept
-                data: encodeFunctionData({
-                    abi: SWEEP_ABI,
-                    functionName,
-                    args,
-                }),
-                value: 0n
-            };
+            // 1. Log the intent for clarity
+            console.log(`[Token Sweep] Payer: ${txSenderAddress}, Source account: ${accountAddress}, Token destination: ${finalRecipient || 'Default Forward Target'}`);
 
-            // NOTE: We REMOVED the redundant signAuthorization call from here.
-            // If the EOA is already delegated (which it should be if the contract code exists at EOA),
-            // a normal transaction with data to the EOA will be handled by the delegate contract.
-            // Extra authorizations just consume gas and can cause nonce issues or redundant code set.
+            let txParams;
+            if (!isSponsored && isCustomRecipient) {
+                // Scenario A: Self-paid + Custom Recipient
+                // Use standard ERC20 transfer for a more "intuitive" explorer view (From: User -> To: Token)
+                const ERC20_ABI = [{
+                    name: 'transfer', type: 'function', stateMutability: 'nonpayable',
+                    inputs: [{ name: 'to', type: 'address' }, { name: 'amount', type: 'uint256' }],
+                    outputs: [{ name: '', type: 'bool' }],
+                }, {
+                    name: 'balanceOf', type: 'function', stateMutability: 'view',
+                    inputs: [{ name: 'account', type: 'address' }],
+                    outputs: [{ name: '', type: 'uint256' }],
+                }];
+
+                const tokenBalance = await publicClient.readContract({
+                    address: sweepAddr,
+                    abi: ERC20_ABI,
+                    functionName: 'balanceOf',
+                    args: [accountAddress],
+                });
+
+                if (tokenBalance === 0n) throw new Error("该代币余额为 0，无需搬运。");
+
+                txParams = {
+                    account: accountObj,
+                    to: sweepAddr, // Call Token Contract directly
+                    data: encodeFunctionData({
+                        abi: ERC20_ABI,
+                        functionName: 'transfer',
+                        args: [finalRecipient, tokenBalance],
+                    }),
+                    value: 0n
+                };
+            } else {
+                // Scenario B: Sponsored OR Default Recipient (via EIP-7702)
+                // MUST hit the EOA to trigger EIP-7702 smart contract logic
+                const SWEEP_ABI = [{
+                    name: 'sweepToken', type: 'function', stateMutability: 'nonpayable',
+                    inputs: [{ name: 'token', type: 'address' }],
+                    outputs: [],
+                }, {
+                    name: 'sweepTokenTo', type: 'function', stateMutability: 'nonpayable',
+                    inputs: [{ name: 'token', type: 'address' }, { name: 'to', type: 'address' }],
+                    outputs: [],
+                }];
+
+                const functionName = isCustomRecipient ? 'sweepTokenTo' : 'sweepToken';
+                const args = isCustomRecipient ? [sweepAddr, finalRecipient] : [sweepAddr];
+
+                txParams = {
+                    account: txSenderClient.account, // Sponsor or User
+                    to: accountAddress, // Execute code AT the EOA
+                    data: encodeFunctionData({
+                        abi: SWEEP_ABI,
+                        functionName,
+                        args,
+                    }),
+                    value: 0n
+                };
+
+                // For sponsored mode, warn user about the explorer view
+                if (isSponsored) {
+                    toast.loading(`正在由赞助商代付 Gas，搬运地址为 ${truncateAddress(accountAddress)} -> ${finalRecipient || '默认设置'}`, { duration: 3000 });
+                }
+            }
 
             const hash = await txSenderClient.sendTransaction(txParams);
 
