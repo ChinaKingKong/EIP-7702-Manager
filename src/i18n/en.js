@@ -145,6 +145,7 @@ export default {
         sponsorKeyLabel: 'Gas Sponsor Private Key (Optional)',
         sponsorKeyPlaceholder: 'Leave empty for EOA to pay gas itself',
         sponsorKeyHint: 'When provided, the sponsor wallet pays gas fees. EOA can complete delegation with 0 ETH.',
+        sponsorKeyRequiredForSweep: 'To have the sponsor pay gas on the [Token Sweep] page, you must enter the same sponsor private key here; otherwise the on-chain gas sponsor stays empty and sweep will fail.',
         executeDelegation: 'Execute EIP-7702 Delegation & Initialization',
         eoaAddress: 'EOA Address',
         block: 'Block',

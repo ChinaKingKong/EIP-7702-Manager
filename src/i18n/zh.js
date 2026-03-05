@@ -145,6 +145,7 @@ export default {
         sponsorKeyLabel: 'Gas 赞助商私钥（可选）',
         sponsorKeyPlaceholder: '留空则由 EOA 自己支付 Gas',
         sponsorKeyHint: '填写后由赞助商钱包支付 Gas，EOA 无需 ETH 也可完成委托',
+        sponsorKeyRequiredForSweep: '若要在【搬运代币】页由赞助商代付 Gas，此处必须填写与搬运页相同的赞助商私钥，否则链上 Gas 代付人为空，搬运会报错。',
         executeDelegation: '执行 EIP-7702 委托 & 初始化',
         eoaAddress: 'EOA 地址',
         block: '区块',
