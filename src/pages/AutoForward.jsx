@@ -187,7 +187,12 @@ export default function AutoForward() {
 
         } catch (err) {
             console.error(err);
-            setError(err.message || '更新配置失败');
+            const msg = err.message || '';
+            if (msg.includes('External transactions to internal accounts cannot include data')) {
+                setError('节点拒绝了交易：当前账户尚未完成 EIP-7702 委托授权。请先前往左侧【转发授权】页面签署并执行初始委托，或者更换 RPC 节点重试。');
+            } else {
+                setError(msg || '更新配置失败');
+            }
         } finally {
             setIsUpdating(false);
         }
@@ -250,7 +255,12 @@ export default function AutoForward() {
 
         } catch (err) {
             console.error(err);
-            setError(err.message || '代币搬运失败，请确认该代币余额不为 0 且 EOA 代理未过期。');
+            const msg = err.message || '';
+            if (msg.includes('External transactions to internal accounts cannot include data')) {
+                setError('节点拒绝了交易：当前账户尚未完成 EIP-7702 委托授权。请先前往左侧【转发授权】页面签署并执行初始委托，或者更换 RPC 节点重试。');
+            } else {
+                setError(msg || '代币搬运失败，请确认该代币余额不为 0 且 EOA 代理未过期。');
+            }
         } finally {
             setIsSweeping(false);
         }
