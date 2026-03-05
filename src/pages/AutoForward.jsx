@@ -461,6 +461,13 @@ export default function AutoForward() {
                         <div className="form-hint">{t('forward.sweepHint')}</div>
                     </div>
 
+                    {error && !isUpdating && !isSweeping && (
+                        <div className="alert alert-error" style={{ marginBottom: '16px' }}>
+                            <XCircle size={18} style={{ flexShrink: 0, marginTop: '2px' }} />
+                            <span style={{ wordBreak: 'break-all', fontSize: '13px', lineHeight: '1.4' }}>{error}</span>
+                        </div>
+                    )}
+
                     <button
                         className="btn btn-primary btn-full"
                         onClick={handleSweepToken}
