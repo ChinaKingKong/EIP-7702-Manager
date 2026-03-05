@@ -146,7 +146,6 @@ export default {
         sponsorKeyPlaceholder: 'Leave empty for EOA to pay gas itself',
         sponsorKeyHint: 'When provided, the sponsor wallet pays gas fees. EOA can complete delegation with 0 ETH.',
         executeDelegation: 'Execute EIP-7702 Delegation & Initialization',
-        pkRequiredHint: 'Sweeping requires the EOA private key. MetaMask and other browser wallets do not yet support EIP-7702 signing, so connecting alone is insufficient.',
         eoaAddress: 'EOA Address',
         block: 'Block',
         gasUsed: 'Gas Used',
@@ -214,6 +213,7 @@ export default {
     // Auto-Forward Configuration page
     forward: {
         infoAlert: 'Received ETH will be automatically forwarded, and ERC20 tokens can be swept manually.',
+        pkRequiredHint: 'Sweeping requires the EOA private key. MetaMask and other browser wallets do not yet support EIP-7702 signing, so connecting alone is insufficient.',
         configTitle: 'Forwarding Configuration',
         selectContract: 'Delegate Contract',
         chooseContract: 'Select a deployed contract...',

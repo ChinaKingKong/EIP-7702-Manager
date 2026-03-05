@@ -146,7 +146,6 @@ export default {
         sponsorKeyPlaceholder: '留空则由 EOA 自己支付 Gas',
         sponsorKeyHint: '填写后由赞助商钱包支付 Gas，EOA 无需 ETH 也可完成委托',
         executeDelegation: '执行 EIP-7702 委托 & 初始化',
-        pkRequiredHint: '搬运代币需要输入 EOA 私钥。MetaMask 等浏览器钱包暂不支持 EIP-7702 签名，仅连接钱包无法完成搬运操作。',
         eoaAddress: 'EOA 地址',
         block: '区块',
         gasUsed: 'Gas 消耗',
@@ -173,6 +172,7 @@ export default {
     // 自动转发配置页面
     forward: {
         infoAlert: '收到的 ETH 将自动转发，ERC20 代币可手动搬运。',
+        pkRequiredHint: '搬运代币需要输入 EOA 私钥。MetaMask 等浏览器钱包暂不支持 EIP-7702 签名，仅连接钱包无法完成搬运操作。',
         configTitle: '转发配置',
         selectContract: '委托合约',
         chooseContract: '选择已部署的合约...',
