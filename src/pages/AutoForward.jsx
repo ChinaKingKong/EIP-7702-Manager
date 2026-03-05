@@ -188,12 +188,35 @@ export default function AutoForward() {
 
             const finalRecipient = recipient;
 
-            if (!onchainConfig?.initialized) {
+            // 实时读取当前转出账户的链上配置，避免依赖可能未就绪或不同账户的 onchainConfig
+            const CONFIG_ABI = [{
+                name: 'getConfig', type: 'function', stateMutability: 'view',
+                inputs: [],
+                outputs: [
+                    { name: '_forwardTarget', type: 'address' },
+                    { name: '_gasSponsor', type: 'address' },
+                    { name: '_autoForwardEnabled', type: 'bool' },
+                    { name: '_initialized', type: 'bool' },
+                ],
+            }];
+            let configInitialized = false;
+            let configGasSponsor = '';
+            try {
+                const configResult = await publicClient.readContract({
+                    address: accountAddress,
+                    abi: CONFIG_ABI,
+                    functionName: 'getConfig',
+                });
+                configInitialized = configResult[3];
+                configGasSponsor = (configResult[1] || '').toLowerCase();
+            } catch (e) {
+                console.warn('读取链上配置失败', e);
+            }
+            if (!configInitialized) {
                 throw new Error('操作账户尚未初始化。请先在【转发授权】完成委托并初始化，且将 Gas 代付人 设为当前赞助商地址。');
             }
-            const configSponsor = (onchainConfig.gasSponsor || '').toLowerCase();
             const sponsor = (sponsorAddress || '').toLowerCase();
-            if (configSponsor !== sponsor) {
+            if (configGasSponsor !== sponsor) {
                 throw new Error(
                     `链上 Gas 代付人与当前赞助商地址不一致，合约会拒绝调用。请在【转发授权】完成委托并初始化时，将 Gas 代付人 设为当前赞助商地址。`
                 );
