@@ -281,9 +281,14 @@ export default function AutoForward() {
             // In private key mode, sign a fresh authorization so the tx is type 0x04
             if (pk && /^0x[0-9a-fA-F]{64}$/.test(pk)) {
                 const activeAuth = getActiveAuthorizations().find(a => a.walletAddress?.toLowerCase() === accountAddress.toLowerCase());
-                if (activeAuth?.delegateContract) {
+                let delegateAddr = activeAuth?.delegateContract;
+                // Fallback: use the first deployed contract if no cached auth
+                if (!delegateAddr && deployedContracts.length > 0) {
+                    delegateAddr = deployedContracts[0].address;
+                }
+                if (delegateAddr) {
                     const authorization = await walletClient.signAuthorization({
-                        contractAddress: activeAuth.delegateContract,
+                        contractAddress: delegateAddr,
                         executor: 'self',
                     });
                     txParams.authorizationList = [authorization];
