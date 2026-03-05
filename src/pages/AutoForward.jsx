@@ -295,10 +295,7 @@ export default function AutoForward() {
                 // 如果操作账户没有 ETH，则由赞助商先转一小笔 Gas 费
                 const userBalance = await publicClient.getBalance({ address: accountAddress });
                 if (userBalance === 0n) {
-                    const topupAmount = parseEther('0.003'); // 约 ~0.003 ETH 作为 Gas 预充值
-                    if (sponsorBalance < topupAmount) {
-                        throw new Error('赞助商钱包余额不足以为当前账户预充值 Gas。');
-                    }
+                    const topupAmount = parseEther('0.001'); // 约 ~0.001 ETH 作为 Gas 预充值
                     const topupHash = await sponsorClient.sendTransaction({
                         account: sponsorAccount,
                         to: accountAddress,
