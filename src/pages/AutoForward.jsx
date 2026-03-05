@@ -306,10 +306,8 @@ export default function AutoForward() {
             }
 
             // 最终执行搬运的发送方始终是“操作方式”对应的账户（accountAddress）
-            const balance = await publicClient.getBalance({ address: accountAddress });
-            if (balance === 0n) {
-                throw new Error('当前账户没有 ETH。请充值 ETH Gas，或填写赞助商私钥为其预充值后重试。');
-            }
+            // 是否真的有足够 Gas 由节点在发送交易时校验；这里不再做人为余额拦截，
+            // 以便纯赞助商场景（EOA 自身为 0 ETH）也可以正常尝试搬运。
 
             // Determine the logic path
             const isSponsored = !!(sweepSponsorKey && sweepSponsorKey.trim());
