@@ -6,6 +6,7 @@ import { revokeAuthorization, delegateWithPrivateKey } from '../services/eip7702
 import { truncateAddress } from '../services/wallet';
 import { getDeployedContracts } from '../services/deployedContracts';
 import { getAuthorizations, saveAuthorization, updateAuthorization } from '../services/authorizationCache';
+import { privateKeyToAccount } from 'viem/accounts';
 import toast from 'react-hot-toast';
 
 export default function Authorization() {
@@ -34,6 +35,20 @@ export default function Authorization() {
         setDeployedContracts(getDeployedContracts());
     }, []);
     const contractAddress = selectedContract || customContract;
+
+    // 展示授权历史用的地址：已连接钱包地址 或 私钥推导地址（使用私钥时也加载历史）
+    const displayAddress = (() => {
+        if (address) return address;
+        const pk = privateKey.trim();
+        if (!pk) return null;
+        const formatted = pk.startsWith('0x') ? pk : `0x${pk}`;
+        if (!/^0x[0-9a-fA-F]{64}$/.test(formatted)) return null;
+        try {
+            return privateKeyToAccount(formatted).address;
+        } catch {
+            return null;
+        }
+    })();
 
     const statusMessages = {
         creating_clients: t('auth.statusCreatingClients'),
@@ -318,27 +333,27 @@ export default function Authorization() {
             <div className="card">
                 <div className="card-header">
                     <h3>{t('auth.authHistory')}</h3>
-                    {address && (
+                    {displayAddress && (
                         <span className="badge badge-info">
-                            {authorizations.filter(a => a.status === 'active' && a.walletAddress?.toLowerCase() === address.toLowerCase() && a.chainId === chainId).length} {t('common.active')}
+                            {authorizations.filter(a => a.status === 'active' && a.walletAddress?.toLowerCase() === displayAddress.toLowerCase() && a.chainId === activeChainId).length} {t('common.active')}
                         </span>
                     )}
                 </div>
                 <div className="card-body" style={{ padding: '0' }}>
-                    {!address ? (
+                    {!displayAddress ? (
                         <div className="empty-state">
                             <Wallet size={40} />
-                            <div className="empty-state-title">{t('common.walletNotConnected')}</div>
-                            <div className="empty-state-desc">{t('common.connectWalletToViewHistory')}</div>
+                            <div className="empty-state-title">{t('common.connectWalletOrEnterKeyToViewHistory')}</div>
+                            <div className="empty-state-desc">{t('auth.connectWalletToViewHistory')}</div>
                         </div>
-                    ) : authorizations.filter(a => a.walletAddress?.toLowerCase() === address.toLowerCase() && a.chainId === chainId).length === 0 ? (
+                    ) : authorizations.filter(a => a.walletAddress?.toLowerCase() === displayAddress.toLowerCase() && a.chainId === activeChainId).length === 0 ? (
                         <div className="empty-state">
                             <Inbox size={40} />
                             <div className="empty-state-title">{t('auth.noAuthorizations')}</div>
                             <div className="empty-state-desc">{t('auth.noAuthorizationsDesc')}</div>
                         </div>
                     ) : (
-                        authorizations.filter(a => a.walletAddress?.toLowerCase() === address.toLowerCase() && a.chainId === chainId).map((auth) => (
+                        authorizations.filter(a => a.walletAddress?.toLowerCase() === displayAddress.toLowerCase() && a.chainId === activeChainId).map((auth) => (
                             <div
                                 key={auth.id}
                                 style={{
@@ -377,8 +392,8 @@ export default function Authorization() {
                                             className="btn btn-danger"
                                             style={{ padding: '6px 10px', fontSize: '12px' }}
                                             onClick={() => handleRevoke(auth.id)}
-                                            disabled={isRevoking === auth.id || (address && address.toLowerCase() !== auth.walletAddress.toLowerCase())}
-                                            title={address && address.toLowerCase() !== auth.walletAddress.toLowerCase() ? t('auth.revokePermissionError') : t('auth.revokeOnChain')}
+                                            disabled={isRevoking === auth.id || !address || address.toLowerCase() !== auth.walletAddress.toLowerCase()}
+                                            title={!address ? t('auth.revokeRequiresWallet') : address.toLowerCase() !== auth.walletAddress.toLowerCase() ? t('auth.revokePermissionError') : t('auth.revokeOnChain')}
                                         >
                                             {isRevoking === auth.id ? <Loader2 size={16} className="spin" /> : <Trash2 size={16} />}
                                         </button>

@@ -23,6 +23,7 @@ export default {
         pectra: 'Pectra',
         walletNotConnected: 'Wallet Not Connected',
         connectWalletToViewHistory: 'Please connect your wallet to view your authorization history',
+        connectWalletOrEnterKeyToViewHistory: 'Connect wallet or enter private key to view authorization history',
         receive: 'Receive',
         send: 'Send',
         mainnet: 'Ethereum Mainnet',
@@ -133,6 +134,7 @@ export default {
         failedToSign: 'Failed to sign authorization',
         noAuthorizations: 'No authorizations yet',
         noAuthorizationsDesc: 'Signed authorizations will appear here',
+        revokeRequiresWallet: 'Revoke requires connected wallet',
 
         realDelegationTitle: 'EIP-7702 Delegation (Type 0x04)',
         realDelegationWarning: 'Private key is only used locally in this browser and never uploaded.',

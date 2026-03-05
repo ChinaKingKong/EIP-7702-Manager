@@ -23,6 +23,7 @@ export default {
         pectra: 'Pectra',
         walletNotConnected: '钱包未连接',
         connectWalletToViewHistory: '请连接钱包以查看您的授权历史',
+        connectWalletOrEnterKeyToViewHistory: '请连接钱包或输入私钥以查看授权历史',
         receive: '接收',
         send: '发送',
         mainnet: 'Ethereum 主网',
@@ -133,6 +134,7 @@ export default {
         failedToSign: '授权签署失败',
         noAuthorizations: '暂无授权记录',
         noAuthorizationsDesc: '已签署的授权将会显示在这里',
+        revokeRequiresWallet: '撤销需连接钱包',
 
         realDelegationTitle: 'EIP-7702 真实委托 (Type 0x04)',
         realDelegationWarning: '私钥仅在浏览器本地使用，不会上传到任何服务器。',
