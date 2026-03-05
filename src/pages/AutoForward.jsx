@@ -404,8 +404,8 @@ export default function AutoForward() {
             </div>
 
             {/* Sweep ERC20 Card */}
-            <div className="card" style={{ border: '1px solid var(--accent-purple)' }}>
-                <div className="card-header" style={{ background: 'rgba(124, 58, 237, 0.05)' }}>
+            <div className="card" style={{ border: '1px solid var(--border-subtle)' }}>
+                <div className="card-header" style={{ background: 'var(--bg-glass)' }}>
                     <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <Send size={20} style={{ color: 'var(--accent-purple)' }} />
                         {t('forward.sweepTokenLabel')}

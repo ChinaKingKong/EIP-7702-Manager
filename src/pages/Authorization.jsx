@@ -144,8 +144,8 @@ export default function Authorization() {
             {/* ═══════════════════════════════════════════
                  Real EIP-7702 Delegation Card
                  ═══════════════════════════════════════════ */}
-            <div className="card" style={{ marginBottom: '24px', border: '1px solid var(--accent-green)', borderRadius: '12px' }}>
-                <div className="card-header" style={{ background: 'rgba(34, 197, 94, 0.08)' }}>
+            <div className="card" style={{ marginBottom: '24px', border: '1px solid var(--border-subtle)', borderRadius: '12px' }}>
+                <div className="card-header" style={{ background: 'var(--bg-glass)' }}>
                     <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <Zap size={20} style={{ color: 'var(--accent-green)' }} />
                         {t('auth.realDelegationTitle')}
