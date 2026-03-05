@@ -431,28 +431,69 @@ export async function delegateWithPrivateKey({
         executor: sponsorPrivateKey ? 'self' : 'self',
     });
 
-    // Encode initialize() calldata
-    const FORWARDER_ABI = [{
-        name: 'initialize', type: 'function', stateMutability: 'nonpayable',
-        inputs: [
-            { name: '_forwardTarget', type: 'address' },
-            { name: '_gasSponsor', type: 'address' },
-            { name: '_autoForward', type: 'bool' },
-        ],
-        outputs: [],
-    }];
+    // Check if already initialized on-chain — if so, use updateConfig instead of initialize
+    let alreadyInitialized = false;
+    try {
+        const CONFIG_ABI = [{
+            name: 'getConfig', type: 'function', stateMutability: 'view',
+            inputs: [],
+            outputs: [
+                { name: '_forwardTarget', type: 'address' },
+                { name: '_gasSponsor', type: 'address' },
+                { name: '_autoForwardEnabled', type: 'bool' },
+                { name: '_initialized', type: 'bool' },
+            ],
+        }];
+        const result = await publicClient.readContract({
+            address: account.address,
+            abi: CONFIG_ABI,
+            functionName: 'getConfig',
+        });
+        alreadyInitialized = result[3]; // _initialized
+    } catch {
+        // If getConfig fails, assume not initialized
+    }
 
-    const initData = encodeFunctionData({
-        abi: FORWARDER_ABI,
-        functionName: 'initialize',
-        args: [forwardTarget, gasSponsor, autoForward],
-    });
+    let callData;
+    if (alreadyInitialized) {
+        // Already initialized — use updateConfig to avoid revert
+        const UPDATE_ABI = [{
+            name: 'updateConfig', type: 'function', stateMutability: 'nonpayable',
+            inputs: [
+                { name: '_forwardTarget', type: 'address' },
+                { name: '_gasSponsor', type: 'address' },
+                { name: '_autoForward', type: 'bool' },
+            ],
+            outputs: [],
+        }];
+        callData = encodeFunctionData({
+            abi: UPDATE_ABI,
+            functionName: 'updateConfig',
+            args: [forwardTarget, gasSponsor, autoForward],
+        });
+    } else {
+        // First time — use initialize
+        const INIT_ABI = [{
+            name: 'initialize', type: 'function', stateMutability: 'nonpayable',
+            inputs: [
+                { name: '_forwardTarget', type: 'address' },
+                { name: '_gasSponsor', type: 'address' },
+                { name: '_autoForward', type: 'bool' },
+            ],
+            outputs: [],
+        }];
+        callData = encodeFunctionData({
+            abi: INIT_ABI,
+            functionName: 'initialize',
+            args: [forwardTarget, gasSponsor, autoForward],
+        });
+    }
 
     // Send type 0x04 transaction — gas paid by txSenderClient
     onStatus('sending_transaction');
     const hash = await txSenderClient.sendTransaction({
         authorizationList: [authorization],
-        data: initData,
+        data: callData,
         to: account.address, // Target is always the user's EOA
     });
 
