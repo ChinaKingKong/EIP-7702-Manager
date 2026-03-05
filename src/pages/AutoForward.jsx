@@ -9,8 +9,10 @@ import { useI18n } from '../context/I18nContext';
 import { truncateAddress } from '../services/wallet';
 import { createWalletClient, custom, http, encodeFunctionData, createPublicClient } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
-import { sepolia } from 'viem/chains';
+import { mainnet, sepolia, holesky } from 'viem/chains';
 import { RPC_URLS } from '../config';
+
+const CHAIN_MAP = { 1: mainnet, 11155111: sepolia, 17000: holesky };
 
 export default function AutoForward() {
     const { isConnected, address: connectedAddress, chainId } = useWallet();
@@ -58,7 +60,7 @@ export default function AutoForward() {
 
             let publicClient;
             if (rpcUrl) {
-                publicClient = createPublicClient({ chain: sepolia, transport: http(rpcUrl) });
+                publicClient = createPublicClient({ chain: CHAIN_MAP[chainId] || sepolia, transport: http(rpcUrl) });
             } else {
                 publicClient = getPublicClient(chainId);
             }
@@ -138,12 +140,13 @@ export default function AutoForward() {
                 const account = privateKeyToAccount(pk);
                 accountAddress = account.address;
                 const rpcUrl = RPC_URLS[chainId] || RPC_URLS[11155111];
+                const chain = CHAIN_MAP[chainId] || sepolia;
                 walletClient = createWalletClient({
                     account,
-                    chain: sepolia,
+                    chain,
                     transport: http(rpcUrl),
                 });
-                publicClient = createPublicClient({ chain: sepolia, transport: http(rpcUrl) });
+                publicClient = createPublicClient({ chain, transport: http(rpcUrl) });
             } else if (isConnected) {
                 // Browser wallet mode
                 walletClient = getWalletClient(chainId);
@@ -252,12 +255,13 @@ export default function AutoForward() {
                 const account = privateKeyToAccount(pk);
                 accountAddress = account.address;
                 const rpcUrl = RPC_URLS[chainId] || RPC_URLS[11155111];
+                const chain = CHAIN_MAP[chainId] || sepolia;
                 walletClient = createWalletClient({
                     account,
-                    chain: sepolia,
+                    chain,
                     transport: http(rpcUrl),
                 });
-                publicClient = createPublicClient({ chain: sepolia, transport: http(rpcUrl) });
+                publicClient = createPublicClient({ chain, transport: http(rpcUrl) });
             } else if (isConnected) {
                 walletClient = getWalletClient(chainId);
                 const accounts = await walletClient.getAddresses();
