@@ -281,7 +281,7 @@ export default {
         sweeping: 'Sweeping tokens from EOA...',
         sweepSuccess: 'Tokens swept successfully!',
         sweepTxVsTokenHint: 'On-chain tx shows Sponsor → Operation account; tokens actually move from the sweep-from wallet to the token recipient. Check the ERC20 Transfer event for this tx in a block explorer to confirm.',
-        eip7702RequiredHint: 'If the tx succeeds but there are no internal txs or token transfer, the RPC may not be executing delegated EOA code. When the chain has activated EIP-7702, try switching to a mainnet RPC (e.g. Alchemy, Infura), set VITE_RPC_URL_1 in .env, then run npm run build again and refresh the page before retrying. The console logs the RPC in use for verification.',
+        eip7702RequiredHint: 'If the tx succeeds but there are no internal txs or token transfer: the mainnet execution layer may not be running delegated contract code for "call to EOA with data", an EIP-7702 support limitation. Try the flow on Sepolia/Holesky first, or wait for full mainnet execution support.',
     },
 
     // Deploy Contract page
