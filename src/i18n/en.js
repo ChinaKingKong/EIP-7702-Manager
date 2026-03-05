@@ -135,7 +135,7 @@ export default {
         noAuthorizationsDesc: 'Signed authorizations will appear here',
 
         realDelegationTitle: 'EIP-7702 Delegation (Type 0x04)',
-        realDelegationWarning: '⚠️ Private key is only used locally in this browser and never uploaded. Please ensure you are on a testnet.',
+        realDelegationWarning: 'Private key is only used locally in this browser and never uploaded.',
         eoaPrivateKey: 'EOA Private Key',
         privateKeyHint: '64-character hex string (exported from MetaMask)',
         customContractAddressLabel: 'Custom Contract Address',
@@ -261,6 +261,9 @@ export default {
         sweep: 'Sweep',
         sweepBtn: 'Sweep',
         sweepHint: 'Transfer all balance of this ERC20 token from Wallet A to Wallet B.',
+        sweepRecipientLabel: 'Sweep Recipient Address (Optional)',
+        sweepRecipientPlaceholder: '0x... (Optional, default is the configured Forward Target)',
+        sweepRecipientHint: 'Specify an alternate destination address. If left blank, it will forward to the configured target.',
         tokenSwept: 'Token swept successfully!',
         operationMode: 'Operation Mode (Private Key or Connected Wallet)',
         privateKeyInputPlaceholder: 'Enter private key (0x...) for direct execution. Leave empty to use connected wallet.',

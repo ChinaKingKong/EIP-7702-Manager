@@ -25,6 +25,7 @@ export default function AutoForward() {
     const [selectedContract, setSelectedContract] = useState('');
     const [privateKey, setPrivateKey] = useState('');
     const [sweepSponsorKey, setSweepSponsorKey] = useState('');
+    const [sweepRecipient, setSweepRecipient] = useState('');
 
     // 配置表单状态
     const [forwardTarget, setForwardTarget] = useState('');
@@ -294,15 +295,23 @@ export default function AutoForward() {
                 name: 'sweepToken', type: 'function', stateMutability: 'nonpayable',
                 inputs: [{ name: 'token', type: 'address' }],
                 outputs: [],
+            }, {
+                name: 'sweepTokenTo', type: 'function', stateMutability: 'nonpayable',
+                inputs: [{ name: 'token', type: 'address' }, { name: 'to', type: 'address' }],
+                outputs: [],
             }];
+
+            const isCustomRecipient = sweepRecipient.trim().length > 0;
+            const functionName = isCustomRecipient ? 'sweepTokenTo' : 'sweepToken';
+            const args = isCustomRecipient ? [sweepAddr, sweepRecipient.trim()] : [sweepAddr];
 
             const txParams = {
                 account: txSenderClient.account,
                 to: accountAddress, // The EOA with EIP-7702 delegation
                 data: encodeFunctionData({
                     abi: SWEEP_ABI,
-                    functionName: 'sweepToken',
-                    args: [sweepAddr],
+                    functionName,
+                    args,
                 }),
                 value: 0n
             };
@@ -435,6 +444,21 @@ export default function AutoForward() {
                             style={{ fontSize: '13px' }}
                         />
                         <div className="form-hint">{t('auth.sponsorKeyHint') || '填写后由赞助商钱包支付 Gas，EOA 无需 ETH 即可完成搬运'}</div>
+                    </div>
+
+                    <div className="form-group" style={{ marginBottom: '20px' }}>
+                        <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            {t('forward.sweepRecipientLabel') || '搬运接收地址 (可选)'}
+                        </label>
+                        <input
+                            className="form-input mono"
+                            type="text"
+                            placeholder={t('forward.sweepRecipientPlaceholder') || '0x... (可选，若不填则默认发往当前设置的转发目标)'}
+                            value={sweepRecipient}
+                            onChange={(e) => setSweepRecipient(e.target.value)}
+                            style={{ fontSize: '13px' }}
+                        />
+                        <div className="form-hint">{t('forward.sweepRecipientHint') || '指定一个代币接收地址，若留空则尝试转发到上方的【转发目标地址】。'}</div>
                     </div>
 
                     <hr className="divider" style={{ margin: '0 0 20px 0' }} />

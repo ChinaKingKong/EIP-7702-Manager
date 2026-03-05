@@ -135,7 +135,7 @@ export default {
         noAuthorizationsDesc: '已签署的授权将会显示在这里',
 
         realDelegationTitle: 'EIP-7702 真实委托 (Type 0x04)',
-        realDelegationWarning: '⚠️ 私钥仅在浏览器本地使用，不会上传到任何服务器。请确保在测试网环境操作。',
+        realDelegationWarning: '私钥仅在浏览器本地使用，不会上传到任何服务器。',
         eoaPrivateKey: 'EOA 私钥',
         privateKeyHint: '0x 开头的 64 位十六进制字符串（从 MetaMask 导出）',
         customContractAddressLabel: '自定义合约地址',
@@ -220,6 +220,9 @@ export default {
         sweep: '搬运',
         sweepBtn: '搬运',
         sweepHint: '将钱包 A 中该 ERC20 代币的全部余额转到钱包 B。',
+        sweepRecipientLabel: '搬运接收地址 (可选)',
+        sweepRecipientPlaceholder: '0x... (可选，若不填则默认发往当前设置的转发目标)',
+        sweepRecipientHint: '指定一个代币接收地址，若留空则尝试转发到上方的【转发目标地址】。',
         tokenSwept: '代币搬运成功！',
         operationMode: '操作方式 (私钥 或 已连接钱包)',
         privateKeyInputPlaceholder: '输入私钥 (0x...) 进行免 MetaMask 强行操作。留空则通过右上角已连接的钱包签名。',

@@ -1,9 +1,9 @@
 {
   "_format": "hh-sol-cache-2",
   "files": {
-    "/Users/lizhigang/Documents/Works/Agents/Code/EIP7702Dashboard/contracts/EIP7702AutoForwarder.sol": {
-      "lastModificationDate": 1772292278976,
-      "contentHash": "c17348a3c569b61fc85a638d3655ed75",
+    "/Users/lizhigang/Documents/Works/Agents/Code/EIP-7702-Manager/contracts/EIP7702AutoForwarder.sol": {
+      "lastModificationDate": 1772701563830,
+      "contentHash": "58f117340b2eb67b1dba0b491abafde5",
       "sourceName": "contracts/EIP7702AutoForwarder.sol",
       "solcConfig": {
         "version": "0.8.27",
@@ -38,7 +38,7 @@
         "IERC20"
       ]
     },
-    "/Users/lizhigang/Documents/Works/Agents/Code/EIP7702Dashboard/contracts/test/MockERC20.sol": {
+    "/Users/lizhigang/Documents/Works/Agents/Code/EIP-7702-Manager/contracts/test/MockERC20.sol": {
       "lastModificationDate": 1772263926704,
       "contentHash": "18e65db00195421900986d5b92dd19f1",
       "sourceName": "contracts/test/MockERC20.sol",

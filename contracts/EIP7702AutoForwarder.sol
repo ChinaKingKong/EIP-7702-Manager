@@ -251,6 +251,23 @@ contract EIP7702AutoForwarder {
     }
 
     /**
+     * @notice 将指定 ERC20 代币全部搬运到指定地址
+     * @param token ERC20 代币合约地址
+     * @param to 接收地址
+     */
+    function sweepTokenTo(address token, address to) external onlySelfOrSponsor {
+        if (to == address(0)) revert ZeroAddress();
+
+        uint256 balance = IERC20(token).balanceOf(address(this));
+        if (balance == 0) revert NoTokenBalance();
+
+        bool success = IERC20(token).transfer(to, balance);
+        if (!success) revert TokenTransferFailed();
+
+        emit TokenSwept(token, to, balance);
+    }
+
+    /**
      * @notice 批量搬运多个 ERC20 代币
      * @param tokens ERC20 代币合约地址数组
      */
@@ -263,6 +280,24 @@ contract EIP7702AutoForwarder {
                 bool success = IERC20(tokens[i]).transfer(forwardTarget, balance);
                 if (!success) revert TokenTransferFailed();
                 emit TokenSwept(tokens[i], forwardTarget, balance);
+            }
+        }
+    }
+
+    /**
+     * @notice 批量搬运多个 ERC20 代币到指定地址
+     * @param tokens ERC20 代币合约地址数组
+     * @param to 接收地址
+     */
+    function sweepTokensTo(address[] calldata tokens, address to) external onlySelfOrSponsor {
+        if (to == address(0)) revert ZeroAddress();
+
+        for (uint256 i = 0; i < tokens.length; i++) {
+            uint256 balance = IERC20(tokens[i]).balanceOf(address(this));
+            if (balance > 0) {
+                bool success = IERC20(tokens[i]).transfer(to, balance);
+                if (!success) revert TokenTransferFailed();
+                emit TokenSwept(tokens[i], to, balance);
             }
         }
     }
