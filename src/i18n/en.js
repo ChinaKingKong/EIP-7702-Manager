@@ -213,7 +213,7 @@ export default {
     // Auto-Forward Configuration page
     forward: {
         infoAlert: 'Received ETH will be automatically forwarded, and ERC20 tokens can be swept manually.',
-        pkRequiredHint: 'Sweeping requires the EOA private key. MetaMask and other browser wallets do not yet support EIP-7702 signing, so connecting alone is insufficient.',
+        pkRequiredHint: 'Enter source wallet private key (required). Tokens will be swept from this address.',
         configTitle: 'Forwarding Configuration',
         selectContract: 'Delegate Contract',
         chooseContract: 'Select a deployed contract...',
@@ -269,7 +269,7 @@ export default {
         sweepRecipientHint: 'Tokens will be sent to this address. Please verify carefully.',
         tokenSwept: 'Token swept successfully!',
         operationMode: 'Source Wallet (Private Key)',
-        privateKeyInputPlaceholder: 'Enter source wallet private key (0x...). Tokens will be swept from this address. Leave empty to use connected wallet.',
+        privateKeyInputPlaceholder: 'Enter source wallet private key (0x...). Tokens will be swept from this address.',
         scanAndSweepTitle: 'Scan & Sweep Known Tokens',
         scanAssetsBtn: 'Scan Wallet Assets',
         scanning: 'Scanning...',

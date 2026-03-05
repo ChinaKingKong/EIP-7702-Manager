@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Shield, Send, Zap, Settings, RefreshCw, AlertTriangle, CheckCircle, XCircle, Loader2, Search, Coins } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { getPublicClient, getWalletClient } from '../services/eip7702';
+import { getPublicClient } from '../services/eip7702';
 import { getDeployedContracts } from '../services/deployedContracts';
 import { getAccountTokens } from '../services/ankrIndex';
 import { getActiveAuthorizations } from '../services/authorizationCache';
@@ -95,24 +95,21 @@ export default function AutoForward() {
         }
     };
 
-    // 当私钥输入导致账户变更时，尝试加载配置
+    // 当转出钱包私钥变更时，尝试加载其链上配置（仅用于展示等，搬运时仍实时读链）
     useEffect(() => {
-        // Simple heuristic for valid PK
         let pk = privateKey.trim();
         if (pk && !pk.startsWith('0x')) pk = '0x' + pk;
-
         if (pk && /^0x[0-9a-fA-F]{64}$/.test(pk)) {
             try {
                 const account = privateKeyToAccount(pk);
-                // using configured RPC from .env
-                loadConfig(account.address, RPC_URLS[chainId] || RPC_URLS[11155111]);
+                loadConfig(account.address, RPC_URLS[activeChainId] || RPC_URLS[11155111]);
             } catch (e) {
-                // ignore invalid pk parsing
+                // ignore
             }
-        } else if (isConnected && connectedAddress) {
-            loadConfig(connectedAddress);
+        } else {
+            setOnchainConfig(null);
         }
-    }, [privateKey, connectedAddress, isConnected]);
+    }, [privateKey, activeChainId]);
 
     // 操作：搬运 ERC20 代币
     const handleSweepToken = async (targetToken = null) => {
@@ -137,30 +134,15 @@ export default function AutoForward() {
 
             let pk = privateKey.trim();
             if (pk && !pk.startsWith('0x')) pk = '0x' + pk;
-
-            let walletClient, accountAddress, accountObj, publicClient;
-
-            if (pk && /^0x[0-9a-fA-F]{64}$/.test(pk)) {
-                const account = privateKeyToAccount(pk);
-                accountObj = account;
-                accountAddress = account.address;
-                const rpcUrl = RPC_URLS[activeChainId] || RPC_URLS[11155111];
-                const chain = CHAIN_MAP[activeChainId] || sepolia;
-                walletClient = createWalletClient({
-                    account,
-                    chain,
-                    transport: http(rpcUrl),
-                });
-                publicClient = createPublicClient({ chain, transport: http(rpcUrl) });
-            } else if (isConnected) {
-                walletClient = getWalletClient(chainId);
-                const accounts = await walletClient.getAddresses();
-                accountObj = accounts[0];
-                accountAddress = accounts[0];
-                publicClient = getPublicClient(chainId);
-            } else {
-                throw new Error("请连接钱包或输入 EOA 私钥！");
+            if (!pk || !/^0x[0-9a-fA-F]{64}$/.test(pk)) {
+                throw new Error("请填写有效的转出钱包私钥（必填）。");
             }
+
+            const account = privateKeyToAccount(pk);
+            const accountAddress = account.address;
+            const rpcUrl = RPC_URLS[activeChainId] || RPC_URLS[11155111];
+            const chain = CHAIN_MAP[activeChainId] || sepolia;
+            const publicClient = createPublicClient({ chain, transport: http(rpcUrl) });
 
             // 可选：使用赞助商私钥，通过 EIP-7702 原生机制代扣 Gas
             let sponsorClient = null;
@@ -172,8 +154,6 @@ export default function AutoForward() {
                 throw new Error("赞助商私钥格式无效。");
             }
             const sponsorAccount = privateKeyToAccount(formattedSponsorKey);
-            const rpcUrl = RPC_URLS[activeChainId] || RPC_URLS[11155111];
-            const chain = CHAIN_MAP[activeChainId] || sepolia;
             sponsorClient = createWalletClient({
                 account: sponsorAccount,
                 chain,
@@ -308,11 +288,10 @@ export default function AutoForward() {
         try {
             let pk = privateKey.trim();
             if (pk && !pk.startsWith('0x')) pk = '0x' + pk;
-            let targetAddress = connectedAddress;
-            if (pk && /^0x[0-9a-fA-F]{64}$/.test(pk)) {
-                targetAddress = privateKeyToAccount(pk).address;
+            if (!pk || !/^0x[0-9a-fA-F]{64}$/.test(pk)) {
+                throw new Error("请先输入转出钱包私钥以扫描资产。");
             }
-            if (!targetAddress) throw new Error("无法确定要扫描的 EOA 地址，请连接钱包或输入私钥");
+            const targetAddress = privateKeyToAccount(pk).address;
 
             const supportedChains = [1, 11155111, 17000];
             if (!supportedChains.includes(activeChainId)) {
@@ -334,12 +313,14 @@ export default function AutoForward() {
             setIsScanningTokens(false);
         }
     };
-    // Auto-scan tokens when network changes if user has already scanned before
+    // 网络切换时若有转出钱包私钥且曾扫描过，则重新扫描
     useEffect(() => {
-        if (isConnected && (discoveredTokens.length > 0 || successMessage.includes('扫描'))) {
+        let pk = privateKey.trim();
+        if (pk && !pk.startsWith('0x')) pk = '0x' + pk;
+        if (pk && /^0x[0-9a-fA-F]{64}$/.test(pk) && (discoveredTokens.length > 0 || successMessage.includes('扫描'))) {
             handleScanTokens();
         }
-    }, [chainId]);
+    }, [activeChainId]);
 
     return (
         <div className="page-enter">
@@ -396,7 +377,7 @@ export default function AutoForward() {
                         />
                         <div className="alert alert-warning" style={{ marginTop: '10px', padding: '10px 14px', fontSize: '12px', lineHeight: '1.5' }}>
                             <AlertTriangle size={14} style={{ flexShrink: 0, marginTop: '2px' }} />
-                            <span>{t('forward.pkRequiredHint') || '搬运代币需要输入 EOA 私钥。MetaMask 等浏览器钱包暂不支持 EIP-7702 签名，仅连接钱包无法完成搬运操作。'}</span>
+                            <span>{t('forward.pkRequiredHint') || '请输入转出钱包私钥（必填），代币将从该地址转出。'}</span>
                         </div>
                     </div>
 
@@ -437,7 +418,7 @@ export default function AutoForward() {
 
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                         <h4 style={{ fontSize: '15px', fontWeight: 600 }}>{t('forward.scanAndSweepTitle') || '扫描并搬运已知代币'}</h4>
-                        <button className="btn btn-secondary" onClick={handleScanTokens} disabled={isScanningTokens} style={{ padding: '8px 16px', fontSize: '13px' }}>
+                        <button className="btn btn-secondary" onClick={handleScanTokens} disabled={isScanningTokens || !privateKey.trim()} style={{ padding: '8px 16px', fontSize: '13px' }}>
                             {isScanningTokens ? <><Loader2 size={14} className="spin" /> {t('forward.scanning') || '扫描中...'}</> : <><Search size={14} /> {t('forward.scanAssetsBtn') || '扫描钱包资产'}</>}
                         </button>
                     </div>
@@ -456,7 +437,7 @@ export default function AutoForward() {
                                     <button
                                         className="btn btn-primary"
                                         onClick={() => { handleSweepToken(token.contractAddress); }}
-                                        disabled={!sweepSponsorKey.trim() || !sweepRecipient.trim() || isSweeping === token.contractAddress || (isSweeping !== false && isSweeping !== token.contractAddress)}
+                                        disabled={!privateKey.trim() || !sweepSponsorKey.trim() || !sweepRecipient.trim() || isSweeping === token.contractAddress || (isSweeping !== false && isSweeping !== token.contractAddress)}
                                         style={{ padding: '6px 16px', fontSize: '12px', background: 'var(--accent-purple)', borderColor: 'var(--accent-purple)' }}
                                     >
                                         {isSweeping === token.contractAddress ? <Loader2 size={14} className="spin" /> : t('forward.sweepBtn')}
@@ -490,7 +471,7 @@ export default function AutoForward() {
                     <button
                         className="btn btn-primary btn-full"
                         onClick={() => handleSweepToken()}
-                        disabled={!!isSweeping || !tokenAddress || !sweepRecipient.trim() || !sweepSponsorKey.trim()}
+                        disabled={!!isSweeping || !tokenAddress || !sweepRecipient.trim() || !sweepSponsorKey.trim() || !privateKey.trim()}
                         style={{ background: 'var(--accent-purple)', borderColor: 'var(--accent-purple)' }}
                     >
                         {isSweeping && isSweeping === tokenAddress ? (

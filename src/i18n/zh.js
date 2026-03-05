@@ -172,7 +172,7 @@ export default {
     // 自动转发配置页面
     forward: {
         infoAlert: '收到的 ETH 将自动转发，ERC20 代币可手动搬运。',
-        pkRequiredHint: '搬运代币需要输入 EOA 私钥。MetaMask 等浏览器钱包暂不支持 EIP-7702 签名，仅连接钱包无法完成搬运操作。',
+        pkRequiredHint: '请输入转出钱包私钥（必填），代币将从该地址转出。',
         configTitle: '转发配置',
         selectContract: '委托合约',
         chooseContract: '选择已部署的合约...',
@@ -228,7 +228,7 @@ export default {
         sweepRecipientHint: '代币将转入此地址，请仔细核对。',
         tokenSwept: '代币搬运成功！',
         operationMode: '转出钱包(私钥)',
-        privateKeyInputPlaceholder: '输入转出钱包私钥 (0x...)，代币将从该地址转出。留空则使用已连接钱包。',
+        privateKeyInputPlaceholder: '输入转出钱包私钥 (0x...)，代币将从该地址转出。',
         scanAndSweepTitle: '扫描并搬运已知代币',
         scanAssetsBtn: '扫描钱包资产',
         scanning: '扫描中...',
