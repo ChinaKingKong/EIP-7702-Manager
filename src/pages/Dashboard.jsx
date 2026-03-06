@@ -213,7 +213,7 @@ export default function Dashboard() {
                                                 </div>
                                             </td>
                                             <td style={{ width: '40px', textAlign: 'center' }}>
-                                                <a href={getExplorerUrl(tx.hash)} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--text-tertiary)' }}>
+                                                <a href={getExplorerUrl(tx.hash)} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--text-tertiary)' }} title={t('common.viewOnExplorer') || "View on Explorer"}>
                                                     <ExternalLink size={14} />
                                                 </a>
                                             </td>

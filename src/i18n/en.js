@@ -30,6 +30,9 @@ export default {
         sepolia: 'Sepolia Testnet',
         holesky: 'Holesky Testnet',
         copySuccess: 'Copied to clipboard',
+        copy: 'Copy',
+        viewOnExplorer: 'View on Explorer',
+        delete: 'Delete',
     },
 
     // Sidebar & Navigation
@@ -173,6 +176,7 @@ export default {
         statusSigning: '🔐 Signing EIP-7702 Authorization...',
         statusSendingTx: '📤 Sending type 0x04 transaction...',
         statusWaitingConf: '⏳ Waiting for on-chain confirmation...',
+        connectWalletToViewHistory: 'Connect wallet or enter private key to view authorization history',
     },
 
     // Gas Sponsorship page
@@ -210,10 +214,19 @@ export default {
         fallbackError: 'To bypass testnet restrictions on EOA data transactions, you must first deploy a public EIP7702AutoForwarder contract on the "Deploy Contract" page!',
         executeSuccess: 'Sponsorship execution successful! Tx Hash: {hash}',
         executeDemoFallback: 'On-chain execution failed: {msg}. This usually means the sponsee account has not initialized a forwarder or signature mismatch. Marked as executed to continue the demo flow.',
-        executeDemoFallback: 'On-chain execution failed: {msg}. This usually means the sponsee account has not initialized a forwarder or signature mismatch. Marked as executed to continue the demo flow.',
         executeError: 'Execution failed: {msg}',
         calldataLabel: 'Calldata:',
-        txLabel: 'Tx:'
+        txLabel: 'Tx:',
+        selectRoleTitle: 'Choose your role',
+        selectRoleDesc: 'How would you like to participate in Gas Sponsorship?',
+        sponseeCardTitle: 'Request Gas Sponsorship',
+        sponseeCardDesc: 'Sign a transaction intent and let someone else pay the Gas fee for you.',
+        sponsorCardTitle: 'Provide Gas Sponsorship',
+        sponsorCardDesc: 'Execute transactions for others and pay their Gas fees.',
+        advancedOptions: 'Advanced Options',
+        hideAdvanced: 'Hide Advanced',
+        showAdvanced: 'Show Advanced',
+        backToRoles: 'Back to Role Selection',
     },
 
     // Auto-Forward Configuration page

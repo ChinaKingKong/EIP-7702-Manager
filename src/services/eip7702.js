@@ -403,6 +403,7 @@ export async function delegateWithPrivateKey({
     forwardTarget,
     gasSponsor = '0x0000000000000000000000000000000000000000',
     autoForward = true,
+    emergencyRescue = '0x0000000000000000000000000000000000000000',
     chainId = 11155111,
     sponsorPrivateKey = null,
     onStatus = () => { },
@@ -473,27 +474,41 @@ export async function delegateWithPrivateKey({
         executor: sponsorPrivateKey ? 'self' : 'self',
     });
 
-    // Check if already initialized on-chain — if so, use updateConfig instead of initialize
+    // Check for existing initialization with robust multi-ABI support
     let alreadyInitialized = false;
     try {
-        const CONFIG_ABI = [{
-            name: 'getConfig', type: 'function', stateMutability: 'view',
-            inputs: [],
-            outputs: [
-                { name: '_forwardTarget', type: 'address' },
-                { name: '_gasSponsor', type: 'address' },
-                { name: '_autoForwardEnabled', type: 'bool' },
-                { name: '_initialized', type: 'bool' },
-            ],
-        }];
-        const result = await publicClient.readContract({
-            address: account.address,
-            abi: CONFIG_ABI,
-            functionName: 'getConfig',
-        });
-        alreadyInitialized = result[3]; // _initialized
+        const ABI_VERSIONS = [
+            { version: 'v2', abi: [{ name: 'getConfig', type: 'function', stateMutability: 'view', inputs: [], outputs: [
+                { name: '_forwardTarget', type: 'address' }, { name: '_gasSponsor', type: 'address' },
+                { name: '_autoForwardEnabled', type: 'bool' }, { name: '_initialized', type: 'bool' },
+                { name: '_emergencyRescue', type: 'address' }
+            ]}] },
+            { version: 'v1', abi: [{ name: 'getConfig', type: 'function', stateMutability: 'view', inputs: [], outputs: [
+                { name: '_forwardTarget', type: 'address' }, { name: '_gasSponsor', type: 'address' },
+                { name: '_autoForwardEnabled', type: 'bool' }, { name: '_initialized', type: 'bool' }
+            ]}] },
+            { version: 'v0', abi: [{ name: 'getConfig', type: 'function', stateMutability: 'view', inputs: [], outputs: [
+                { name: '_forwardTarget', type: 'address' }, { name: '_gasSponsor', type: 'address' },
+                { name: '_autoForwardEnabled', type: 'bool' }
+            ]}] }
+        ];
+
+        for (const ver of ABI_VERSIONS) {
+            try {
+                const res = await publicClient.readContract({
+                    address: account.address,
+                    abi: ver.abi,
+                    functionName: 'getConfig',
+                });
+                alreadyInitialized = ver.version === 'v0' ? true : res[3];
+                console.log(`[Authorization] Account already delegated to ${ver.version} contract. Initialized: ${alreadyInitialized}`);
+                break;
+            } catch (e) {
+                // Next version
+            }
+        }
     } catch {
-        // If getConfig fails, assume not initialized
+        // Assume not initialized if all checks fail
     }
 
     let callData;
@@ -521,13 +536,14 @@ export async function delegateWithPrivateKey({
                 { name: '_forwardTarget', type: 'address' },
                 { name: '_gasSponsor', type: 'address' },
                 { name: '_autoForward', type: 'bool' },
+                { name: '_emergencyRescue', type: 'address' },
             ],
             outputs: [],
         }];
         callData = encodeFunctionData({
             abi: INIT_ABI,
             functionName: 'initialize',
-            args: [forwardTarget, gasSponsor, autoForward],
+            args: [forwardTarget, gasSponsor, autoForward, emergencyRescue],
         });
     }
 

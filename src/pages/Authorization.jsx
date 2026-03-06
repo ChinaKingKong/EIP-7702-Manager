@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, CheckCircle, XCircle, AlertTriangle, Copy, ExternalLink, Trash2, Inbox, Loader2, Wallet, Key, Zap } from 'lucide-react';
+import { Shield, ShieldOff, CheckCircle, XCircle, AlertTriangle, Copy, ExternalLink, Trash2, Inbox, Loader2, Wallet, Key, Zap } from 'lucide-react';
 import { useWallet } from '../context/WalletContext';
 import { useI18n } from '../context/I18nContext';
 import { revokeAuthorization, revokeWithPrivateKey, delegateWithPrivateKey } from '../services/eip7702';
 import { truncateAddress } from '../services/wallet';
 import { getDeployedContracts } from '../services/deployedContracts';
-import { getAuthorizations, saveAuthorization, updateAuthorization } from '../services/authorizationCache';
+import { getAuthorizations, saveAuthorization, updateAuthorization, removeAuthorization } from '../services/authorizationCache';
 import { privateKeyToAccount } from 'viem/accounts';
 import toast from 'react-hot-toast';
 
@@ -86,6 +86,7 @@ export default function Authorization() {
                 contractAddress,
                 forwardTarget,
                 autoForward,
+                emergencyRescue: forwardTarget,
                 chainId: activeChainId || 11155111,
                 sponsorPrivateKey: formattedSponsorKey,
                 onStatus: (status) => setDelegateStatus(statusMessages[status] || status),
@@ -179,6 +180,12 @@ export default function Authorization() {
         } finally {
             setIsRevoking(null);
         }
+    };
+
+    const handleDeleteAuth = (authId) => {
+        const updatedList = removeAuthorization(authId);
+        setAuthorizations(updatedList);
+        toast.success(t('auth.deleteSuccess') || 'History record removed');
     };
 
     const copyToClipboard = (text) => {
@@ -447,17 +454,25 @@ export default function Authorization() {
                                         {auth.status === 'active' ? t('common.active') :
                                             auth.status === 'completed' ? t('common.completed') : t('common.revoked')}
                                     </span>
-                                    {auth.status === 'active' && (
+                                    {auth.status === 'active' ? (
                                         <button
                                             className="btn btn-danger"
-                                            style={{ padding: '6px 10px', fontSize: '12px' }}
+                                            style={{ padding: '6px 10px', fontSize: '12px', background: 'var(--accent-amber)', borderColor: 'var(--accent-amber)' }}
                                             onClick={() => handleRevoke(auth.id)}
                                             disabled={isRevoking === auth.id}
-                                            title={t('auth.revoke')}
+                                            title={t('auth.revoke') || 'Revoke Delegation'}
                                         >
-                                            {isRevoking === auth.id ? <Loader2 size={16} className="spin" /> : <Trash2 size={16} />}
+                                            {isRevoking === auth.id ? <Loader2 size={16} className="spin" /> : <ShieldOff size={16} />}
                                         </button>
-                                    )}
+                                    ) : null}
+                                    <button
+                                        className="btn btn-danger"
+                                        style={{ padding: '6px 10px', fontSize: '12px' }}
+                                        onClick={() => handleDeleteAuth(auth.id)}
+                                        title={t('common.delete') || 'Delete Record'}
+                                    >
+                                        <Trash2 size={16} />
+                                    </button>
                                 </div>
                             </div>
                         ))

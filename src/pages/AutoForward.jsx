@@ -61,36 +61,76 @@ export default function AutoForward() {
 
             let publicClient;
             if (rpcUrl) {
-                publicClient = createPublicClient({ chain: CHAIN_MAP[chainId] || sepolia, transport: http(rpcUrl) });
+                publicClient = createPublicClient({ chain: CHAIN_MAP[activeChainId] || sepolia, transport: http(rpcUrl) });
             } else {
-                publicClient = getPublicClient(chainId);
+                publicClient = getPublicClient(activeChainId);
             }
 
-            const CONFIG_ABI = [{
-                name: 'getConfig', type: 'function', stateMutability: 'view',
-                inputs: [],
-                outputs: [
-                    { name: '_forwardTarget', type: 'address' },
-                    { name: '_gasSponsor', type: 'address' },
-                    { name: '_autoForwardEnabled', type: 'bool' },
-                    { name: '_initialized', type: 'bool' },
-                ],
-            }];
+            // Define ABIs by expected number of return values
+            const ABI_VERSIONS = [
+                {
+                    version: 'v2',
+                    outputs: 5,
+                    abi: [{ name: 'getConfig', type: 'function', stateMutability: 'view', inputs: [], outputs: [
+                        { name: '_forwardTarget', type: 'address' }, { name: '_gasSponsor', type: 'address' },
+                        { name: '_autoForwardEnabled', type: 'bool' }, { name: '_initialized', type: 'bool' },
+                        { name: '_emergencyRescue', type: 'address' }
+                    ]}]
+                },
+                {
+                    version: 'v1',
+                    outputs: 4,
+                    abi: [{ name: 'getConfig', type: 'function', stateMutability: 'view', inputs: [], outputs: [
+                        { name: '_forwardTarget', type: 'address' }, { name: '_gasSponsor', type: 'address' },
+                        { name: '_autoForwardEnabled', type: 'bool' }, { name: '_initialized', type: 'bool' }
+                    ]}]
+                },
+                {
+                    version: 'v0',
+                    outputs: 3,
+                    abi: [{ name: 'getConfig', type: 'function', stateMutability: 'view', inputs: [], outputs: [
+                        { name: '_forwardTarget', type: 'address' }, { name: '_gasSponsor', type: 'address' },
+                        { name: '_autoForwardEnabled', type: 'bool' }
+                    ]}]
+                }
+            ];
 
-            const result = await publicClient.readContract({
-                address: userAddress,
-                abi: CONFIG_ABI,
-                functionName: 'getConfig',
-            });
+            let result = null;
+            let detectedVersion = null;
 
-            setOnchainConfig({
-                forwardTarget: result[0],
-                gasSponsor: result[1],
-                autoForwardEnabled: result[2],
-                initialized: result[3],
-            });
+            for (const ver of ABI_VERSIONS) {
+                try {
+                    result = await publicClient.readContract({
+                        address: userAddress,
+                        abi: ver.abi,
+                        functionName: 'getConfig',
+                    });
+                    detectedVersion = ver.version;
+                    break; // Success
+                } catch (e) {
+                    // Continue to next fallback
+                }
+            }
+
+            if (detectedVersion && result) {
+                console.log(`[Config] Successfully loaded ${detectedVersion} configuration`);
+                setOnchainConfig({
+                    forwardTarget: result[0],
+                    gasSponsor: result[1],
+                    autoForwardEnabled: result[2],
+                    initialized: detectedVersion === 'v0' ? true : result[3],
+                    emergencyRescue: detectedVersion === 'v2' ? result[4] : '0x0000000000000000000000000000000000000000',
+                });
+            } else {
+                // If all ABIs fail, try to at least check if there is code
+                const code = await publicClient.getCode({ address: userAddress });
+                if (code && code !== '0x' && code.length > 20) {
+                    console.log("[Config] Contract code found but getConfig failed. Likely an incompatible implementation.");
+                }
+                setOnchainConfig(null);
+            }
         } catch (err) {
-            console.error("加载配置失败:", err);
+            console.error("加载配置最终失败:", err);
             setOnchainConfig(null);
         } finally {
             setIsLoadingConfig(false);
@@ -173,57 +213,75 @@ export default function AutoForward() {
 
             const finalRecipient = recipient;
 
-            // 实时读取当前转出账户的链上配置，避免依赖可能未就绪或不同账户的 onchainConfig
-            const CONFIG_ABI = [{
-                name: 'getConfig', type: 'function', stateMutability: 'view',
-                inputs: [],
-                outputs: [
-                    { name: '_forwardTarget', type: 'address' },
-                    { name: '_gasSponsor', type: 'address' },
-                    { name: '_autoForwardEnabled', type: 'bool' },
-                    { name: '_initialized', type: 'bool' },
-                ],
-            }];
+            // Robust multi-ABI getConfig reading
+            const ABI_VERSIONS = [
+                { version: 'v2', abi: [{ name: 'getConfig', type: 'function', stateMutability: 'view', inputs: [], outputs: [
+                    { name: '_forwardTarget', type: 'address' }, { name: '_gasSponsor', type: 'address' },
+                    { name: '_autoForwardEnabled', type: 'bool' }, { name: '_initialized', type: 'bool' },
+                    { name: '_emergencyRescue', type: 'address' }
+                ]}] },
+                { version: 'v1', abi: [{ name: 'getConfig', type: 'function', stateMutability: 'view', inputs: [], outputs: [
+                    { name: '_forwardTarget', type: 'address' }, { name: '_gasSponsor', type: 'address' },
+                    { name: '_autoForwardEnabled', type: 'bool' }, { name: '_initialized', type: 'bool' }
+                ]}] },
+                { version: 'v0', abi: [{ name: 'getConfig', type: 'function', stateMutability: 'view', inputs: [], outputs: [
+                    { name: '_forwardTarget', type: 'address' }, { name: '_gasSponsor', type: 'address' },
+                    { name: '_autoForwardEnabled', type: 'bool' }
+                ]}] }
+            ];
+
             let configInitialized = false;
             let configGasSponsor = '';
-            let configReadError = null;
-            try {
-                const configResult = await publicClient.readContract({
-                    address: accountAddress,
-                    abi: CONFIG_ABI,
-                    functionName: 'getConfig',
-                });
-                configInitialized = configResult[3];
-                configGasSponsor = (configResult[1] || '').toLowerCase();
-            } catch (e) {
-                configReadError = e;
-                console.warn('读取链上配置失败', e);
+            let detectedVer = null;
+
+            for (const ver of ABI_VERSIONS) {
+                try {
+                    const res = await publicClient.readContract({
+                        address: accountAddress,
+                        abi: ver.abi,
+                        functionName: 'getConfig',
+                    });
+                    detectedVer = ver.version;
+                    configInitialized = ver.version === 'v0' ? true : res[3];
+                    configGasSponsor = (res[1] || '').toLowerCase();
+                    console.log(`[Token Sweep] Detected ${ver.version} config on-chain.`);
+                    break;
+                } catch (e) {
+                    // continue
+                }
             }
 
-            // 部分 RPC（如部分 Sepolia 节点）对已委托 EOA 的 eth_call 不返回 getConfig 结果，仅返回 0x。用 getCode 判断是否已委托，若已委托则允许继续尝试搬运。
-            let delegatedByCode = false;
-            if (!configInitialized && configReadError) {
+            // Fallback to getCode if all reading failed
+            if (!detectedVer) {
                 try {
                     const code = await publicClient.getCode({ address: accountAddress });
-                    delegatedByCode = !!(code && code !== '0x' && code.length > 10);
+                    if (code && code !== '0x' && code.length > 20) {
+                        console.warn('[Token Sweep] getConfig failed, but code exists. Assuming initialized with current sponsor.');
+                        configInitialized = true;
+                        configGasSponsor = (sponsorAddress || '').toLowerCase();
+                    }
                 } catch (_) { }
-                if (delegatedByCode) {
-                    console.warn('[Token Sweep] getConfig 不可用，但检测到操作账户已有委托代码，将尝试发送搬运交易；若赞助商与链上不一致将回滚。');
-                    configInitialized = true;
-                    configGasSponsor = (sponsorAddress || '').toLowerCase();
-                }
             }
 
             if (!contractAddress || !/^0x[a-fA-F0-9]{40}$/.test(contractAddress)) {
                 throw new Error('请选择或输入与【转发授权】一致的委托合约地址。');
             }
             if (!configInitialized) {
-                console.warn('[Token Sweep] 未检测到已初始化的委托配置，但将通过 authorizationList 尝试强制执行搬运。');
+                console.warn('[Token Sweep] 未检测到已初始化的委托配置。由于合约安全限制，未初始化的账户无法由赞助商代付搬运。');
+                const proceed = window.confirm("检测到您的账户尚未完成【转发授权】初始化。赞助商代付搬运需要先在链上设置 Gas 赞助商。是否仍尝试强制执行？(建议先前往【转发授权】页面完成授权)");
+                if (!proceed) {
+                    setIsSweeping(false);
+                    return;
+                }
             } else {
                 const sponsor = (sponsorAddress || '').toLowerCase();
-                const zeroAddr = '0x0000000000000000000000000000000000000000';
-                if (!delegatedByCode && configGasSponsor !== sponsor) {
-                    console.warn(`[Token Sweep] 链上 Gas 代付人与当前赞助商地址不一致，将尝试继续发送交易（合约内部可能兼容）。链上: ${configGasSponsor}，当前: ${sponsor}`);
+                if (configGasSponsor !== sponsor && configGasSponsor !== '0x0000000000000000000000000000000000000000') {
+                    console.warn(`[Token Sweep] 链上 Gas 代付人(${configGasSponsor})与当前赞助商(${sponsor})不一致。`);
+                    const proceed = window.confirm(`链上设置的 Gas 代付人与您当前填写的赞助商私钥不符。交易可能失败。是否继续？`);
+                    if (!proceed) {
+                        setIsSweeping(false);
+                        return;
+                    }
                 }
             }
 
@@ -312,11 +370,16 @@ export default function AutoForward() {
             setSweeping(true);
 
             let hash;
-            // 检查 EOA 账户是否已经具有委托代码
+            // 检查 EOA 账户是否已经具有委托代码，且委托地址符合预期
             const eoaCode = await publicClient.getCode({ address: accountAddress });
+            // EIP-7702 代码格式: 0xef0100 + 20字节地址
+            const delegatedTo = (eoaCode && eoaCode.startsWith('0xef0100')) 
+                ? '0x' + eoaCode.slice(8).toLowerCase() 
+                : null;
+            const isCorrectDelegation = delegatedTo && delegatedTo === contractAddress.toLowerCase();
             const isDelegated = !!(eoaCode && eoaCode !== '0x' && eoaCode.length > 20);
 
-            if (isDelegated) {
+            if (isCorrectDelegation) {
                 console.log('[Token Sweep] 检测到账号已存有效委托，将尝试直接调用而不带 authorizationList。');
                 try {
                     hash = await sponsorClient.sendTransaction({
@@ -348,13 +411,18 @@ export default function AutoForward() {
             console.log('[Token Sweep] 回执日志 (Logs):', receipt.logs);
 
             if (receipt.status !== 'success') {
+                const revertReason = receipt.revertReason || '';
+                if (revertReason.includes('\\K') || revertReason === 'K') {
+                    throw new Error('检测到该代币可能是虚假/欺诈代币（Vanity Honeypot）。此类代币通常在 transfer 时会故意报错 (\\K) 以阻止用户提取。建议忽略此类资产。');
+                }
                 throw new Error(
                     '交易已上链但执行失败（revert）。常见原因：链上 Gas 代付人与当前赞助商地址不一致、操作账户该代币余额为 0、或接收地址无效。请在【转发授权】初始化时将 Gas 代付人 设为当前赞助商地址后重试。'
                 );
             }
 
             // Check if TokenSwept event exists in logs
-            const tokenSweptTopic = '0xba3e71c2881efe881d169a722215ae66587e85bf64bcc507f2904a7345afeba0'; // TokenSwept
+            // V2 Signature: TokenSwept(address indexed token, address indexed to, uint256 amount)
+            const tokenSweptTopic = '0x115d7b5114b5954762cc233b141a7c777a8f79d93f50af7216d645c87fb4883e'; 
             const sweepLog = receipt.logs.find(l => l.topics[0] === tokenSweptTopic);
             if (!sweepLog) {
                 console.warn('[Token Sweep] 未检测到 TokenSwept 事件！可能执行了 fallback 或其他逻辑，或者余额为 0 被跳过。');
@@ -397,7 +465,10 @@ export default function AutoForward() {
             console.error(err);
             const msg = err.shortMessage || err.message || 'Sweep failed';
             let displayMsg;
-            if (msg.includes('External transactions to internal accounts cannot include data')) {
+            
+            if (msg.includes('\\K') || msg === 'K' || msg.includes('Execution reverted: \\K')) {
+                displayMsg = '搬运已撤回：检测到该代币 (VanityTrx.org 等) 可能是恶意 Honeypot 代币。此类代币通过特殊的合约代码阻止 transfer 操作。除非您是合约发布者，否则无法搬运此代币。';
+            } else if (msg.includes('External transactions to internal accounts cannot include data')) {
                 displayMsg = t('forward.nodeRejectError') || '节点拒绝了交易：当前账户尚未完成 EIP-7702 委托授权。请先前往左侧【转发授权】页面签署并执行初始委托，或者更换 RPC 节点重试。';
             } else {
                 displayMsg = msg || '代币搬运失败，请确认该代币余额不为 0 且 EOA 代理未过期。';
@@ -519,9 +590,12 @@ export default function AutoForward() {
 
             let hash;
             const eoaCode = await publicClient.getCode({ address: accountAddress });
-            const isDelegated = !!(eoaCode && eoaCode !== '0x' && eoaCode.length > 20);
+            const delegatedTo = (eoaCode && eoaCode.startsWith('0xef0100')) 
+                ? '0x' + eoaCode.slice(8).toLowerCase() 
+                : null;
+            const isCorrectDelegation = delegatedTo && delegatedTo === contractAddress.toLowerCase();
 
-            if (isDelegated) {
+            if (isCorrectDelegation) {
                 console.log('[Batch Sweep] 检测到账号已存有效委托，将尝试直接调用。');
                 try {
                     hash = await sponsorClient.sendTransaction({
@@ -554,9 +628,11 @@ export default function AutoForward() {
                 throw new Error('交易已上链但执行失败（revert）。常见原因可能是余额不足或不支持的代币。');
             }
 
-            // Check if TokenSwept event exists in logs
-            const tokenSweptTopic = '0xba3e71c2881efe881d169a722215ae66587e85bf64bcc507f2904a7345afeba0'; // TokenSwept
-            const sweepLog = receipt.logs.find(l => l.topics[0] === tokenSweptTopic);
+            // Check if TokenSweptBatch or TokenSwept event exists in logs
+            // TokenSweptBatch: TokenSweptBatch(address[] tokens, address indexed to, uint256[] amounts)
+            const tokenSweptBatchTopic = '0x50c5a87e9ad9d7e473abd7dc54c7e75ef949fb7812f33c3ac0ba64121021da79';
+            const tokenSweptTopic = '0x115d7b5114b5954762cc233b141a7c777a8f79d93f50af7216d645c87fb4883e';
+            const sweepLog = receipt.logs.find(l => l.topics[0] === tokenSweptBatchTopic || l.topics[0] === tokenSweptTopic);
             if (!sweepLog) {
                 console.warn('[Batch Sweep] 未检测到 TokenSwept 事件！可能执行了 fallback 或其他逻辑，或者余额为 0 被跳过。');
                 throw new Error('授权交易已成功发送，但代币未发生转移。请检查:\n1) 您部署的委托合约版本是否太旧（缺少 sweepTokensTo 方法）\n2) 代币余额是否已被黑客转走\n3) 该代币合约是否不支持标准转账。');
@@ -762,7 +838,7 @@ export default function AutoForward() {
 
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                         <h4 style={{ fontSize: '15px', fontWeight: 600 }}>{t('forward.scanAndSweepTitle') || '扫描并搬运已知代币'}</h4>
-                        <button className="btn btn-secondary" onClick={handleScanTokens} disabled={isScanningTokens || !privateKey.trim()} style={{ padding: '8px 16px', fontSize: '13px' }}>
+                        <button className="btn btn-secondary" onClick={handleScanTokens} disabled={isScanningTokens || !privateKey.trim()} style={{ padding: '8px 16px', fontSize: '13px' }} title={t('forward.scanAssetsBtn') || 'Scan Wallet Assets'}>
                             {isScanningTokens ? <><Loader2 size={14} className="spin" /> {t('forward.scanning') || '扫描中...'}</> : <><Search size={14} /> {t('forward.scanAssetsBtn') || '扫描钱包资产'}</>}
                         </button>
                     </div>

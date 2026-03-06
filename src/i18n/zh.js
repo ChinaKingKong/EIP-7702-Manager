@@ -30,6 +30,9 @@ export default {
         sepolia: 'Sepolia 测试网',
         holesky: 'Holesky 测试网',
         copySuccess: '复制成功',
+        copy: '复制',
+        viewOnExplorer: '在浏览器查看',
+        delete: '删除',
     },
 
     // 侧边栏 & 导航
@@ -173,6 +176,7 @@ export default {
         statusSigning: '🔐 签署 EIP-7702 授权...',
         statusSendingTx: '📤 发送 type 0x04 交易...',
         statusWaitingConf: '⏳ 等待链上确认...',
+        connectWalletToViewHistory: '请连接钱包或输入私钥以查看授权历史',
     },
 
     // 自动转发配置页面
@@ -285,7 +289,17 @@ export default {
         executeDemoFallback: '链上执行失败: {msg}。这通常是因为被赞助的账户尚未初始化转发器或签名不匹配。已将其标记为执行完成以继续演示流程。',
         executeError: '执行失败: {msg}',
         calldataLabel: '调用数据 (Calldata):',
-        txLabel: '交易:'
+        txLabel: '交易:',
+        selectRoleTitle: '选择您的角色',
+        selectRoleDesc: '您想如何参与 Gas 代付？',
+        sponseeCardTitle: '申请代付 Gas',
+        sponseeCardDesc: '签署交易意向，让其他人为您支付 Gas 费用。',
+        sponsorCardTitle: '提供 Gas 代付',
+        sponsorCardDesc: '为他人执行交易并代付 Gas 费用。',
+        advancedOptions: '高级选项',
+        hideAdvanced: '隐藏高级选项',
+        showAdvanced: '显示高级选项',
+        backToRoles: '返回角色选择',
     },
 
     // 部署合约页面

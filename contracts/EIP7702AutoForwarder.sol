@@ -47,8 +47,7 @@ contract EIP7702AutoForwarder {
     /// @notice 资金转发目标地址
     address public forwardTarget;
 
-    /// @notice Gas 代付人地址 (通过 EIP-7702 原生机制代付 gas，
-    ///         此处记录 sponsor 以允许其调用 sweep/execute 等操作)
+    /// @notice Gas 代付人地址 (通过 EIP-7702 原生机制代付 gas)
     address public gasSponsor;
 
     /// @notice 是否启用 ETH 自动转发
@@ -60,6 +59,9 @@ contract EIP7702AutoForwarder {
     /// @notice 操作 nonce (用于签名验证的重放保护)
     uint256 public nonce;
 
+    /// @notice 紧急救援地址 (仅在 forwardTarget 失效时使用)
+    address public emergencyRescue;
+
     // ═══════════════════════════════════════════
     //  Events
     // ═══════════════════════════════════════════
@@ -69,7 +71,10 @@ contract EIP7702AutoForwarder {
     event ETHForwarded(address indexed from, address indexed to, uint256 amount);
     event ETHReceived(address indexed from, uint256 amount);
     event TokenSwept(address indexed token, address indexed to, uint256 amount);
+    event TokenSweptBatch(address[] tokens, address indexed to, uint256[] amounts);
     event Executed(address indexed to, uint256 value, bytes data);
+    event EmergencyWithdraw(address indexed token, address indexed to, uint256 amount);
+    event SponsorUpdated(address indexed oldSponsor, address indexed newSponsor);
 
     // ═══════════════════════════════════════════
     //  Errors
@@ -83,28 +88,43 @@ contract EIP7702AutoForwarder {
     error NoTokenBalance();
     error ExecutionFailed();
     error LengthMismatch();
+    error InvalidSignature();
+    error InvalidNonce();
+    error NotEmergencyRescue();
 
     // ═══════════════════════════════════════════
     //  Modifiers
     // ═══════════════════════════════════════════
 
     /**
-     * @dev 仅 EOA 本人可调用
-     * EIP-7702 下，EOA 直接发起交易时 msg.sender == address(this)
-     * 临时修改：为了在 Pectra 升级前测试，允许直接的 EOA 调用 (msg.sender == tx.origin) 
+     * @dev 仅 EOA 本人或 gasSponsor 可调用
      */
-    modifier onlySelf() {
-        if (msg.sender != address(this) && msg.sender != tx.origin) revert Unauthorized();
+    modifier onlyAuthorized() {
+        // Condition 1: Direct transaction from the EOA (EOA is tx.origin)
+        bool isSelf = tx.origin == address(this);
+
+        // Condition 2: Sponsored transaction where msg.sender is the registered sponsor
+        bool isSponsor = (gasSponsor != address(0) && msg.sender == gasSponsor);
+
+        // Condition 3: Initialization phase - Allow anyone to call if not initialized
+        // Note: Deployment and initialization are usually grouped in one sponsored tx
+        bool isInitPhase = !initialized;
+
+        if (!isSelf && !isSponsor && !isInitPhase) {
+            revert Unauthorized();
+        }
         _;
     }
 
     /**
-     * @dev EOA 本人 或 sponsor 可调用
-     * 临时修改：同上，允许直接测试
+     * @dev 仅 EOA 本人可调用（配置函数需要）
      */
-    modifier onlySelfOrSponsor() {
-        if (msg.sender != address(this) && msg.sender != gasSponsor && msg.sender != tx.origin)
+    modifier onlySelf() {
+        // In EIP-7702, a sponsored transaction can be "self" if Alice signed the authorization.
+        // We allow the call if it's the very first initialization, or if the caller matches the account itself.
+        if (tx.origin != address(this) && msg.sender != gasSponsor && initialized) {
             revert Unauthorized();
+        }
         _;
     }
 
@@ -114,17 +134,12 @@ contract EIP7702AutoForwarder {
 
     /**
      * @notice 初始化委托设置
-     * @dev 仅可调用一次，需由 EOA 本人调用
-     *      EIP-7702 安全建议: 防止前置运行攻击，初始化必须由 EOA 本人执行
-     *
-     * @param _forwardTarget 资金转发目标地址
-     * @param _gasSponsor Gas 代付人地址 (0x0 = 无 sponsor)
-     * @param _autoForward 是否启用 ETH 自动转发
      */
     function initialize(
         address _forwardTarget,
         address _gasSponsor,
-        bool _autoForward
+        bool _autoForward,
+        address _emergencyRescue
     ) external onlySelf {
         if (initialized) revert AlreadyInitialized();
         if (_forwardTarget == address(0)) revert ZeroAddress();
@@ -132,6 +147,7 @@ contract EIP7702AutoForwarder {
         forwardTarget = _forwardTarget;
         gasSponsor = _gasSponsor;
         autoForwardEnabled = _autoForward;
+        emergencyRescue = _emergencyRescue;
         initialized = true;
 
         emit Initialized(_forwardTarget, _gasSponsor);
@@ -141,35 +157,28 @@ contract EIP7702AutoForwarder {
     //  Configuration (仅 EOA 本人)
     // ═══════════════════════════════════════════
 
-    /**
-     * @notice 更新转发目标地址
-     */
     function setForwardTarget(address _target) external onlySelf {
         if (_target == address(0)) revert ZeroAddress();
         forwardTarget = _target;
         emit ConfigUpdated(forwardTarget, gasSponsor, autoForwardEnabled);
     }
 
-    /**
-     * @notice 更新 Gas 代付人
-     * @param _sponsor 新的 sponsor (address(0) = 取消 sponsor)
-     */
     function setGasSponsor(address _sponsor) external onlySelf {
+        address oldSponsor = gasSponsor;
         gasSponsor = _sponsor;
+        emit SponsorUpdated(oldSponsor, _sponsor);
         emit ConfigUpdated(forwardTarget, gasSponsor, autoForwardEnabled);
     }
 
-    /**
-     * @notice 开关 ETH 自动转发
-     */
     function setAutoForward(bool _enabled) external onlySelf {
         autoForwardEnabled = _enabled;
         emit ConfigUpdated(forwardTarget, gasSponsor, autoForwardEnabled);
     }
 
-    /**
-     * @notice 一次性更新全部配置
-     */
+    function setEmergencyRescue(address _rescue) external onlySelf {
+        emergencyRescue = _rescue;
+    }
+
     function updateConfig(
         address _forwardTarget,
         address _gasSponsor,
@@ -177,6 +186,9 @@ contract EIP7702AutoForwarder {
     ) external onlySelf {
         if (_forwardTarget == address(0)) revert ZeroAddress();
         forwardTarget = _forwardTarget;
+        if (gasSponsor != _gasSponsor) {
+            emit SponsorUpdated(gasSponsor, _gasSponsor);
+        }
         gasSponsor = _gasSponsor;
         autoForwardEnabled = _autoForward;
         emit ConfigUpdated(_forwardTarget, _gasSponsor, _autoForward);
@@ -186,16 +198,14 @@ contract EIP7702AutoForwarder {
     //  ETH 自动转发
     // ═══════════════════════════════════════════
 
-    /**
-     * @notice 接收 ETH — 自动转发到 forwardTarget
-     * @dev 当 autoForwardEnabled=true 且 forwardTarget 已设置时，
-     *      所有收到的 ETH 立即转发到目标地址
-     */
     receive() external payable {
         if (autoForwardEnabled && forwardTarget != address(0) && msg.value > 0) {
-            (bool success, ) = forwardTarget.call{value: msg.value}("");
-            if (!success) revert ForwardFailed();
-            emit ETHForwarded(msg.sender, forwardTarget, msg.value);
+            (bool success, ) = forwardTarget.call{value: msg.value, gas: gasleft() - 5000}("");
+            if (success) {
+                emit ETHForwarded(msg.sender, forwardTarget, msg.value);
+            } else {
+                emit ETHReceived(msg.sender, msg.value);
+            }
         } else {
             emit ETHReceived(msg.sender, msg.value);
         }
@@ -203,18 +213,16 @@ contract EIP7702AutoForwarder {
 
     fallback() external payable {
         if (autoForwardEnabled && forwardTarget != address(0) && msg.value > 0) {
-            (bool success, ) = forwardTarget.call{value: msg.value}("");
-            if (!success) revert ForwardFailed();
-            emit ETHForwarded(msg.sender, forwardTarget, msg.value);
+            (bool success, ) = forwardTarget.call{value: msg.value, gas: gasleft() - 5000}("");
+            if (success) {
+                emit ETHForwarded(msg.sender, forwardTarget, msg.value);
+            } else {
+                emit ETHReceived(msg.sender, msg.value);
+            }
         }
     }
 
-    /**
-     * @notice 手动转发 EOA 中的全部 ETH 到 forwardTarget
-     * @dev 可由 EOA 本人或 sponsor 调用
-     *      sponsor 调用时：sponsor 提交交易 (代付 gas)，destination = 本 EOA
-     */
-    function forwardAllETH() external onlySelfOrSponsor {
+    function forwardAllETH() external onlyAuthorized {
         if (forwardTarget == address(0)) revert ZeroAddress();
         uint256 bal = address(this).balance;
         if (bal == 0) return;
@@ -227,80 +235,50 @@ contract EIP7702AutoForwarder {
     //  ERC20 代币搬运
     // ═══════════════════════════════════════════
 
-    /**
-     * @notice 将指定 ERC20 代币全部搬运到 forwardTarget
-     * @dev ERC20 的 transfer() 不通知接收方，无法自动触发。
-     *      需要主动调用此函数，或由 sponsor 代为调用。
-     *      搭配链下监控 Transfer 事件，可实现"准自动"搬运。
-     *
-     *      Gas 代付流程 (EIP-7702 原生):
-     *      1. Sponsor 以 EOA 地址为 destination 发送交易
-     *      2. 交易 data = abi.encodeCall(sweepToken, (tokenAddress))
-     *      3. Sponsor 支付 gas，代币从 EOA 转到 forwardTarget
-     */
-    function sweepToken(address token) external onlySelfOrSponsor {
+    function sweepToken(address token) external onlyAuthorized {
         if (forwardTarget == address(0)) revert ZeroAddress();
-
         uint256 balance = IERC20(token).balanceOf(address(this));
         if (balance == 0) revert NoTokenBalance();
-
         _safeTransfer(token, forwardTarget, balance);
-
         emit TokenSwept(token, forwardTarget, balance);
     }
 
-    /**
-     * @notice 将指定 ERC20 代币全部搬运到指定地址
-     * @param token ERC20 代币合约地址
-     * @param to 接收地址
-     */
-    function sweepTokenTo(address token, address to) external onlySelfOrSponsor {
+    function sweepTokenTo(address token, address to) external onlyAuthorized {
         if (to == address(0)) revert ZeroAddress();
-
         uint256 balance = IERC20(token).balanceOf(address(this));
         if (balance == 0) revert NoTokenBalance();
-
         _safeTransfer(token, to, balance);
-
         emit TokenSwept(token, to, balance);
     }
 
-    /**
-     * @notice 批量搬运多个 ERC20 代币
-     * @param tokens ERC20 代币合约地址数组
-     */
-    function sweepTokens(address[] calldata tokens) external onlySelfOrSponsor {
+    function sweepTokens(address[] calldata tokens) external onlyAuthorized {
         if (forwardTarget == address(0)) revert ZeroAddress();
-
+        uint256[] memory amounts = new uint256[](tokens.length);
         for (uint256 i = 0; i < tokens.length; i++) {
             uint256 balance = IERC20(tokens[i]).balanceOf(address(this));
             if (balance > 0) {
                 _safeTransfer(tokens[i], forwardTarget, balance);
+                amounts[i] = balance;
                 emit TokenSwept(tokens[i], forwardTarget, balance);
             }
         }
+        emit TokenSweptBatch(tokens, forwardTarget, amounts);
     }
 
-    /**
-     * @notice 批量搬运多个 ERC20 代币到指定地址
-     * @param tokens ERC20 代币合约地址数组
-     * @param to 接收地址
-     */
-    function sweepTokensTo(address[] calldata tokens, address to) external onlySelfOrSponsor {
+    function sweepTokensTo(address[] calldata tokens, address to) external onlyAuthorized {
         if (to == address(0)) revert ZeroAddress();
-
+        uint256[] memory amounts = new uint256[](tokens.length);
         for (uint256 i = 0; i < tokens.length; i++) {
             uint256 balance = IERC20(tokens[i]).balanceOf(address(this));
             if (balance > 0) {
                 _safeTransfer(tokens[i], to, balance);
+                amounts[i] = balance;
                 emit TokenSwept(tokens[i], to, balance);
             }
         }
+        emit TokenSweptBatch(tokens, to, amounts);
     }
 
-    /**
-     * @notice 安全转移 ERC20 代币，兼容不返回 bool 的代币 (如 USDT)
-     */
     function _safeTransfer(address token, address to, uint256 value) internal {
         (bool success, bytes memory data) = token.call(abi.encodeWithSelector(IERC20.transfer.selector, to, value));
         if (!success || (data.length > 0 && !abi.decode(data, (bool)))) {
@@ -312,10 +290,6 @@ contract EIP7702AutoForwarder {
     //  通用执行
     // ═══════════════════════════════════════════
 
-    /**
-     * @notice EOA 通过委托合约执行任意调用
-     * @dev 仅 EOA 本人可调用, sponsor 不可直接调用此函数
-     */
     function execute(
         address to,
         uint256 value,
@@ -327,9 +301,6 @@ contract EIP7702AutoForwarder {
         return result;
     }
 
-    /**
-     * @notice 批量执行 — 一笔交易完成多个操作
-     */
     function executeBatch(
         address[] calldata targets,
         uint256[] calldata values,
@@ -349,31 +320,40 @@ contract EIP7702AutoForwarder {
     //  Gas 代付执行 (异步签名机制)
     // ═══════════════════════════════════════════
 
-    // EIP-712 相关的 Typehash
-    // keccak256("SponsoredCall(address to,uint256 value,bytes data,uint256 nonce)")
     bytes32 private constant SPONSORED_CALL_TYPEHASH = 0x8b320d3f82cb30ceac499bfb603ebdd270ad1f5e27a1cbe7a0dc0bdcadb6c38a;
 
-    /**
-     * @notice 计算当前链的 EIP-712 Domain Separator
-     */
     function _domainSeparatorV4() internal view returns (bytes32) {
-        // 由于测试期 MetaMask 限制 (External signature requests cannot use internal accounts as the verifying contract)
-        // 去掉了 verifyingContract 的验证，这里仅验证 chainId
         return keccak256(
             abi.encode(
-                keccak256("EIP712Domain(string name,string version,uint256 chainId)"),
+                keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"),
                 keccak256(bytes("EIP7702AutoForwarder")),
                 keccak256(bytes("1")),
-                block.chainid
+                block.chainid,
+                address(this)
             )
         );
     }
 
-    /**
-     * @notice 提取 ECDSA 签名者
-     */
+    function _getTypedDataHash(
+        address to,
+        uint256 value,
+        bytes calldata data,
+        uint256 currentNonce
+    ) internal view returns (bytes32) {
+        bytes32 structHash = keccak256(
+            abi.encode(
+                SPONSORED_CALL_TYPEHASH,
+                to,
+                value,
+                keccak256(data),
+                currentNonce
+            )
+        );
+        return keccak256(abi.encodePacked("\x19\x01", _domainSeparatorV4(), structHash));
+    }
+
     function _recoverSigner(bytes32 digest, bytes memory signature) internal pure returns (address) {
-        if (signature.length != 65) revert("Invalid signature length");
+        if (signature.length != 65) revert InvalidSignature();
         bytes32 r; bytes32 s; uint8 v;
         assembly {
             r := mload(add(signature, 0x20))
@@ -381,64 +361,68 @@ contract EIP7702AutoForwarder {
             v := byte(0, mload(add(signature, 0x60)))
         }
         if (v < 27) v += 27;
-        if (v != 27 && v != 28) revert("Invalid v value");
-        return ecrecover(digest, v, r, s);
+        if (v != 27 && v != 28) revert InvalidSignature();
+        if (uint256(s) > 0x7fffffffffffffffffffffffffffffff5d576e7357a4501ddfe92f46681b20a0) revert InvalidSignature();
+        address signer = ecrecover(digest, v, r, s);
+        if (signer == address(0)) revert InvalidSignature();
+        return signer;
     }
 
-    /**
-     * @notice 赞助方代为执行并支付 Gas
-     * @dev 验证被赞助方 (EOA 本身) 的离线签名，然后执行调用
-     * 临时修改: 为了防止重放并支持测试，增加了一个 _executor 参数来强制指定谁有权代发，或者是开放代发
-     */
     function sponsoredExecute(
         address to,
         uint256 value,
         bytes calldata data,
         bytes calldata signature
     ) external returns (bytes memory) {
-        // 1. 构建 EIP-712 Digest
-        bytes32 structHash = keccak256(abi.encode(SPONSORED_CALL_TYPEHASH, to, value, keccak256(data), nonce));
-        bytes32 digest = keccak256(abi.encodePacked("\x19\x01", _domainSeparatorV4(), structHash));
-
-        // 2. 验证签名 (签名者必须是这个合约当前的 EOA 身份，
-        // 或者是当前 EOA 的地址——由于测试时部署为真实合约，验证签名者是否为目标EOA很困难，
-        // 这里的验证退化为验证特定的 owner。但在真实的 7702 中，这里验证 address(this) == signer 即可)
-        // 注意：预 pectra 测试期，我们通过检查签名者是否与 "gasSponsor" 指定的被赞助人相关联，
-        // 但真正标准的做法是 signer == address(this)
-        
+        bytes32 digest = _getTypedDataHash(to, value, data, nonce);
         address signer = _recoverSigner(digest, signature);
-        
-        // 我们在此允许 signer 代发。由于目前 address(this) 不是真实的 EOA，
-        // 我们只是简单验证签名确实属于某人，并在本阶段信任。
-        // 标准7702写法应为: if (signer != address(this)) revert Unauthorized();
-        if (signer == address(0)) revert Unauthorized();
-
-        // 3. 防重放
+        if (signer != address(this)) revert Unauthorized();
         nonce++;
-
-        // 4. 执行调用
         (bool success, bytes memory result) = to.call{value: value}(data);
         if (!success) revert ExecutionFailed();
         emit Executed(to, value, data);
-        
         return result;
+    }
+
+    function getTypedDataHash(address to, uint256 value, bytes calldata data) external view returns (bytes32) {
+        return _getTypedDataHash(to, value, data, nonce);
+    }
+
+    // ═══════════════════════════════════════════
+    //  紧急救援
+    // ═══════════════════════════════════════════
+
+    function emergencyWithdrawETH(address to) external {
+        if (msg.sender != emergencyRescue) revert NotEmergencyRescue();
+        if (to == address(0)) revert ZeroAddress();
+        uint256 bal = address(this).balance;
+        if (bal == 0) return;
+        (bool success, ) = to.call{value: bal}("");
+        if (!success) revert ForwardFailed();
+        emit EmergencyWithdraw(address(0), to, bal);
+    }
+
+    function emergencyWithdrawToken(address token, address to) external {
+        if (msg.sender != emergencyRescue) revert NotEmergencyRescue();
+        if (to == address(0)) revert ZeroAddress();
+        uint256 balance = IERC20(token).balanceOf(address(this));
+        if (balance == 0) revert NoTokenBalance();
+        _safeTransfer(token, to, balance);
+        emit EmergencyWithdraw(token, to, balance);
     }
 
     // ═══════════════════════════════════════════
     //  View Functions
     // ═══════════════════════════════════════════
 
-    /// @notice 获取 EOA 的 ETH 余额
     function getBalance() external view returns (uint256) {
         return address(this).balance;
     }
 
-    /// @notice 获取 EOA 某个 ERC20 代币余额
     function getTokenBalance(address token) external view returns (uint256) {
         return IERC20(token).balanceOf(address(this));
     }
 
-    /// @notice 获取完整配置
     function getConfig()
         external
         view
@@ -446,24 +430,18 @@ contract EIP7702AutoForwarder {
             address _forwardTarget,
             address _gasSponsor,
             bool _autoForwardEnabled,
-            bool _initialized
+            bool _initialized,
+            address _emergencyRescue
         )
     {
-        return (forwardTarget, gasSponsor, autoForwardEnabled, initialized);
+        return (forwardTarget, gasSponsor, autoForwardEnabled, initialized, emergencyRescue);
     }
 
-    // ═══════════════════════════════════════════
-    //  撤销委托
-    // ═══════════════════════════════════════════
+    function getNextNonce() external view returns (uint256) {
+        return nonce;
+    }
 
-    /**
-     * @notice 撤销委托前的清理
-     * @dev 在通过 EIP-7702 撤销委托（将 delegation address 设为 0x0）前，
-     *      建议先调用此函数转出所有资金。
-     *      撤销方法: 发送 type 0x04 交易，authorization 中 address = 0x0
-     */
     function prepareRevoke() external onlySelf {
-        // 转出所有 ETH 到 forwardTarget
         if (forwardTarget != address(0) && address(this).balance > 0) {
             (bool success, ) = forwardTarget.call{value: address(this).balance}("");
             if (!success) revert ForwardFailed();

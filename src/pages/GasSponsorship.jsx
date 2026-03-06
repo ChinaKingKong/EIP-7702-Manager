@@ -22,6 +22,8 @@ export default function GasSponsorship() {
     const [isSigning, setIsSigning] = useState(false);
 
     // UI State
+    const [roleSelected, setRoleSelected] = useState(false);
+    const [showAdvanced, setShowAdvanced] = useState(false);
     const [error, setError] = useState(null);
     const [successMsg, setSuccessMsg] = useState(null);
 
@@ -198,250 +200,342 @@ export default function GasSponsorship() {
     const executedIntents = intents.filter(i => i.status === 'executed');
 
     return (
-        <div>
-            {/* Header Description */}
-            <div className="alert alert-info" style={{ marginBottom: '24px' }}>
-                <Zap size={18} />
-                <div>
-                    <strong style={{ display: 'block', marginBottom: '4px' }}>{t('gas.title')}</strong>
-                    <span dangerouslySetInnerHTML={{ __html: t('gas.description') }} />
-                </div>
+        <div className="page-enter">
+            {/* Header / Intro */}
+            <div style={{ marginBottom: '32px' }}>
+                <h2 style={{ fontSize: '28px', fontWeight: 700, marginBottom: '8px', background: 'linear-gradient(135deg, var(--text-primary) 0%, var(--text-secondary) 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+                    {t('gas.title')}
+                </h2>
+                <p style={{ color: 'var(--text-secondary)', maxWidth: '800px', lineHeight: '1.6' }} dangerouslySetInnerHTML={{ __html: t('gas.description') }} />
             </div>
 
-            {/* Role Switcher */}
-            <div style={{ display: 'flex', gap: '8px', marginBottom: '24px', background: 'var(--bg-card)', padding: '6px', borderRadius: '12px', width: 'max-content' }}>
-                <button
-                    className={`btn ${role === 'sponsee' ? 'btn-primary' : 'btn-ghost'} `}
-                    onClick={() => setRole('sponsee')}
-                    style={{ padding: '8px 24px' }}
-                >
-                    {t('gas.sponseeRole')}
-                </button>
-                <button
-                    className={`btn ${role === 'sponsor' ? 'btn-primary' : 'btn-ghost'} `}
-                    onClick={() => setRole('sponsor')}
-                    style={{ padding: '8px 24px' }}
-                >
-                    {t('gas.sponsorRole')}
-                </button>
-            </div>
+            {!roleSelected ? (
+                /* STEP 1: Role Selection */
+                <div style={{ animation: 'fadeUp 0.5s ease' }}>
+                    <div style={{ marginBottom: '24px', textAlign: 'center' }}>
+                        <h3 style={{ fontSize: '20px', fontWeight: 600, marginBottom: '8px' }}>{t('gas.selectRoleTitle')}</h3>
+                        <p style={{ color: 'var(--text-tertiary)' }}>{t('gas.selectRoleDesc')}</p>
+                    </div>
 
-            {/* Feedback Messages */}
-            {successMsg && (
-                <div className="alert alert-success" style={{ marginBottom: '24px' }}>
-                    <CheckCircle size={18} />
-                    <span>{successMsg}</span>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '24px', maxWidth: '900px', margin: '0 auto' }}>
+                        {/* Sponsee Card */}
+                        <div 
+                            className="card interactive-card" 
+                            onClick={() => { setRole('sponsee'); setRoleSelected(true); }}
+                            style={{ 
+                                cursor: 'pointer', 
+                                border: '1px solid var(--border-subtle)',
+                                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                                position: 'relative',
+                                overflow: 'hidden'
+                            }}
+                        >
+                            <div className="card-body" style={{ padding: '32px', textAlign: 'center' }}>
+                                <div style={{ 
+                                    width: '64px', height: '64px', borderRadius: '16px', 
+                                    background: 'rgba(56, 189, 248, 0.1)', color: 'var(--accent-cyan)',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    margin: '0 auto 20px auto'
+                                }}>
+                                    <PenTool size={32} />
+                                </div>
+                                <h4 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '12px' }}>{t('gas.sponseeCardTitle')}</h4>
+                                <p style={{ fontSize: '14px', color: 'var(--text-secondary)', lineHeight: '1.5' }}>{t('gas.sponseeCardDesc')}</p>
+                            </div>
+                        </div>
+
+                        {/* Sponsor Card */}
+                        <div 
+                            className="card interactive-card" 
+                            onClick={() => { setRole('sponsor'); setRoleSelected(true); }}
+                            style={{ 
+                                cursor: 'pointer', 
+                                border: '1px solid var(--border-subtle)',
+                                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                                position: 'relative',
+                                overflow: 'hidden'
+                            }}
+                        >
+                            <div className="card-body" style={{ padding: '32px', textAlign: 'center' }}>
+                                <div style={{ 
+                                    width: '64px', height: '64px', borderRadius: '16px', 
+                                    background: 'rgba(139, 92, 246, 0.1)', color: 'var(--accent-purple)',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    margin: '0 auto 20px auto'
+                                }}>
+                                    <Fuel size={32} />
+                                </div>
+                                <h4 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '12px' }}>{t('gas.sponsorCardTitle')}</h4>
+                                <p style={{ fontSize: '14px', color: 'var(--text-secondary)', lineHeight: '1.5' }}>{t('gas.sponsorCardDesc')}</p>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-            )}
-            {error && (
-                <div className="alert alert-error" style={{ marginBottom: '24px' }}>
-                    <XCircle size={18} />
-                    <span>{error}</span>
-                </div>
-            )}
-
-            <div className="page-grid">
-                {/* Left: Action Form (Sponsee) OR Stats (Sponsor) */}
-
-                {role === 'sponsee' ? (
-                    <div className="card">
-                        <div className="card-header">
-                            <h3>{t('gas.signIntentTitle')}</h3>
+            ) : (
+                /* STEP 2: Active Role UI */
+                <div style={{ animation: 'fadeIn 0.4s ease' }}>
+                    {/* Role Header */}
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px', background: 'var(--bg-glass)', padding: '12px 20px', borderRadius: '12px', border: '1px solid var(--border-subtle)' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                            <div style={{ 
+                                width: '32px', height: '32px', borderRadius: '8px', 
+                                background: role === 'sponsee' ? 'rgba(56, 189, 248, 0.1)' : 'rgba(139, 92, 246, 0.1)',
+                                color: role === 'sponsee' ? 'var(--accent-cyan)' : 'var(--accent-purple)',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center'
+                            }}>
+                                {role === 'sponsee' ? <PenTool size={16} /> : <Fuel size={16} />}
+                            </div>
+                            <span style={{ fontWeight: 600 }}>{role === 'sponsee' ? t('gas.sponseeCardTitle') : t('gas.sponsorCardTitle')}</span>
                         </div>
-                        <div className="card-body">
-                            <div className="form-group">
-                                <label className="form-label">{t('gas.myAccount')}</label>
-                                <div className="form-input mono" style={{ opacity: 0.7, background: 'var(--bg-body)' }}>
-                                    {address || t('gas.connectWalletToStart')}
-                                </div>
-                            </div>
-
-                            <div className="form-group">
-                                <label className="form-label">{t('gas.targetAddress')}</label>
-                                <input
-                                    className="form-input mono"
-                                    type="text"
-                                    placeholder="0x..."
-                                    value={txTo}
-                                    onChange={(e) => setTxTo(e.target.value)}
-                                />
-                            </div>
-
-                            <div className="form-group">
-                                <label className="form-label">{t('gas.ethValue')} <span style={{ color: 'var(--text-tertiary)', fontSize: '12px', fontWeight: 'normal' }}>{t('gas.optional')}</span></label>
-                                <input
-                                    className="form-input"
-                                    type="number"
-                                    placeholder="0"
-                                    step="0.001"
-                                    min="0"
-                                    value={txValue}
-                                    onChange={(e) => setTxValue(e.target.value)}
-                                />
-                            </div>
-
-                            <div className="form-group">
-                                <label className="form-label">{t('gas.calldata')} <span style={{ color: 'var(--text-tertiary)', fontSize: '12px', fontWeight: 'normal' }}>{t('gas.optional')}</span></label>
-                                <textarea
-                                    className="form-input mono"
-                                    placeholder="0x..."
-                                    value={txData}
-                                    onChange={(e) => setTxData(e.target.value)}
-                                    rows={3}
-                                    style={{ resize: 'vertical' }}
-                                />
-                            </div>
-
-                            <button
-                                className="btn btn-primary btn-lg"
-                                style={{ width: '100%', marginTop: '12px' }}
-                                onClick={handleSignIntent}
-                                disabled={!address || !txTo || isSigning}
-                            >
-                                {isSigning ? t('gas.signing') : <><PenTool size={18} /> {t('gas.signBtn')}</>}
-                            </button>
-                        </div>
+                        <button 
+                            className="btn btn-ghost" 
+                            onClick={() => setRoleSelected(false)}
+                            style={{ fontSize: '13px', padding: '6px 12px' }}
+                        >
+                            {t('gas.backToRoles')}
+                        </button>
                     </div>
-                ) : (
-                    <div className="card">
-                        <div className="card-header">
-                            <h3>{t('gas.sponsorStatsTitle')}</h3>
-                        </div>
-                        <div className="card-body">
-                            <div className="stats-grid" style={{ gridTemplateColumns: '1fr', gap: '16px' }}>
-                                <div className="stat-card cyan" style={{ padding: '24px' }}>
-                                    <div className="stat-card-top">
-                                        <div className="stat-icon cyan"><CheckCircle size={28} /></div>
-                                    </div>
-                                    <div className="stat-value" style={{ fontSize: '32px' }}>{executedIntents.length}</div>
-                                    <div className="stat-label">{t('gas.successfulSponsored')}</div>
-                                </div>
 
-                                <div className="stat-card purple" style={{ padding: '24px' }}>
-                                    <div className="stat-card-top">
-                                        <div className="stat-icon purple"><Wallet size={28} /></div>
-                                    </div>
-                                    <div className="stat-value" style={{ fontSize: '32px' }}>
-                                        {new Set(executedIntents.map(i => i.sponsee)).size}
-                                    </div>
-                                    <div className="stat-label">{t('gas.uniqueAccountsHelped')}</div>
-                                </div>
-                            </div>
+                    {/* Feedback Messages */}
+                    {successMsg && (
+                        <div className="alert alert-success" style={{ marginBottom: '24px' }}>
+                            <CheckCircle size={18} />
+                            <span>{successMsg}</span>
                         </div>
-                    </div>
-                )}
+                    )}
+                    {error && (
+                        <div className="alert alert-error" style={{ marginBottom: '24px' }}>
+                            <XCircle size={18} />
+                            <span>{error}</span>
+                        </div>
+                    )}
 
-                {/* Right: Intent Queue */}
-                <div className="card">
-                    <div className="card-header">
-                        <h3>{t('gas.intentQueueTitle')}</h3>
-                        <span className="badge badge-info">{intents.length} {t('common.total')}</span>
-                    </div>
-                    <div className="card-body" style={{ padding: 0 }}>
-                        {intents.length === 0 ? (
-                            <div className="empty-state">
-                                <Inbox size={40} />
-                                <div className="empty-state-title">{t('gas.noPendingIntents')}</div>
-                                <div className="empty-state-desc">{t('gas.waitingForSponsee')}</div>
+                    <div className="page-grid">
+                        {/* Action column */}
+                        <div>
+                        {role === 'sponsee' ? (
+                            <div className="card">
+                                <div className="card-header">
+                                    <h3>{t('gas.signIntentTitle')}</h3>
+                                </div>
+                                <div className="card-body">
+                                    <div className="form-group">
+                                        <label className="form-label">{t('gas.myAccount')}</label>
+                                        <div className="form-input mono" style={{ opacity: 0.7, background: 'var(--bg-body)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                            <Wallet size={14} /> {address || t('gas.connectWalletToStart')}
+                                        </div>
+                                    </div>
+
+                                    <div className="form-group">
+                                        <label className="form-label">{t('gas.targetAddress')}</label>
+                                        <input
+                                            className="form-input mono"
+                                            type="text"
+                                            placeholder="0x..."
+                                            value={txTo}
+                                            onChange={(e) => setTxTo(e.target.value)}
+                                        />
+                                    </div>
+
+                                    {/* Advanced Toggle */}
+                                    <button 
+                                        className="btn btn-ghost" 
+                                        onClick={() => setShowAdvanced(!showAdvanced)}
+                                        style={{ width: '100%', justifyContent: 'space-between', marginBottom: '16px', fontSize: '13px', background: 'var(--bg-body)' }}
+                                    >
+                                        <span>{t('gas.advancedOptions')}</span>
+                                        <span style={{ fontSize: '10px' }}>{showAdvanced ? '▲' : '▼'}</span>
+                                    </button>
+
+                                    {showAdvanced && (
+                                        <div style={{ animation: 'slideDown 0.3s ease' }}>
+                                            <div className="form-group">
+                                                <label className="form-label">{t('gas.ethValue')} <span style={{ color: 'var(--text-tertiary)', fontSize: '12px', fontWeight: 'normal' }}>{t('gas.optional')}</span></label>
+                                                <input
+                                                    className="form-input"
+                                                    type="number"
+                                                    placeholder="0"
+                                                    step="0.001"
+                                                    min="0"
+                                                    value={txValue}
+                                                    onChange={(e) => setTxValue(e.target.value)}
+                                                />
+                                            </div>
+
+                                            <div className="form-group">
+                                                <label className="form-label">{t('gas.calldata')} <span style={{ color: 'var(--text-tertiary)', fontSize: '12px', fontWeight: 'normal' }}>{t('gas.optional')}</span></label>
+                                                <textarea
+                                                    className="form-input mono"
+                                                    placeholder="0x..."
+                                                    value={txData}
+                                                    onChange={(e) => setTxData(e.target.value)}
+                                                    rows={3}
+                                                    style={{ resize: 'vertical' }}
+                                                />
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    <button
+                                        className="btn btn-primary btn-lg"
+                                        style={{ width: '100%', marginTop: '12px', background: 'var(--accent-blue)', borderColor: 'var(--accent-blue)' }}
+                                        onClick={handleSignIntent}
+                                        disabled={!address || !txTo || isSigning}
+                                    >
+                                        {isSigning ? t('gas.signing') : <><PenTool size={18} /> {t('gas.signBtn')}</>}
+                                    </button>
+                                </div>
                             </div>
                         ) : (
-                            <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                {intents.map((intent, idx) => (
-                                    <div key={intent.id} style={{
-                                        padding: '16px',
-                                        borderBottom: idx < intents.length - 1 ? '1px solid var(--border-subtle)' : 'none',
-                                        background: intent.status === 'executed' ? 'rgba(34, 197, 94, 0.03)' : 'transparent',
-                                        transition: 'background 0.2s ease'
-                                    }}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
-                                            <div>
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                                                    <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)' }}>{t('gas.requester')}</span>
-                                                    <span className="mono" style={{ fontSize: '14px', color: 'var(--text-primary)' }}>
-                                                        {truncateAddress(intent.sponsee)}
-                                                    </span>
-                                                </div>
-                                                <div style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>
-                                                    {formatTime(intent.timestamp)} • {t('gas.nonce')} {intent.nonce}
-                                                </div>
+                            /* Sponsor Stats */
+                            <div className="card">
+                                <div className="card-header">
+                                    <h3>{t('gas.sponsorStatsTitle')}</h3>
+                                </div>
+                                <div className="card-body">
+                                    <div className="stats-grid" style={{ gridTemplateColumns: '1fr', gap: '16px' }}>
+                                        <div className="stat-card" style={{ padding: '24px', border: '1px solid var(--border-subtle)', background: 'var(--bg-glass)' }}>
+                                            <div className="stat-card-top">
+                                                <div className="stat-icon" style={{ color: 'var(--accent-green)' }}><CheckCircle size={28} /></div>
                                             </div>
-
-                                            {intent.status === 'executed' ? (
-                                                <span className="badge badge-active">
-                                                    <Check size={12} /> {t('gas.sponsoredStatus')}
-                                                </span>
-                                            ) : (
-                                                <span className="badge badge-warning" style={{ background: 'rgba(245, 158, 11, 0.1)', color: '#fbbf24' }}>
-                                                    {t('gas.pendingStatus')}
-                                                </span>
-                                            )}
+                                            <div className="stat-value" style={{ fontSize: '32px' }}>{executedIntents.length}</div>
+                                            <div className="stat-label">{t('gas.successfulSponsored')}</div>
                                         </div>
 
-                                        <div style={{
-                                            background: 'var(--bg-body)',
-                                            padding: '12px',
-                                            borderRadius: '8px',
-                                            fontSize: '13px',
-                                            marginBottom: '12px'
-                                        }}>
-                                            <div style={{ display: 'grid', gridTemplateColumns: '80px 1fr', gap: '8px', marginBottom: '8px' }}>
-                                                <span style={{ color: 'var(--text-tertiary)' }}>{t('gas.target')}</span>
-                                                <span className="mono" style={{ color: 'var(--accent-cyan)' }}>{truncateAddress(intent.to)}</span>
+                                        <div className="stat-card" style={{ padding: '24px', border: '1px solid var(--border-subtle)', background: 'var(--bg-glass)' }}>
+                                            <div className="stat-card-top">
+                                                <div className="stat-icon" style={{ color: 'var(--accent-purple)' }}><Wallet size={28} /></div>
                                             </div>
-                                            <div style={{ display: 'grid', gridTemplateColumns: '80px 1fr', gap: '8px', marginBottom: '8px' }}>
-                                                <span style={{ color: 'var(--text-tertiary)' }}>{t('gas.amount')}</span>
-                                                <span>{intent.value} ETH</span>
+                                            <div className="stat-value" style={{ fontSize: '32px' }}>
+                                                {new Set(executedIntents.map(i => i.sponsee)).size}
                                             </div>
-                                            <div style={{ display: 'grid', gridTemplateColumns: '80px 1fr', gap: '8px' }}>
-                                                <span style={{ color: 'var(--text-tertiary)' }}>{t('gas.calldataLabel')}</span>
-                                                <span className="mono" style={{
-                                                    whiteSpace: 'nowrap',
-                                                    overflow: 'hidden',
-                                                    textOverflow: 'ellipsis',
-                                                    color: 'var(--text-secondary)'
-                                                }}>
-                                                    {intent.data}
-                                                </span>
-                                            </div>
+                                            <div className="stat-label">{t('gas.uniqueAccountsHelped')}</div>
                                         </div>
-
-                                        {intent.status === 'pending' && role === 'sponsor' && (
-                                            <button
-                                                className="btn btn-secondary"
-                                                style={{ width: '100%', display: 'flex', justifyContent: 'center', gap: '6px' }}
-                                                onClick={() => handleExecute(intent)}
-                                                disabled={isExecuting === intent.id || !address}
-                                            >
-                                                {isExecuting === intent.id ? t('gas.executing') : <><Fuel size={16} /> {t('gas.executeBtn')}</>}
-                                            </button>
-                                        )}
-
-                                        {intent.status === 'executed' && (
-                                            <div style={{
-                                                fontSize: '12px',
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                gap: '6px',
-                                                padding: '8px',
-                                                background: 'rgba(34, 197, 94, 0.1)',
-                                                borderRadius: '6px',
-                                                color: 'var(--accent-green)'
-                                            }}>
-                                                <b>{t('gas.txLabel')}</b>
-                                                <span className="mono">{truncateAddress(intent.txHash)}</span>
-                                                <Copy size={12} style={{ cursor: 'pointer' }} onClick={() => copyToClipboard(intent.txHash)} />
-                                                <span style={{ marginLeft: 'auto', color: 'var(--text-secondary)' }}>
-                                                    {t('gas.sponsoredBy').replace('{sponsor}', truncateAddress(intent.sponsor))}
-                                                </span>
-                                            </div>
-                                        )}
                                     </div>
-                                ))}
+                                </div>
                             </div>
                         )}
+                        </div>
+
+                        {/* Intent Queue */}
+                        <div className="card">
+                            <div className="card-header">
+                                <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <Inbox size={18} /> {t('gas.intentQueueTitle')}
+                                </h3>
+                                <span className="badge badge-info">{intents.length}</span>
+                            </div>
+                            <div className="card-body" style={{ padding: 0 }}>
+                                {intents.length === 0 ? (
+                                    <div className="empty-state" style={{ padding: '48px 20px' }}>
+                                        <Inbox size={40} style={{ opacity: 0.3 }} />
+                                        <div className="empty-state-title">{t('gas.noPendingIntents')}</div>
+                                        <div className="empty-state-desc">{t('gas.waitingForSponsee')}</div>
+                                    </div>
+                                ) : (
+                                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                        {intents.map((intent, idx) => (
+                                            <div key={intent.id} style={{
+                                                padding: '20px',
+                                                borderBottom: idx < intents.length - 1 ? '1px solid var(--border-subtle)' : 'none',
+                                                background: intent.status === 'executed' ? 'rgba(34, 197, 94, 0.02)' : 'transparent',
+                                                transition: 'all 0.2s ease'
+                                            }} className="intent-item">
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
+                                                    <div>
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                                                            <span style={{ fontSize: '13px', color: 'var(--text-tertiary)' }}>{t('gas.requester')}</span>
+                                                            <span className="mono" style={{ fontSize: '14px', background: 'var(--bg-body)', padding: '2px 8px', borderRadius: '4px' }}>
+                                                                {truncateAddress(intent.sponsee)}
+                                                            </span>
+                                                        </div>
+                                                        <div style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>
+                                                            {formatTime(intent.timestamp)} • {t('gas.nonce')} {intent.nonce}
+                                                        </div>
+                                                    </div>
+
+                                                    {intent.status === 'executed' ? (
+                                                        <span className="badge" style={{ background: 'rgba(34, 197, 94, 0.1)', color: 'var(--accent-green)', padding: '4px 10px' }}>
+                                                            <Check size={12} /> {t('gas.sponsoredStatus')}
+                                                        </span>
+                                                    ) : (
+                                                        <span className="badge" style={{ background: 'rgba(245, 158, 11, 0.1)', color: '#fbbf24', padding: '4px 10px' }}>
+                                                            <Zap size={12} /> {t('gas.pendingStatus')}
+                                                        </span>
+                                                    )}
+                                                </div>
+
+                                                <div style={{
+                                                    background: 'var(--bg-body)',
+                                                    padding: '16px',
+                                                    borderRadius: '10px',
+                                                    fontSize: '13px',
+                                                    marginBottom: '16px',
+                                                    border: '1px solid var(--border-subtle)'
+                                                }}>
+                                                    <div style={{ display: 'grid', gridTemplateColumns: '90px 1fr', gap: '8px', marginBottom: '10px' }}>
+                                                        <span style={{ color: 'var(--text-tertiary)' }}>{t('gas.target')}</span>
+                                                        <span className="mono" style={{ color: 'var(--accent-cyan)' }}>{truncateAddress(intent.to)}</span>
+                                                    </div>
+                                                    <div style={{ display: 'grid', gridTemplateColumns: '90px 1fr', gap: '8px', marginBottom: '10px' }}>
+                                                        <span style={{ color: 'var(--text-tertiary)' }}>{t('gas.amount')}</span>
+                                                        <span style={{ fontWeight: 600 }}>{intent.value} ETH</span>
+                                                    </div>
+                                                    <div style={{ display: 'grid', gridTemplateColumns: '90px 1fr', gap: '8px' }}>
+                                                        <span style={{ color: 'var(--text-tertiary)' }}>{t('gas.calldataLabel')}</span>
+                                                        <span className="mono" style={{
+                                                            whiteSpace: 'nowrap',
+                                                            overflow: 'hidden',
+                                                            textOverflow: 'ellipsis',
+                                                            color: 'var(--text-secondary)'
+                                                        }}>
+                                                            {intent.data}
+                                                        </span>
+                                                    </div>
+                                                </div>
+
+                                                {intent.status === 'pending' && role === 'sponsor' && (
+                                                    <button
+                                                        className="btn btn-primary"
+                                                        style={{ width: '100%', padding: '10px', background: 'var(--accent-purple)', borderColor: 'var(--accent-purple)' }}
+                                                        onClick={() => handleExecute(intent)}
+                                                        disabled={isExecuting === intent.id || !address}
+                                                    >
+                                                        {isExecuting === intent.id ? t('gas.executing') : <><Fuel size={16} /> {t('gas.executeBtn')}</>}
+                                                    </button>
+                                                )}
+
+                                                {intent.status === 'executed' && (
+                                                    <div style={{
+                                                        fontSize: '12px',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'space-between',
+                                                        padding: '10px 12px',
+                                                        background: 'rgba(34, 197, 94, 0.05)',
+                                                        borderRadius: '8px',
+                                                        color: 'var(--accent-green)',
+                                                        border: '1px dashed rgba(34, 197, 94, 0.3)'
+                                                    }}>
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                            <b>{t('gas.txLabel')}</b>
+                                                            <span className="mono">{truncateAddress(intent.txHash)}</span>
+                                                            <Copy size={12} style={{ cursor: 'pointer', opacity: 0.7 }} onClick={() => copyToClipboard(intent.txHash)} />
+                                                        </div>
+                                                        <span style={{ opacity: 0.8 }}>
+                                                            {t('gas.sponsoredBy').replace('{sponsor}', truncateAddress(intent.sponsor))}
+                                                        </span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
                     </div>
                 </div>
-            </div>
+            )}
         </div>
     );
 }
