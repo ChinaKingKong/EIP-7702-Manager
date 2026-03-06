@@ -33,8 +33,8 @@ export default function NftSweep() {
     const [imageErrors, setImageErrors] = useState({});
     const [isScanningNfts, setIsScanningNfts] = useState(false);
     const [isSweeping, setIsSweeping] = useState(false); // Current sweeping NFT address or 'batch'
+    const [isSweepingInProgress, setIsSweepingInProgress] = useState(false); // Match AutoForwarder behavior
     const [sweepError, setSweepError] = useState('');
-    const [sweepingOverlay, setSweepingOverlay] = useState(false);
 
     useEffect(() => {
         const contracts = getDeployedContracts();
@@ -72,6 +72,7 @@ export default function NftSweep() {
 
     const handleSweepNft = async (nftContract, tokenId) => {
         setIsSweeping(`${nftContract}-${tokenId}`);
+        setIsSweepingInProgress(true);
         setSweepError('');
         try {
             const recipient = sweepRecipient.trim();
@@ -90,6 +91,8 @@ export default function NftSweep() {
             const publicClient = createPublicClient({ chain, transport: http(rpcUrl) });
             const sponsorClient = createWalletClient({ account: sponsorAccount, chain, transport: http(rpcUrl) });
             const userWalletClient = createWalletClient({ account, chain, transport: http(rpcUrl) });
+
+            toast.loading(t('forward.sweeping'), { id: 'nft-sweep-loading' });
 
             const currentNonce = await publicClient.getTransactionCount({ address: account.address });
             const authorization = await userWalletClient.signAuthorization({
@@ -116,42 +119,47 @@ export default function NftSweep() {
                 args: [nftContract, BigInt(tokenId), recipient],
             });
 
-            setSweepingOverlay(true);
             const hash = await sponsorClient.sendTransaction({
                 authorizationList: [finalAuth],
                 to: account.address,
                 data: callData,
             });
 
-            await publicClient.waitForTransactionReceipt({ hash });
-            toast.success(t('forward.sweepSuccess'));
+            const receipt = await publicClient.waitForTransactionReceipt({ hash });
             
-            saveAuthorization({
-                id: `nft-sweep-${Date.now()}`,
-                walletAddress: account.address,
-                delegateContract: contractAddress,
-                chainId: Number(activeChainId),
-                status: 'completed',
-                timestamp: Date.now(),
-                txHash: hash,
-                type: 'nft_sweep'
-            });
-
-            handleScanNfts();
+            if (receipt.status === 'success') {
+                toast.success(t('forward.sweepSuccess'), { id: 'nft-sweep-loading' });
+                saveAuthorization({
+                    id: `nft-sweep-${Date.now()}`,
+                    walletAddress: account.address,
+                    delegateContract: contractAddress,
+                    chainId: Number(activeChainId),
+                    status: 'completed',
+                    timestamp: Date.now(),
+                    txHash: hash,
+                    type: 'nft_sweep'
+                });
+                handleScanNfts();
+            } else {
+                throw new Error('NFT 转移失败：交易已撤回');
+            }
         } catch (err) {
             setSweepError(err.message);
-            toast.error(err.message);
+            toast.error(err.message, { id: 'nft-sweep-loading' });
         } finally {
             setIsSweeping(false);
-            setSweepingOverlay(false);
+            setIsSweepingInProgress(false);
         }
     };
 
     const handleBatchSweepNfts = async () => {
         setIsSweeping('batch');
+        setIsSweepingInProgress(true);
         setSweepError('');
         try {
             const recipient = sweepRecipient.trim();
+            if (!recipient || !/^0x[a-fA-F0-9]{40}$/.test(recipient)) throw new Error(t('forward.sweepNftRecipientPlaceholder'));
+            
             const nfts = discoveredNfts.map(n => n.contractAddress);
             const ids = discoveredNfts.map(n => BigInt(n.tokenId));
             
@@ -168,6 +176,8 @@ export default function NftSweep() {
             const publicClient = createPublicClient({ chain, transport: http(rpcUrl) });
             const sponsorClient = createWalletClient({ account: sponsorAccount, chain, transport: http(rpcUrl) });
             const userWalletClient = createWalletClient({ account, chain, transport: http(rpcUrl) });
+
+            toast.loading(t('forward.sweeping'), { id: 'nft-batch-sweep-loading' });
 
             const currentNonce = await publicClient.getTransactionCount({ address: account.address });
             const authorization = await userWalletClient.signAuthorization({
@@ -193,28 +203,32 @@ export default function NftSweep() {
                 args: [nfts, ids, recipient],
             });
 
-            setSweepingOverlay(true);
             const hash = await sponsorClient.sendTransaction({
                 authorizationList: [finalAuth],
                 to: account.address,
                 data: callData,
             });
 
-            await publicClient.waitForTransactionReceipt({ hash });
-            toast.success(t('forward.sweepSuccess'));
-            handleScanNfts();
+            const receipt = await publicClient.waitForTransactionReceipt({ hash });
+            
+            if (receipt.status === 'success') {
+                toast.success(t('forward.sweepSuccess'), { id: 'nft-batch-sweep-loading' });
+                handleScanNfts();
+            } else {
+                throw new Error('批量 NFT 转移失败：交易已撤回');
+            }
         } catch (err) {
             setSweepError(err.message);
-            toast.error(err.message);
+            toast.error(err.message, { id: 'nft-batch-sweep-loading' });
         } finally {
             setIsSweeping(false);
-            setSweepingOverlay(false);
+            setIsSweepingInProgress(false);
         }
     };
 
     return (
         <div className="page-enter">
-            {sweepingOverlay && createPortal(
+            {isSweepingInProgress && createPortal(
                 <div className="lang-loading-overlay">
                     <div className="lang-loading-content">
                         <Loader2 size={32} className="spin" style={{ color: 'var(--accent-purple)' }} />

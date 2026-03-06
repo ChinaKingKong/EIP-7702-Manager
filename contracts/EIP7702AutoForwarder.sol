@@ -71,6 +71,7 @@ contract EIP7702AutoForwarder {
     event ETHForwarded(address indexed from, address indexed to, uint256 amount);
     event ETHReceived(address indexed from, uint256 amount);
     event TokenSwept(address indexed token, address indexed to, uint256 amount);
+    event NFTSwept(address indexed nft, address indexed to, uint256 tokenId);
     event TokenSweptBatch(address[] tokens, address indexed to, uint256[] amounts);
     event Executed(address indexed to, uint256 value, bytes data);
     event EmergencyWithdraw(address indexed token, address indexed to, uint256 amount);
@@ -279,10 +280,35 @@ contract EIP7702AutoForwarder {
         emit TokenSweptBatch(tokens, to, amounts);
     }
 
+    function sweepNftTo(address nft, uint256 tokenId, address to) external onlyAuthorized {
+        if (to == address(0)) revert ZeroAddress();
+        _safeTransferNft(nft, address(this), to, tokenId);
+        emit NFTSwept(nft, to, tokenId);
+    }
+
+    function sweepNftsTo(address[] calldata nfts, uint256[] calldata tokenIds, address to) external onlyAuthorized {
+        if (to == address(0)) revert ZeroAddress();
+        if (nfts.length != tokenIds.length) revert LengthMismatch();
+        for (uint256 i = 0; i < nfts.length; i++) {
+            _safeTransferNft(nfts[i], address(this), to, tokenIds[i]);
+            emit NFTSwept(nfts[i], to, tokenIds[i]);
+        }
+    }
+
     function _safeTransfer(address token, address to, uint256 value) internal {
         (bool success, bytes memory data) = token.call(abi.encodeWithSelector(IERC20.transfer.selector, to, value));
         if (!success || (data.length > 0 && !abi.decode(data, (bool)))) {
             revert TokenTransferFailed();
+        }
+    }
+
+    function _safeTransferNft(address nft, address from, address to, uint256 tokenId) internal {
+        // Try ERC721 transferFrom first
+        (bool success, ) = nft.call(abi.encodeWithSelector(IERC721.transferFrom.selector, from, to, tokenId));
+        if (!success) {
+            // Try ERC1155 safeTransferFrom (amount 1)
+            (success, ) = nft.call(abi.encodeWithSelector(IERC1155.safeTransferFrom.selector, from, to, tokenId, 1, ""));
+            if (!success) revert TokenTransferFailed();
         }
     }
 
@@ -459,4 +485,12 @@ interface IERC20 {
     function transfer(address to, uint256 amount) external returns (bool);
     function approve(address spender, uint256 amount) external returns (bool);
     function transferFrom(address from, address to, uint256 amount) external returns (bool);
+}
+
+interface IERC721 {
+    function transferFrom(address from, address to, uint256 tokenId) external;
+}
+
+interface IERC1155 {
+    function safeTransferFrom(address from, address to, uint256 id, uint256 amount, bytes calldata data) external;
 }
