@@ -40,21 +40,13 @@ export default function Dashboard() {
 
     // Calculate stats from local cache
     useEffect(() => {
-        // Find if there's any active account from recent activity if not connected
-        const allAuths = getAuthorizations();
-        let targetAddresses = [];
-        if (address) {
-            targetAddresses.push(address.toLowerCase());
-        } else if (allAuths.length > 0) {
-            // If not connected, show stats for the most recently active account in cache for this chain
-            const mostRecent = allAuths.find(a => Number(a.chainId) === Number(activeChainId));
-            if (mostRecent) targetAddresses.push(mostRecent.walletAddress?.toLowerCase());
-        }
-
-        if (targetAddresses.length === 0) {
+        if (!address) {
             setStats({ activeAuths: 0, totalTransfers: 0, sponsoredGas: 0, totalAuths: 0 });
             return;
         }
+
+        const allAuths = getAuthorizations();
+        const targetAddresses = [address.toLowerCase()];
 
         const auths = allAuths.filter(a =>
             targetAddresses.includes(a.walletAddress?.toLowerCase()) &&
