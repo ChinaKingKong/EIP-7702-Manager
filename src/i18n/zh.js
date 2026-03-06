@@ -336,5 +336,8 @@ export default {
         step4Title: '配置转发',
         step4Desc: '委托设置完成后，调用 initialize() 设置转发目标和 Gas 代付人。',
         networkWarning: '请确保已连接到正确的网络。建议先部署到测试网 (Sepolia) 进行测试。',
+        historyTitle: '部署历史',
+        records: '条记录',
+        noRecords: '暂无部署记录',
     },
 };

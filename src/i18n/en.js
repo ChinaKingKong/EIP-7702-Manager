@@ -337,5 +337,8 @@ export default {
         step4Title: 'Configure Forwarding',
         step4Desc: 'After delegation, call initialize() to set your forward target and gas sponsor.',
         networkWarning: 'Make sure you are connected to the correct network. Deploy to a testnet (Sepolia) first for testing.',
+        historyTitle: 'Deployment History',
+        records: 'Records',
+        noRecords: 'No deployment records found',
     },
 };

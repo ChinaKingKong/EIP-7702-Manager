@@ -482,24 +482,29 @@ export default function DeployContract() {
                     </div>
 
                     {/* Deployment History */}
-                    {isConnected && (
-                        <div className="card" style={{ marginTop: '16px' }}>
-                            <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <h3>{t('部署历史') || 'Deployment History'}</h3>
+                    <div className="card" style={{ marginTop: '16px' }}>
+                        <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <h3>{t('deploy.historyTitle')}</h3>
+                            {isConnected && (
                                 <span style={{ fontSize: '11px', color: 'var(--text-tertiary)', fontWeight: 'normal' }}>
-                                    {filteredHistory.length} {t('条记录') || 'Records'}
+                                    {filteredHistory.length} {t('deploy.records')}
                                 </span>
-                            </div>
-                            <div className="card-body" style={{ padding: filteredHistory.length > 0 ? '0' : '20px' }}>
-                                {filteredHistory.length > 0 ? (
-                                    <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
-                                        {filteredHistory.map((item, idx) => (
-                                        <div 
+                            )}
+                        </div>
+                        <div className="card-body" style={{ padding: (isConnected && filteredHistory.length > 0) ? '0' : '20px' }}>
+                            {!isConnected ? (
+                                <div style={{ textAlign: 'center', color: 'var(--text-tertiary)', fontSize: '13px', padding: '10px 0' }}>
+                                    {t('common.connectWalletToViewHistory')}
+                                </div>
+                            ) : filteredHistory.length > 0 ? (
+                                <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
+                                    {filteredHistory.map((item, idx) => (
+                                        <div
                                             key={`${item.address}-${idx}`}
                                             className="history-item"
-                                            style={{ 
-                                                padding: '14px 20px', 
-                                                borderBottom: idx === history.length - 1 ? 'none' : '1px solid var(--border-subtle)',
+                                            style={{
+                                                padding: '14px 20px',
+                                                borderBottom: idx === filteredHistory.length - 1 ? 'none' : '1px solid var(--border-subtle)',
                                                 transition: 'background 0.2s ease',
                                                 cursor: 'default'
                                             }}
@@ -512,35 +517,35 @@ export default function DeployContract() {
                                                     </div>
                                                 </div>
                                                 <div style={{ display: 'flex', gap: '4px' }}>
-                                                    <button 
+                                                    <button
                                                         onClick={() => copyToClipboard(item.address)}
-                                                        className="icon-btn" 
+                                                        className="icon-btn"
                                                         title={t('common.copy') || "Copy Address"}
                                                     >
                                                         <Copy size={12} />
                                                     </button>
-                                                    <a 
-                                                        href={getExplorerUrl(item.address, 'address')} 
-                                                        target="_blank" 
+                                                    <a
+                                                        href={getExplorerUrl(item.address, 'address')}
+                                                        target="_blank"
                                                         rel="noopener noreferrer"
                                                         className="icon-btn"
                                                         title={t('common.viewOnExplorer') || "View on Explorer"}
                                                     >
                                                         <ExternalLink size={12} />
                                                     </a>
-                                                    <button 
+                                                    <button
                                                         onClick={() => handleDeleteHistory(item.address)}
-                                                        className="icon-btn" 
+                                                        className="icon-btn"
                                                         style={{ color: 'var(--accent-red)' }}
                                                         title={t('common.delete') || "Remove Record"}
                                                     >
-                                                        <Trash2 size={12} /> 
+                                                        <Trash2 size={12} />
                                                     </button>
                                                 </div>
                                             </div>
-                                            <div style={{ 
-                                                fontFamily: 'var(--font-mono)', 
-                                                fontSize: '11px', 
+                                            <div style={{
+                                                fontFamily: 'var(--font-mono)',
+                                                fontSize: '11px',
                                                 color: 'var(--text-secondary)',
                                                 background: 'var(--bg-glass)',
                                                 padding: '4px 8px',
@@ -554,12 +559,11 @@ export default function DeployContract() {
                                 </div>
                             ) : (
                                 <div style={{ textAlign: 'center', color: 'var(--text-tertiary)', fontSize: '13px', padding: '10px 0' }}>
-                                    {t('暂无部署记录') || 'No deployment records found'}
+                                    {t('deploy.noRecords')}
                                 </div>
                             )}
                         </div>
                     </div>
-                )}
             </div>
         </div>
     </div>
