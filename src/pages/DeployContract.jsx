@@ -103,19 +103,27 @@ export default function DeployContract() {
                 gasLimit = (gasLimit * 120n) / 100n;
             } catch (estErr) {
                 console.warn("Gas estimation failed, using fallback", estErr);
-                gasLimit = 3000000n; // fallback to 3M
+                // Reduce fallback from 3M to 1M to avoid blocking mainnet users with high balance requirements
+                gasLimit = 1000000n; 
             }
 
             const { maxFeePerGas } = await publicClient.estimateFeesPerGas();
             const currentGasPrice = maxFeePerGas || await publicClient.getGasPrice();
             const estimatedCost = gasLimit * currentGasPrice;
 
-            console.log(`Deployment Balance: ${balance}, Estimated Cost: ${estimatedCost}, Gas Limit: ${gasLimit}`);
+            console.log(`[Deployment Stats] 
+                Balance: ${balance} 
+                Estimated Cost: ${estimatedCost} 
+                Gas Limit: ${gasLimit} 
+                Gas Price: ${currentGasPrice}`);
 
             if (balance < estimatedCost) {
                 const req = Number(estimatedCost) / 1e18;
                 const avl = Number(balance) / 1e18;
-                throw new Error(`Insufficient funds. Required: ~${req.toFixed(5)} ETH, Available: ${avl.toFixed(5)} ETH (including gas)`);
+                const warningMsg = `Insufficient localized balance check (Req: ~${req.toFixed(5)}, Avl: ${avl.toFixed(5)}). Attempting anyway...`;
+                console.warn(warningMsg);
+                toast.error(warningMsg, { duration: 5000 });
+                // We no longer throw here to allow metamask to be the final judge
             }
             // --- End Pre-checks ---
 
