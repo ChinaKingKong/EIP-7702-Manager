@@ -231,8 +231,23 @@ export default function NftSweep() {
             {isSweepingInProgress && createPortal(
                 <div className="lang-loading-overlay">
                     <div className="lang-loading-content">
-                        <Loader2 size={32} className="spin" style={{ color: 'var(--accent-purple)' }} />
-                        <div className="lang-loading-text">{t('forward.sweeping')}</div>
+                        <div className="lang-loading-rings">
+                            <div className="lang-ring lang-ring-1" />
+                            <div className="lang-ring lang-ring-2" />
+                            <div className="lang-ring lang-ring-3" />
+                        </div>
+                        <div className="lang-loading-logo">
+                            <img src="/logo.png" alt="Logo" />
+                        </div>
+                        <div className="lang-loading-text">
+                            <Loader2 size={16} className="spin" />
+                            <span>{t('forward.sweepingNft') || 'Sweeping NFTs...'}</span>
+                        </div>
+                        <div className="lang-particles">
+                            {Array.from({ length: 12 }).map((_, i) => (
+                                <div key={i} className="lang-particle" style={{ '--i': i }} />
+                            ))}
+                        </div>
                     </div>
                 </div>,
                 document.body

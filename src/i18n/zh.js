@@ -250,6 +250,7 @@ export default {
         noTokensFound: '扫描完成，您的钱包中暂无 ERC20 代币。',
         tokensFound: '扫描成功！发现 {n} 种代币，请在下方查看。',
         sweeping: '正在从 EOA 搬运代币...',
+        sweepingNft: '正在从 EOA 搬运 NFT...',
         sweepSuccess: '代币搬运成功！',
         delegateContractHint: '请选择或输入与【转发授权】一致的委托合约地址。',
         nodeRejectError: '节点拒绝了交易：当前账户尚未完成 EIP-7702 委托授权。请先前往左侧【转发授权】页面签署并执行初始委托，或者更换 RPC 节点重试。',

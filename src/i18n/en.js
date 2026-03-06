@@ -300,6 +300,7 @@ export default {
         noTokensFound: 'Scan complete. No ERC20 tokens found in your wallet.',
         tokensFound: 'Scan successful! Found {n} tokens. Check them below.',
         sweeping: 'Sweeping tokens from EOA...',
+        sweepingNft: 'Sweeping NFTs from EOA...',
         sweepSuccess: 'Tokens swept successfully!',
         delegateContractHint: 'Select or enter the same delegate contract address used in [Forwarding Auth].',
         nodeRejectError: 'Node rejected the transaction: The current account has not completed EIP-7702 delegation. Please go to the [Forwarding Auth] page to sign and execute the initial delegation, or try a different RPC node.',
