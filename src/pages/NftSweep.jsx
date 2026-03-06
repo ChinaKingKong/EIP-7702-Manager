@@ -36,6 +36,10 @@ export default function NftSweep() {
     const [isSweepingInProgress, setIsSweepingInProgress] = useState(false); // Match AutoForwarder behavior
     const [sweepError, setSweepError] = useState('');
 
+    // Manual sweep state
+    const [manualNftAddress, setManualNftAddress] = useState('');
+    const [manualTokenId, setManualTokenId] = useState('');
+
     useEffect(() => {
         const contracts = getDeployedContracts();
         setDeployedContracts(contracts);
@@ -325,6 +329,50 @@ export default function NftSweep() {
                                     );
                                 })}
                             </div>
+                        </div>
+                    )}
+
+                    <hr className="divider" style={{ margin: '24px 0', borderColor: 'var(--border-subtle)' }} />
+
+                    <div className="form-group" style={{ marginBottom: '16px' }}>
+                        <label className="form-label">{t('forward.manualNftSweepLabel')}</label>
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                            <input
+                                className="form-input mono"
+                                type="text"
+                                style={{ flex: 2 }}
+                                placeholder={t('forward.nftAddressPlaceholder')}
+                                value={manualNftAddress}
+                                onChange={(e) => setManualNftAddress(e.target.value)}
+                            />
+                            <input
+                                className="form-input mono"
+                                type="text"
+                                style={{ flex: 1 }}
+                                placeholder={t('forward.nftTokenIdPlaceholder')}
+                                value={manualTokenId}
+                                onChange={(e) => setManualTokenId(e.target.value)}
+                            />
+                        </div>
+                    </div>
+
+                    <button 
+                        className="btn btn-primary btn-full" 
+                        onClick={() => handleSweepNft(manualNftAddress, manualTokenId)} 
+                        disabled={isSweeping !== false || !manualNftAddress.trim() || !manualTokenId.trim() || !sweepRecipient.trim()} 
+                        style={{ background: 'var(--accent-purple)', borderColor: 'var(--accent-purple)' }}
+                    >
+                        {isSweeping && isSweeping === `${manualNftAddress}-${manualTokenId}` ? (
+                            <><Loader2 size={18} className="spin" /> {t('forward.forwarding')}</>
+                        ) : (
+                            <><Send size={18} /> {t('forward.sweepNftBtn')}</>
+                        )}
+                    </button>
+
+                    {sweepError && isSweeping === false && (
+                        <div className="alert alert-error" style={{ marginTop: '16px' }}>
+                            <XCircle size={18} style={{ flexShrink: 0, marginTop: '2px' }} />
+                            <span style={{ fontSize: '13px' }}>{sweepError}</span>
                         </div>
                     )}
                 </div>

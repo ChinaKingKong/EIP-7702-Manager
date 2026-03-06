@@ -263,6 +263,9 @@ export default {
         sweepNftBtn: '搬运 NFT',
         sweepNftRecipientLabel: 'NFT 接收地址 (必填)',
         sweepNftRecipientPlaceholder: '0x... (必填，NFT 将被发送到此地址)',
+        manualNftSweepLabel: '手动输入 NFT 合约与 ID 搬运',
+        nftAddressPlaceholder: '0x... (NFT 合约地址)',
+        nftTokenIdPlaceholder: 'Token ID (编号)',
     },
     // Gas 代付页面
     gas: {

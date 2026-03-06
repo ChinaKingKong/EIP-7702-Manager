@@ -313,6 +313,9 @@ export default {
         sweepNftBtn: 'Sweep NFT',
         sweepNftRecipientLabel: 'NFT Recipient Address (Required)',
         sweepNftRecipientPlaceholder: '0x... (Required, NFTs will be sent here)',
+        manualNftSweepLabel: 'Manual Sweep by NFT Contract & ID',
+        nftAddressPlaceholder: '0x... (NFT Contract Address)',
+        nftTokenIdPlaceholder: 'Token ID',
     },
 
     // Deploy Contract page
