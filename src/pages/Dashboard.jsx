@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-    Shield, ArrowRightLeft, Fuel, TrendingUp, Activity,
-    CheckCircle, XCircle, Clock, Zap, Inbox, ExternalLink, Loader2
+    CheckCircle, XCircle, Clock, Zap, Inbox, ExternalLink, Loader2,
+    Coins, Image as ImageIcon, Shield
 } from 'lucide-react';
 import { useWallet } from '../context/WalletContext';
 import { useI18n } from '../context/I18nContext';
@@ -182,24 +182,43 @@ export default function Dashboard() {
                         ) : (
                             <table className="data-table">
                                 <tbody>
-                                    {recentTxs.map((tx) => (
-                                        <tr key={tx.hash}>
+                                    {recentTxs.map((tx) => {
+                                        const localAuth = getAuthorizations().find(a => a.txHash?.toLowerCase() === tx.hash?.toLowerCase());
+                                        const isError = tx.isError !== '0';
+                                        const isReceived = tx.to.toLowerCase() === address.toLowerCase();
+
+                                        return (
+                                            <tr key={tx.hash}>
                                             <td>
                                                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                                                     <div style={{
                                                         width: '32px', height: '32px', borderRadius: '50%',
-                                                        background: tx.isError === '0' ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)',
-                                                        color: tx.isError === '0' ? 'var(--accent-green)' : 'var(--accent-red)',
+                                                        background: localAuth && (localAuth.type === 'sweep' || localAuth.type === 'nft_sweep') ? 'rgba(168,85,247,0.1)' : (isError ? 'rgba(239,68,68,0.1)' : 'rgba(16,185,129,0.1)'),
+                                                        color: localAuth && (localAuth.type === 'sweep' || localAuth.type === 'nft_sweep') ? 'var(--accent-purple)' : (isError ? 'var(--accent-red)' : 'var(--accent-green)'),
                                                         display: 'flex', alignItems: 'center', justifyContent: 'center'
                                                     }}>
-                                                        {tx.isError === '0' ? <CheckCircle size={16} /> : <XCircle size={16} />}
+                                                        {localAuth ? (
+                                                            localAuth.type === 'sweep' ? <Coins size={16} /> :
+                                                            localAuth.type === 'nft_sweep' ? <ImageIcon size={16} /> :
+                                                            <Shield size={16} />
+                                                        ) : (
+                                                            isError ? <XCircle size={16} /> : <CheckCircle size={16} />
+                                                        )}
                                                     </div>
                                                     <div>
                                                         <div style={{ fontWeight: '500', fontSize: '13px' }}>
-                                                            {tx.to.toLowerCase() === address.toLowerCase() ? t('common.receive') : t('common.send')}
+                                                            {localAuth ? (
+                                                                localAuth.type === 'sweep' ? (localAuth.isBatch ? t('auth.sweptBatch', { n: localAuth.count }) : t('forward.sweepTokenLabel')) :
+                                                                localAuth.type === 'nft_sweep' ? (localAuth.isBatch ? t('auth.sweptBatch', { n: localAuth.count }) : t('forward.sweepNftLabel')) :
+                                                                localAuth.contractName || t('forward.selectContract')
+                                                            ) : (
+                                                                isReceived ? t('common.receive') : t('common.send')
+                                                            )}
                                                         </div>
                                                         <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)' }}>
-                                                            {truncateAddress(tx.to.toLowerCase() === address.toLowerCase() ? tx.from : tx.to)}
+                                                            {localAuth && (localAuth.type === 'sweep' || localAuth.type === 'nft_sweep') ? 
+                                                                `${t('auth.to')} ${truncateAddress(localAuth.recipient)}` : 
+                                                                truncateAddress(isReceived ? tx.from : tx.to)}
                                                         </div>
                                                     </div>
                                                 </div>
@@ -217,8 +236,9 @@ export default function Dashboard() {
                                                     <ExternalLink size={14} />
                                                 </a>
                                             </td>
-                                        </tr>
-                                    ))}
+                                                </tr>
+                                            );
+                                        })}
                                 </tbody>
                             </table>
                         )}
