@@ -32,7 +32,15 @@ export default function Authorization() {
     // Load deployed contracts from cache
     const [deployedContracts, setDeployedContracts] = useState([]);
     useEffect(() => {
-        setDeployedContracts(getDeployedContracts());
+        const contracts = getDeployedContracts();
+        setDeployedContracts(contracts);
+        
+        // Default to the most recently deployed contract
+        if (contracts.length > 0 && !customContract) {
+            const latest = contracts[0].address;
+            setCustomContract(latest);
+            setSelectedContract(latest);
+        }
     }, []);
     const contractAddress = selectedContract || customContract;
 
