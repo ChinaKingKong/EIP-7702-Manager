@@ -36,21 +36,11 @@ export default function Authorization() {
     }, []);
     const contractAddress = selectedContract || customContract;
 
-    // 追踪的地址列表：包含已连接钱包地址 和 私钥推导地址
+    // 追踪的地址列表：仅包含当前已连接的钱包地址，严格隔离其他钱包数据
     const trackedAddresses = (() => {
         const addrs = [];
         if (address) addrs.push(address.toLowerCase());
-
-        const pk = privateKey.trim();
-        if (pk) {
-            const formatted = pk.startsWith('0x') ? pk : `0x${pk}`;
-            if (/^0x[0-9a-fA-F]{64}$/.test(formatted)) {
-                try {
-                    addrs.push(privateKeyToAccount(formatted).address.toLowerCase());
-                } catch { }
-            }
-        }
-        return [...new Set(addrs)]; // 去重
+        return addrs;
     })();
 
     const statusMessages = {
@@ -382,7 +372,7 @@ export default function Authorization() {
                     {trackedAddresses.length === 0 ? (
                         <div className="empty-state">
                             <Wallet size={40} />
-                            <div className="empty-state-title">{t('common.connectWalletOrEnterKeyToViewHistory')}</div>
+                            <div className="empty-state-title">{t('common.connectWalletToViewHistory')}</div>
                             <div className="empty-state-desc">{t('auth.connectWalletToViewHistory')}</div>
                         </div>
                     ) : authorizations.filter(a =>
