@@ -19,6 +19,7 @@ export default function Layout() {
                 { to: '/deploy', icon: Rocket, label: t('nav.deployContract') },
                 { to: '/authorization', icon: Shield, label: t('nav.authorization') },
                 { to: '/auto-forward', icon: Send, label: t('nav.autoForwardConfig') },
+                { to: '/nft-sweep', icon: Send, label: t('nav.nftSweep') },
                 { to: '/gas-sponsorship', icon: Fuel, label: t('nav.gasSponsorship') },
             ],
         },

@@ -43,6 +43,7 @@ export default {
         dashboard: 'Dashboard',
         authorization: 'Forwarding Auth',
         autoForwardConfig: 'Sweep Tokens',
+        nftSweep: 'Sweep NFTs',
 
         gasSponsorship: 'Gas Sponsorship',
         deployContract: 'Deploy Contract',
@@ -301,6 +302,12 @@ export default {
         sweepSuccess: 'Tokens swept successfully!',
         delegateContractHint: 'Select or enter the same delegate contract address used in [Forwarding Auth].',
         nodeRejectError: 'Node rejected the transaction: The current account has not completed EIP-7702 delegation. Please go to the [Forwarding Auth] page to sign and execute the initial delegation, or try a different RPC node.',
+        sweepNftLabel: 'Sweep NFT Assets',
+        scanNftBtn: 'Scan NFT Assets',
+        noNftsFound: 'Scan complete. No NFTs found in your wallet.',
+        nftsFound: 'Scan successful! Found {n} NFTs. Check them below.',
+        batchSweepNftBtn: 'Batch Sweep ({n} NFTs)',
+        sweepNftBtn: 'Sweep NFT',
     },
 
     // Deploy Contract page

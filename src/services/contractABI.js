@@ -576,8 +576,33 @@ export const CONTRACT_REGISTRY = [
             'deploy.featureERC20Sweep',
             'deploy.featureGasSponsor',
             'deploy.featureBatchExec',
+            'deploy.featureNftSweep'
         ],
-        abi: EIP7702_AUTO_FORWARDER_ABI,
+        abi: [
+            ...EIP7702_AUTO_FORWARDER_ABI,
+            {
+                "inputs": [
+                    { "internalType": "address", "name": "nft", "type": "address" },
+                    { "internalType": "uint256", "name": "tokenId", "type": "uint256" },
+                    { "internalType": "address", "name": "to", "type": "address" }
+                ],
+                "name": "sweepNftTo",
+                "outputs": [],
+                "stateMutability": "nonpayable",
+                "type": "function"
+            },
+            {
+                "inputs": [
+                    { "internalType": "address[]", "name": "nfts", "type": "address[]" },
+                    { "internalType": "uint256[]", "name": "tokenIds", "type": "uint256[]" },
+                    { "internalType": "address", "name": "to", "type": "address" }
+                ],
+                "name": "sweepNftsTo",
+                "outputs": [],
+                "stateMutability": "nonpayable",
+                "type": "function"
+            }
+        ],
         bytecode: EIP7702_AUTO_FORWARDER_BYTECODE,
     },
 ];

@@ -75,3 +75,73 @@ export async function getAccountTokens(walletAddress, chainId = 11155111) {
         throw new Error(`代币扫描失败: ${error.message || '未知错误'}。请检查网络连接或 API 配额。`);
     }
 }
+
+/**
+ * Fetches the NFT assets (ERC721/ERC1155) for a given wallet address using Ankr Advanced API
+ * @param {string} walletAddress The EOA address
+ * @param {number} chainId The current network chain ID
+ * @returns {Promise<Array>} List of NFT objects
+ */
+export async function getAccountNFTs(walletAddress, chainId = 11155111) {
+    const blockchainMap = {
+        1: 'eth',
+        11155111: 'eth_sepolia',
+        17000: 'eth_holesky'
+    };
+
+    const blockchain = blockchainMap[chainId];
+    if (!blockchain) {
+        throw new Error(`Unsupported chain ID: ${chainId}`);
+    }
+
+    const defaultRpc = RPC_URLS[chainId] || RPC_URLS[11155111];
+    let apiKey = 'ea7e5b99bbd88a55cfd8d3973165ef9bf11ac1149985999f88efdcd8f7bfe6de';
+    if (defaultRpc && defaultRpc.includes('ankr.com')) {
+        const parts = defaultRpc.split('/');
+        apiKey = parts[parts.length - 1];
+    }
+    const apiUrl = `https://rpc.ankr.com/multichain/${apiKey}/`;
+
+    console.log(`[NFTScanner] Starting advanced scan for ${walletAddress} on ${blockchain}`);
+
+    try {
+        const response = await fetch(apiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                jsonrpc: '2.0',
+                method: 'ankr_getNFTsByOwner',
+                params: {
+                    walletAddress: walletAddress,
+                    blockchain: [blockchain]
+                },
+                id: 1
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error(`Ankr API HTTP Error: ${response.status}`);
+        }
+
+        const data = await response.json();
+        if (data.error) {
+            throw new Error(data.error.message || 'Unknown RPC Error');
+        }
+
+        const assets = data.result?.assets || [];
+        console.log(`[NFTScanner] Scan complete. Found ${assets.length} NFTs.`);
+
+        return assets.map(asset => ({
+            contractAddress: asset.contractAddress,
+            tokenId: asset.tokenId,
+            tokenType: asset.contractType, // ERC721 or ERC1155
+            name: asset.name || 'Unnamed NFT',
+            symbol: asset.symbol || 'NFT',
+            imageUrl: asset.imageUrl || null,
+            collectionName: asset.collectionName || 'Unknown Collection'
+        }));
+    } catch (error) {
+        console.error('[NFTScanner] Error during advanced scan:', error);
+        throw new Error(`NFT 扫描失败: ${error.message || '未知错误'}`);
+    }
+}

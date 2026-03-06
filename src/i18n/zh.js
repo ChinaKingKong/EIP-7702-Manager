@@ -43,6 +43,7 @@ export default {
         dashboard: '仪表盘',
         authorization: '转发授权',
         autoForwardConfig: '搬运代币',
+        nftSweep: '搬运 NFT',
 
         gasSponsorship: 'Gas 代付',
         deployContract: '部署合约',
@@ -251,6 +252,12 @@ export default {
         sweepSuccess: '代币搬运成功！',
         delegateContractHint: '请选择或输入与【转发授权】一致的委托合约地址。',
         nodeRejectError: '节点拒绝了交易：当前账户尚未完成 EIP-7702 委托授权。请先前往左侧【转发授权】页面签署并执行初始委托，或者更换 RPC 节点重试。',
+        sweepNftLabel: '搬运 NFT 资产',
+        scanNftBtn: '扫描 NFT 资产',
+        noNftsFound: '扫描完成，您的钱包中暂无 NFT 资产。',
+        nftsFound: '扫描成功！发现 {n} 个 NFT，请在下方查看。',
+        batchSweepNftBtn: '一键全部搬运 ({n} 个 NFT)',
+        sweepNftBtn: '搬运 NFT',
     },
     // Gas 代付页面
     gas: {
