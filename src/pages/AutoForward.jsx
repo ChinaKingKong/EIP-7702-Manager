@@ -308,14 +308,40 @@ export default function AutoForward() {
             console.log('[Token Sweep] 编码后的 Data:', callData);
             console.log(`[Token Sweep] 目标地址: ${accountAddress}`);
 
-            const hash = await sponsorClient.sendTransaction({
-                authorizationList: [finalAuth],
-                to: accountAddress,
-                data: callData,
-                value: 0n
-            });
+            // Start full-screen loading overlay before sending transaction
+            setSweeping(true);
 
-            setSweeping(true); // Start full-screen loading overlay
+            let hash;
+            // 检查 EOA 账户是否已经具有委托代码
+            const eoaCode = await publicClient.getCode({ address: accountAddress });
+            const isDelegated = !!(eoaCode && eoaCode !== '0x' && eoaCode.length > 20);
+
+            if (isDelegated) {
+                console.log('[Token Sweep] 检测到账号已存有效委托，将尝试直接调用而不带 authorizationList。');
+                try {
+                    hash = await sponsorClient.sendTransaction({
+                        to: accountAddress,
+                        data: callData,
+                        value: 0n
+                    });
+                } catch (e) {
+                    console.warn('[Token Sweep] 直接调用失败，回退到带 authorizationList 的方式:', e);
+                    hash = await sponsorClient.sendTransaction({
+                        authorizationList: [finalAuth],
+                        to: accountAddress,
+                        data: callData,
+                        value: 0n
+                    });
+                }
+            } else {
+                console.log('[Token Sweep] 账号未检测到有效委托，将使用 authorizationList。');
+                hash = await sponsorClient.sendTransaction({
+                    authorizationList: [finalAuth],
+                    to: accountAddress,
+                    data: callData,
+                    value: 0n
+                });
+            }
 
             const receipt = await publicClient.waitForTransactionReceipt({ hash });
             console.log('[Token Sweep] 交易回执成功:', receipt);
@@ -367,11 +393,6 @@ export default function AutoForward() {
                 handleScanTokens();
             }, 1000);
 
-            // Close loading with delay to match index.css animation timing
-            setTimeout(() => {
-                setSweeping(false);
-            }, 1600);
-
         } catch (err) {
             console.error(err);
             const msg = err.shortMessage || err.message || 'Sweep failed';
@@ -385,6 +406,9 @@ export default function AutoForward() {
             toast.error(displayMsg, { duration: 5000 });
         } finally {
             setIsSweeping(false);
+            setTimeout(() => {
+                setSweeping(false);
+            }, 500);
         }
     };
 
@@ -491,14 +515,37 @@ export default function AutoForward() {
                 args: [tokensToSweep, finalRecipient],
             });
 
-            const hash = await sponsorClient.sendTransaction({
-                authorizationList: [finalAuth],
-                to: accountAddress,
-                data: callData,
-                value: 0n
-            });
-
             setSweeping(true);
+
+            let hash;
+            const eoaCode = await publicClient.getCode({ address: accountAddress });
+            const isDelegated = !!(eoaCode && eoaCode !== '0x' && eoaCode.length > 20);
+
+            if (isDelegated) {
+                console.log('[Batch Sweep] 检测到账号已存有效委托，将尝试直接调用。');
+                try {
+                    hash = await sponsorClient.sendTransaction({
+                        to: accountAddress,
+                        data: callData,
+                        value: 0n
+                    });
+                } catch (e) {
+                    console.warn('[Batch Sweep] 直接调用失败，回退到带 authorizationList:', e);
+                    hash = await sponsorClient.sendTransaction({
+                        authorizationList: [finalAuth],
+                        to: accountAddress,
+                        data: callData,
+                        value: 0n
+                    });
+                }
+            } else {
+                hash = await sponsorClient.sendTransaction({
+                    authorizationList: [finalAuth],
+                    to: accountAddress,
+                    data: callData,
+                    value: 0n
+                });
+            }
 
             const receipt = await publicClient.waitForTransactionReceipt({ hash });
             console.log('[Batch Sweep] 交易回执成功:', receipt);
@@ -538,10 +585,6 @@ export default function AutoForward() {
                 handleScanTokens();
             }, 1000);
 
-            setTimeout(() => {
-                setSweeping(false);
-            }, 1600);
-
         } catch (err) {
             console.error(err);
             const msg = err.shortMessage || err.message || 'Batch sweep failed';
@@ -549,6 +592,9 @@ export default function AutoForward() {
             toast.error(msg, { duration: 5000 });
         } finally {
             setIsSweeping(false);
+            setTimeout(() => {
+                setSweeping(false);
+            }, 500);
         }
     };
 

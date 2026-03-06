@@ -1238,7 +1238,7 @@ textarea {
   justify-content: center;
   background: rgba(8, 10, 28, 0.92);
   backdrop-filter: blur(24px);
-  animation: langOverlayIn 0.3s ease-out, langOverlayOut 0.4s ease-in 1.2s forwards;
+  animation: langOverlayIn 0.3s ease-out forwards;
 }
 
 @keyframes langOverlayIn {
