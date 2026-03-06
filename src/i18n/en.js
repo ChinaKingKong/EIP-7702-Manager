@@ -41,10 +41,10 @@ export default {
         sectionMain: 'Main',
         sectionResources: 'Resources',
         dashboard: 'Dashboard',
+        quickActions: 'Quick Actions',
         authorization: 'Forwarding Auth',
         autoForwardConfig: 'Sweep Tokens',
         nftSweep: 'Sweep NFTs',
-
         gasSponsorship: 'Gas Sponsorship',
         deployContract: 'Deploy Contract',
         documentation: 'Documentation',

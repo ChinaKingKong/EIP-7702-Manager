@@ -245,21 +245,21 @@ export default function Dashboard() {
                     </div>
                 </div>
 
-                {/* Quick Actions */}
+                {/* Quick Actions - 使用 dashboard.* 国际化，回退到 nav.* */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                     <div className="card">
                         <div className="card-header">
-                            <h3>{t('dashboard.quickActions')}</h3>
+                            <h3>{t('dashboard.quickActions') || t('nav.quickActions')}</h3>
                         </div>
                         <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                             <button className="btn btn-primary btn-full" onClick={() => navigate('/deploy')}>
-                                <Zap size={16} /> {t('dashboard.deployContract')}
+                                <Zap size={16} /> {t('dashboard.deployContract') || t('nav.deployContract')}
                             </button>
                             <button className="btn btn-success btn-full" onClick={() => navigate('/authorization')}>
-                                <ArrowRightLeft size={16} /> {t('dashboard.forwardAuth')}
+                                <ArrowRightLeft size={16} /> {t('dashboard.forwardAuth') || t('nav.authorization')}
                             </button>
                             <button className="btn btn-secondary btn-full" onClick={() => navigate('/gas-sponsorship')}>
-                                <Fuel size={16} /> {t('dashboard.sponsorGas')}
+                                <Fuel size={16} /> {t('dashboard.sponsorGas') || t('nav.gasSponsorship')}
                             </button>
                         </div>
                     </div>

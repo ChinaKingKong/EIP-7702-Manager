@@ -41,10 +41,10 @@ export default {
         sectionMain: '主要',
         sectionResources: '资源',
         dashboard: '仪表盘',
+        quickActions: '快捷操作',
         authorization: '转发授权',
         autoForwardConfig: '搬运代币',
         nftSweep: '搬运 NFT',
-
         gasSponsorship: 'Gas 代付',
         deployContract: '部署合约',
         documentation: '文档',
