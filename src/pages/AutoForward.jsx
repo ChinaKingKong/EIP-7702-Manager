@@ -837,7 +837,21 @@ export default function AutoForward() {
                     </p>
 
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                        <h4 style={{ fontSize: '15px', fontWeight: 600 }}>{t('forward.scanAndSweepTitle') || '扫描并搬运已知代币'}</h4>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <h4 style={{ fontSize: '15px', fontWeight: 600, margin: 0 }}>{t('forward.scanAndSweepTitle') || '扫描并搬运已知代币'}</h4>
+                            {discoveredTokens.length > 0 && (
+                                <span style={{ 
+                                    fontSize: '11px', 
+                                    background: 'var(--accent-purple)', 
+                                    color: 'white', 
+                                    padding: '2px 8px', 
+                                    borderRadius: '10px',
+                                    fontWeight: '600'
+                                }}>
+                                    {discoveredTokens.length}
+                                </span>
+                            )}
+                        </div>
                         <button className="btn btn-secondary" onClick={handleScanTokens} disabled={isScanningTokens || !privateKey.trim()} style={{ padding: '8px 16px', fontSize: '13px' }} title={t('forward.scanAssetsBtn') || 'Scan Wallet Assets'}>
                             {isScanningTokens ? <><Loader2 size={14} className="spin" /> {t('forward.scanning') || '扫描中...'}</> : <><Search size={14} /> {t('forward.scanAssetsBtn') || '扫描钱包资产'}</>}
                         </button>
@@ -853,7 +867,7 @@ export default function AutoForward() {
                                         disabled={!privateKey.trim() || !sweepSponsorKey.trim() || !sweepRecipient.trim() || isSweeping !== false}
                                         style={{ padding: '8px 20px', fontSize: '14px', background: 'var(--accent-purple)', borderColor: 'var(--accent-purple)', display: 'flex', alignItems: 'center', gap: '6px' }}
                                     >
-                                        {isSweeping === 'batch' ? <Loader2 size={16} className="spin" /> : <><Zap size={16} /> {t('forward.batchSweepBtn') || '一键全部搬运 (Batch Sweep)'}</>}
+                                        {isSweeping === 'batch' ? <Loader2 size={16} className="spin" /> : <><Zap size={16} /> {t('forward.batchSweepBtn') || '一键全部搬运'} ({discoveredTokens.length})</>}
                                     </button>
                                 </div>
                             )}
