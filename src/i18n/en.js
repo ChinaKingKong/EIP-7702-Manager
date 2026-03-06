@@ -80,7 +80,7 @@ export default {
         recentActivity: 'Recent Activity',
         quickActions: 'Quick Actions',
         newAuthorization: 'New Authorization',
-        delegatedTransfer: 'Delegated Transfer',
+        forwardingAuth: 'Forwarding Auth',
         sponsorGas: 'Sponsor Gas',
         aboutEIP7702: 'About EIP-7702',
         aboutDescription: 'EIP-7702 introduces a new transaction type (0x04) that allows Externally Owned Accounts to temporarily delegate execution to smart contracts, enabling ',
