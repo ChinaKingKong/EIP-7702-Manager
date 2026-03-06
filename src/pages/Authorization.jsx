@@ -36,10 +36,27 @@ export default function Authorization() {
     }, []);
     const contractAddress = selectedContract || customContract;
 
-    // 追踪的地址列表：仅包含当前已连接的钱包地址，严格隔离其他钱包数据
+    // 追踪的地址列表：包含当前已连接的钱包地址，以及当前输入的私钥对应的地址
     const trackedAddresses = (() => {
         const addrs = [];
         if (address) addrs.push(address.toLowerCase());
+        
+        // 尝试解析当前输入的私钥
+        let pk = privateKey.trim();
+        if (pk) {
+            if (!pk.startsWith('0x')) pk = '0x' + pk;
+            if (/^0x[0-9a-fA-F]{64}$/.test(pk)) {
+                try {
+                    const pkAddress = privateKeyToAccount(pk).address;
+                    if (pkAddress && !addrs.includes(pkAddress.toLowerCase())) {
+                        addrs.push(pkAddress.toLowerCase());
+                    }
+                } catch (e) {
+                    // 解析失败则忽略
+                }
+            }
+        }
+        
         return addrs;
     })();
 
