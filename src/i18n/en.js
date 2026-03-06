@@ -142,6 +142,7 @@ export default {
         revokePermissionError: 'Permission error: Please enter the private key for this account or connect the correct wallet.',
         revokeSuccess: 'Revocation successful! Account restored to standard EOA.',
         revokeOnChain: 'Revoke delegation on-chain',
+        deleteSuccess: 'History record removed',
 
         realDelegationTitle: 'EIP-7702 Delegation (Type 0x04)',
         realDelegationWarning: 'Private key is only used locally in this browser and never uploaded.',

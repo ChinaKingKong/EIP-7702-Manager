@@ -142,6 +142,7 @@ export default {
         revokePermissionError: '权限错误：请先输入该账户的私钥或连接正确的钱包以进行撤销。',
         revokeSuccess: '撤销成功！账户已恢复为普通 EOA。',
         revokeOnChain: '在链上撤销该委托',
+        deleteSuccess: '历史记录已删除',
 
         realDelegationTitle: 'EIP-7702 真实委托 (Type 0x04)',
         realDelegationWarning: '私钥仅在浏览器本地使用，不会上传到任何服务器。',
