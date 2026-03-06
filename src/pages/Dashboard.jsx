@@ -252,8 +252,8 @@ export default function Dashboard() {
                             <h3>{t('dashboard.quickActions')}</h3>
                         </div>
                         <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                            <button className="btn btn-primary btn-full" onClick={() => navigate('/authorization')}>
-                                <Shield size={16} /> {t('dashboard.newAuthorization')}
+                            <button className="btn btn-primary btn-full" onClick={() => navigate('/deploy')}>
+                                <Zap size={16} /> {t('dashboard.deployContract')}
                             </button>
                             <button className="btn btn-success btn-full" onClick={() => navigate('/authorization')}>
                                 <ArrowRightLeft size={16} /> {t('dashboard.forwardAuth')}
