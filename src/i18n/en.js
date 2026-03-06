@@ -293,6 +293,7 @@ export default {
         operationMode: 'Source Wallet (Private Key)',
         privateKeyInputPlaceholder: 'Enter source wallet private key (0x...). Tokens will be swept from this address.',
         scanAndSweepTitle: 'Scan & Sweep Known Tokens',
+        scanAndSweepNftTitle: 'Scan & Sweep Known NFTs',
         scanAssetsBtn: 'Scan Wallet Assets',
         scanning: 'Scanning...',
         manualSweepLabel: 'Manual Sweep by Contract Address',

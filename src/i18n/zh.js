@@ -243,6 +243,7 @@ export default {
         operationMode: '转出钱包(私钥)',
         privateKeyInputPlaceholder: '输入转出钱包私钥 (0x...)，代币将从该地址转出。',
         scanAndSweepTitle: '扫描并搬运已知代币',
+        scanAndSweepNftTitle: '扫描并搬运已知NFT',
         scanAssetsBtn: '扫描钱包资产',
         scanning: '扫描中...',
         manualSweepLabel: '手动输入合约地址搬运',

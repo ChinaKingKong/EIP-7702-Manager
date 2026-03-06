@@ -285,7 +285,7 @@ export default function NftSweep() {
                     </div>
 
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                        <h4 style={{ fontSize: '15px', fontWeight: 600 }}>{t('forward.scanAndSweepTitle')}</h4>
+                        <h4 style={{ fontSize: '15px', fontWeight: 600 }}>{t('forward.scanAndSweepNftTitle')}</h4>
                         <button className="btn btn-secondary" onClick={handleScanNfts} disabled={isScanningNfts || !privateKey.trim()}>
                             {isScanningNfts ? <Loader2 size={14} className="spin" /> : <Search size={14} />} {t('forward.scanNftBtn')}
                         </button>
