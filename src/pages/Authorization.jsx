@@ -245,6 +245,26 @@ export default function Authorization() {
                     </div>
 
                     <div className="form-group">
+                        <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <Wallet size={14} />
+                            {t('auth.sponsorKeyLabel') || 'Gas 赞助商私钥（可选）'}
+                        </label>
+                        <input
+                            className="form-input mono"
+                            type="password"
+                            placeholder={t('auth.sponsorKeyPlaceholder') || '留空则由 EOA 自己支付 Gas'}
+                            value={sponsorKey}
+                            onChange={(e) => setSponsorKey(e.target.value)}
+                            style={{ fontSize: '13px' }}
+                        />
+                        <div className="form-hint">{t('auth.sponsorKeyHint') || '填写后由赞助商钱包支付 Gas，EOA 无需 ETH 也可完成委托'}</div>
+                        <div className="alert alert-warning" style={{ marginTop: '8px', padding: '8px 12px', fontSize: '12px', lineHeight: '1.5' }}>
+                            <AlertTriangle size={14} style={{ flexShrink: 0, marginTop: '2px' }} />
+                            <span>{t('auth.sponsorKeyRequiredForSweep') || '若要在【搬运代币】页由赞助商代付 Gas，此处必须填写与搬运页相同的赞助商私钥，否则链上 Gas 代付人为空，搬运会报错。'}</span>
+                        </div>
+                    </div>
+
+                    <div className="form-group">
                         <label className="form-label">{t('auth.delegateContract')}</label>
                         <input
                             className="form-input mono"
@@ -290,25 +310,6 @@ export default function Authorization() {
 
                     <hr className="divider" style={{ margin: '16px 0', borderColor: 'var(--border-subtle)' }} />
 
-                    <div className="form-group">
-                        <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                            <Wallet size={14} />
-                            {t('auth.sponsorKeyLabel') || 'Gas 赞助商私钥（可选）'}
-                        </label>
-                        <input
-                            className="form-input mono"
-                            type="password"
-                            placeholder={t('auth.sponsorKeyPlaceholder') || '留空则由 EOA 自己支付 Gas'}
-                            value={sponsorKey}
-                            onChange={(e) => setSponsorKey(e.target.value)}
-                            style={{ fontSize: '13px' }}
-                        />
-                        <div className="form-hint">{t('auth.sponsorKeyHint') || '填写后由赞助商钱包支付 Gas，EOA 无需 ETH 也可完成委托'}</div>
-                        <div className="alert alert-warning" style={{ marginTop: '8px', padding: '8px 12px', fontSize: '12px', lineHeight: '1.5' }}>
-                            <AlertTriangle size={14} style={{ flexShrink: 0, marginTop: '2px' }} />
-                            <span>{t('auth.sponsorKeyRequiredForSweep') || '若要在【搬运代币】页由赞助商代付 Gas，此处必须填写与搬运页相同的赞助商私钥，否则链上 Gas 代付人为空，搬运会报错。'}</span>
-                        </div>
-                    </div>
 
                     <button
                         className="btn btn-primary btn-lg btn-full"
