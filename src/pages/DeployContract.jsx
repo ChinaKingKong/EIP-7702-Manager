@@ -181,12 +181,9 @@ export default function DeployContract() {
     };
 
     const filteredHistory = useMemo(() => {
-        if (!isConnected || !address) return [];
-        return history.filter(h => 
-            h.deployer?.toLowerCase() === address.toLowerCase() && 
-            Number(h.chainId) === Number(chainId)
-        );
-    }, [history, isConnected, address, chainId]);
+        // Return all history sorted by newest first
+        return [...history].sort((a, b) => b.timestamp - a.timestamp);
+    }, [history]);
 
     return (
         <div className="page-enter">
@@ -493,77 +490,93 @@ export default function DeployContract() {
                     <div className="card" style={{ marginTop: '16px' }}>
                         <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <h3>{t('deploy.historyTitle')}</h3>
-                            {isConnected && (
-                                <span style={{ fontSize: '11px', color: 'var(--text-tertiary)', fontWeight: 'normal' }}>
-                                    {filteredHistory.length} {t('deploy.records')}
-                                </span>
-                            )}
+                            <span style={{ fontSize: '11px', color: 'var(--text-tertiary)', fontWeight: 'normal' }}>
+                                {filteredHistory.length} {t('deploy.records')}
+                            </span>
                         </div>
-                        <div className="card-body" style={{ padding: (isConnected && filteredHistory.length > 0) ? '0' : '20px' }}>
-                            {!isConnected ? (
-                                <div style={{ textAlign: 'center', color: 'var(--text-tertiary)', fontSize: '13px', padding: '10px 0' }}>
-                                    {t('common.connectWalletToViewHistory')}
-                                </div>
-                            ) : filteredHistory.length > 0 ? (
+                        <div className="card-body" style={{ padding: filteredHistory.length > 0 ? '0' : '20px' }}>
+                            {filteredHistory.length > 0 ? (
                                 <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
-                                    {filteredHistory.map((item, idx) => (
-                                        <div
-                                            key={`${item.address}-${idx}`}
-                                            className="history-item"
-                                            style={{
-                                                padding: '14px 20px',
-                                                borderBottom: idx === filteredHistory.length - 1 ? 'none' : '1px solid var(--border-subtle)',
-                                                transition: 'background 0.2s ease',
-                                                cursor: 'default'
-                                            }}
-                                        >
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
-                                                <div>
-                                                    <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-primary)' }}>{item.name}</div>
-                                                    <div style={{ fontSize: '11px', color: 'var(--text-tertiary)', marginTop: '2px' }}>
-                                                        {new Date(item.timestamp).toLocaleString()}
+                                    {filteredHistory.map((item, idx) => {
+                                        const itemChain = CHAINS[item.chainId];
+                                        const chainName = itemChain ? itemChain.name : `Chain ${item.chainId}`;
+                                        
+                                        return (
+                                            <div
+                                                key={`${item.address}-${idx}`}
+                                                className="history-item"
+                                                style={{
+                                                    padding: '14px 20px',
+                                                    borderBottom: idx === filteredHistory.length - 1 ? 'none' : '1px solid var(--border-subtle)',
+                                                    transition: 'background 0.2s ease',
+                                                    cursor: 'default'
+                                                }}
+                                            >
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
+                                                    <div style={{ flex: 1 }}>
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                            <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-primary)' }}>{item.name}</div>
+                                                            <span style={{ 
+                                                                fontSize: '10px', 
+                                                                padding: '2px 6px', 
+                                                                borderRadius: '10px', 
+                                                                background: 'var(--bg-glass)', 
+                                                                color: 'var(--text-tertiary)',
+                                                                border: '1px solid var(--border-subtle)'
+                                                            }}>
+                                                                {chainName}
+                                                            </span>
+                                                        </div>
+                                                        <div style={{ fontSize: '11px', color: 'var(--text-tertiary)', marginTop: '2px' }}>
+                                                            {new Date(item.timestamp).toLocaleString()}
+                                                            {item.deployer && (
+                                                                <span style={{ marginLeft: '8px' }}>
+                                                                    By: {truncate(item.deployer)}
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                    <div style={{ display: 'flex', gap: '4px' }}>
+                                                        <button
+                                                            onClick={() => copyToClipboard(item.address)}
+                                                            className="icon-btn"
+                                                            title={t('common.copy') || "Copy Address"}
+                                                        >
+                                                            <Copy size={12} />
+                                                        </button>
+                                                        <a
+                                                            href={`${EXPLORERS[item.chainId] || 'https://etherscan.io'}/address/${item.address}`}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="icon-btn"
+                                                            title={t('common.viewOnExplorer') || "View on Explorer"}
+                                                        >
+                                                            <ExternalLink size={12} />
+                                                        </a>
+                                                        <button
+                                                            onClick={() => handleDeleteHistory(item.address)}
+                                                            className="icon-btn"
+                                                            style={{ color: 'var(--accent-red)' }}
+                                                            title={t('common.delete') || "Remove Record"}
+                                                        >
+                                                            <Trash2 size={12} />
+                                                        </button>
                                                     </div>
                                                 </div>
-                                                <div style={{ display: 'flex', gap: '4px' }}>
-                                                    <button
-                                                        onClick={() => copyToClipboard(item.address)}
-                                                        className="icon-btn"
-                                                        title={t('common.copy') || "Copy Address"}
-                                                    >
-                                                        <Copy size={12} />
-                                                    </button>
-                                                    <a
-                                                        href={getExplorerUrl(item.address, 'address')}
-                                                        target="_blank"
-                                                        rel="noopener noreferrer"
-                                                        className="icon-btn"
-                                                        title={t('common.viewOnExplorer') || "View on Explorer"}
-                                                    >
-                                                        <ExternalLink size={12} />
-                                                    </a>
-                                                    <button
-                                                        onClick={() => handleDeleteHistory(item.address)}
-                                                        className="icon-btn"
-                                                        style={{ color: 'var(--accent-red)' }}
-                                                        title={t('common.delete') || "Remove Record"}
-                                                    >
-                                                        <Trash2 size={12} />
-                                                    </button>
+                                                <div style={{
+                                                    fontFamily: 'var(--font-mono)',
+                                                    fontSize: '11px',
+                                                    color: 'var(--text-secondary)',
+                                                    background: 'var(--bg-glass)',
+                                                    padding: '4px 8px',
+                                                    borderRadius: '4px',
+                                                    width: 'fit-content'
+                                                }}>
+                                                    {truncate(item.address)}
                                                 </div>
                                             </div>
-                                            <div style={{
-                                                fontFamily: 'var(--font-mono)',
-                                                fontSize: '11px',
-                                                color: 'var(--text-secondary)',
-                                                background: 'var(--bg-glass)',
-                                                padding: '4px 8px',
-                                                borderRadius: '4px',
-                                                width: 'fit-content'
-                                            }}>
-                                                {truncate(item.address)}
-                                            </div>
-                                        </div>
-                                    ))}
+                                        );
+                                    })}
                                 </div>
                             ) : (
                                 <div style={{ textAlign: 'center', color: 'var(--text-tertiary)', fontSize: '13px', padding: '10px 0' }}>
