@@ -21,21 +21,6 @@ export const CONTRACT_REGISTRY = [
             'deploy.featureNftSweep'
         ],
         abi: EIP7702_AUTO_FORWARDER_ABI,
-                "outputs": [],
-                "stateMutability": "nonpayable",
-                "type": "function"
-            },
-            {
-                "inputs": [
-                    { "internalType": "address[]", "name": "nfts", "type": "address[]" },
-                    { "internalType": "uint256[]", "name": "tokenIds", "type": "uint256[]" },
-                    { "internalType": "address", "name": "to", "type": "address" }
-                ],
-                "outputs": [],
-                "stateMutability": "nonpayable",
-                "type": "function"
-            }
-        ],
         bytecode: EIP7702_AUTO_FORWARDER_BYTECODE,
     },
 ];
