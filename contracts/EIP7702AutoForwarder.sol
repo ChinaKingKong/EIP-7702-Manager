@@ -244,8 +244,7 @@ contract EIP7702AutoForwarder {
         uint256 balance = IERC20(token).balanceOf(address(this));
         if (balance == 0) revert NoTokenBalance();
 
-        bool success = IERC20(token).transfer(forwardTarget, balance);
-        if (!success) revert TokenTransferFailed();
+        _safeTransfer(token, forwardTarget, balance);
 
         emit TokenSwept(token, forwardTarget, balance);
     }
@@ -261,8 +260,7 @@ contract EIP7702AutoForwarder {
         uint256 balance = IERC20(token).balanceOf(address(this));
         if (balance == 0) revert NoTokenBalance();
 
-        bool success = IERC20(token).transfer(to, balance);
-        if (!success) revert TokenTransferFailed();
+        _safeTransfer(token, to, balance);
 
         emit TokenSwept(token, to, balance);
     }
@@ -277,8 +275,7 @@ contract EIP7702AutoForwarder {
         for (uint256 i = 0; i < tokens.length; i++) {
             uint256 balance = IERC20(tokens[i]).balanceOf(address(this));
             if (balance > 0) {
-                bool success = IERC20(tokens[i]).transfer(forwardTarget, balance);
-                if (!success) revert TokenTransferFailed();
+                _safeTransfer(tokens[i], forwardTarget, balance);
                 emit TokenSwept(tokens[i], forwardTarget, balance);
             }
         }
@@ -295,10 +292,19 @@ contract EIP7702AutoForwarder {
         for (uint256 i = 0; i < tokens.length; i++) {
             uint256 balance = IERC20(tokens[i]).balanceOf(address(this));
             if (balance > 0) {
-                bool success = IERC20(tokens[i]).transfer(to, balance);
-                if (!success) revert TokenTransferFailed();
+                _safeTransfer(tokens[i], to, balance);
                 emit TokenSwept(tokens[i], to, balance);
             }
+        }
+    }
+
+    /**
+     * @notice 安全转移 ERC20 代币，兼容不返回 bool 的代币 (如 USDT)
+     */
+    function _safeTransfer(address token, address to, uint256 value) internal {
+        (bool success, bytes memory data) = token.call(abi.encodeWithSelector(IERC20.transfer.selector, to, value));
+        if (!success || (data.length > 0 && !abi.decode(data, (bool)))) {
+            revert TokenTransferFailed();
         }
     }
 

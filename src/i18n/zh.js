@@ -225,6 +225,7 @@ export default {
         tokenAddressPlaceholder: '0x...（ERC20 代币合约地址）',
         sweep: '搬运',
         sweepBtn: '搬运',
+        batchSweepBtn: '一键全部搬运 (Batch Sweep)',
         sweepHint: '将钱包 A 中该 ERC20 代币的全部余额转到钱包 B。',
         sweepSponsorKeyLabel: 'Gas 赞助商私钥（必填）',
         sweepSponsorKeyPlaceholder: '0x... 由赞助商钱包代付 Gas',

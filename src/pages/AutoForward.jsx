@@ -330,10 +330,11 @@ export default function AutoForward() {
             // Check if TokenSwept event exists in logs
             const tokenSweptTopic = '0xba3e71c2881efe881d169a722215ae66587e85bf64bcc507f2904a7345afeba0'; // TokenSwept
             const sweepLog = receipt.logs.find(l => l.topics[0] === tokenSweptTopic);
-            if (sweepLog) {
-                console.log('[Token Sweep] 检测到 TokenSwept 事件，合约内部执行成功。');
-            } else {
+            if (!sweepLog) {
                 console.warn('[Token Sweep] 未检测到 TokenSwept 事件！可能执行了 fallback 或其他逻辑，或者余额为 0 被跳过。');
+                throw new Error('授权交易已成功发送，但代币未发生转移。请检查:\n1) 委托合约是否包含最新 sweepToken(s)To 逻辑\n2) 被盗账户的 ERC20 余额是否 > 0\n3) 是否此代币不支持标准 transfer (如旧版 USDT)。');
+            } else {
+                console.log('[Token Sweep] 检测到 TokenSwept 事件，合约内部执行成功。');
             }
 
             toast.success(t('forward.sweepSuccess') || 'Tokens swept successfully!');
@@ -382,6 +383,170 @@ export default function AutoForward() {
             }
             setSweepError(displayMsg);
             toast.error(displayMsg, { duration: 5000 });
+        } finally {
+            setIsSweeping(false);
+        }
+    };
+
+    // 操作：批量搬运发现的所有 ERC20 代币
+    const handleBatchSweepTokens = async (tokensToSweep) => {
+        setSweepError('');
+        setSuccessMessage('');
+        setIsSweeping('batch');
+
+        try {
+            if (!tokensToSweep || tokensToSweep.length === 0) {
+                throw new Error("没有可搬运的代币。");
+            }
+
+            const recipient = sweepRecipient.trim();
+            if (!recipient || !/^0x[a-fA-F0-9]{40}$/.test(recipient)) {
+                throw new Error("请填写有效的代币接收地址（必填）。");
+            }
+
+            if (!sweepSponsorKey || !sweepSponsorKey.trim()) {
+                throw new Error("请填写 Gas 赞助商私钥（必填），当前仅支持赞助商代付 Gas 搬运。");
+            }
+
+            let pk = privateKey.trim();
+            if (pk && !pk.startsWith('0x')) pk = '0x' + pk;
+            if (!pk || !/^0x[0-9a-fA-F]{64}$/.test(pk)) {
+                throw new Error("请填写有效的转出钱包私钥（必填）。");
+            }
+
+            const account = privateKeyToAccount(pk);
+            const accountAddress = account.address;
+            const rpcUrl = RPC_URLS[activeChainId] || RPC_URLS[11155111];
+            const chain = CHAIN_MAP[activeChainId] || sepolia;
+            const publicClient = createPublicClient({ chain, transport: http(rpcUrl) });
+
+            let sponsorClient = null;
+            let sponsorAddress = null;
+
+            let formattedSponsorKey = sweepSponsorKey.trim();
+            if (!formattedSponsorKey.startsWith('0x')) formattedSponsorKey = `0x${formattedSponsorKey}`;
+            if (!/^0x[0-9a-fA-F]{64}$/.test(formattedSponsorKey)) {
+                throw new Error("赞助商私钥格式无效。");
+            }
+            const sponsorAccount = privateKeyToAccount(formattedSponsorKey);
+            sponsorClient = createWalletClient({
+                account: sponsorAccount,
+                chain,
+                transport: http(rpcUrl),
+            });
+            sponsorAddress = sponsorAccount.address;
+
+            const sponsorBalance = await publicClient.getBalance({ address: sponsorAddress });
+            if (sponsorBalance === 0n) {
+                throw new Error('赞助商钱包没有 ETH。请充值 ETH Gas。');
+            }
+
+            const finalRecipient = recipient;
+
+            if (!contractAddress || !/^0x[a-fA-F0-9]{40}$/.test(contractAddress)) {
+                throw new Error('请选择或输入与【转发授权】一致的委托合约地址。');
+            }
+
+            console.log(
+                `[Batch Sweep] 交易: 赞助商 ${sponsorAddress} → 操作账户 ${accountAddress} | 批量搬运 ${tokensToSweep.length} 种代币至: ${finalRecipient}`
+            );
+
+            const SWEEP_BATCH_ABI = [{
+                name: 'sweepTokensTo', type: 'function', stateMutability: 'nonpayable',
+                inputs: [{ name: 'tokens', type: 'address[]' }, { name: 'to', type: 'address' }],
+                outputs: [],
+            }];
+
+            toast.loading(
+                `正在由赞助商代付 Gas，批量搬运 ${tokensToSweep.length} 种代币至 ${truncateAddress(finalRecipient)}`,
+                { duration: 3000 }
+            );
+
+            const userWalletClient = createWalletClient({
+                account,
+                chain,
+                transport: http(rpcUrl),
+            });
+
+            const currentNonce = await publicClient.getTransactionCount({
+                address: accountAddress
+            });
+
+            const authorization = await userWalletClient.signAuthorization({
+                account,
+                contractAddress,
+                chainId: activeChainId,
+                nonce: currentNonce,
+            });
+
+            const finalAuth = {
+                ...authorization,
+                contractAddress: authorization.contractAddress || authorization.address,
+                address: authorization.address || authorization.contractAddress,
+            };
+
+            const callData = encodeFunctionData({
+                abi: SWEEP_BATCH_ABI,
+                functionName: 'sweepTokensTo',
+                args: [tokensToSweep, finalRecipient],
+            });
+
+            const hash = await sponsorClient.sendTransaction({
+                authorizationList: [finalAuth],
+                to: accountAddress,
+                data: callData,
+                value: 0n
+            });
+
+            setSweeping(true);
+
+            const receipt = await publicClient.waitForTransactionReceipt({ hash });
+            console.log('[Batch Sweep] 交易回执成功:', receipt);
+
+            if (receipt.status !== 'success') {
+                throw new Error('交易已上链但执行失败（revert）。常见原因可能是余额不足或不支持的代币。');
+            }
+
+            // Check if TokenSwept event exists in logs
+            const tokenSweptTopic = '0xba3e71c2881efe881d169a722215ae66587e85bf64bcc507f2904a7345afeba0'; // TokenSwept
+            const sweepLog = receipt.logs.find(l => l.topics[0] === tokenSweptTopic);
+            if (!sweepLog) {
+                console.warn('[Batch Sweep] 未检测到 TokenSwept 事件！可能执行了 fallback 或其他逻辑，或者余额为 0 被跳过。');
+                throw new Error('授权交易已成功发送，但代币未发生转移。请检查:\n1) 您部署的委托合约版本是否太旧（缺少 sweepTokensTo 方法）\n2) 代币余额是否已被黑客转走\n3) 该代币合约是否不支持标准转账。');
+            } else {
+                console.log('[Batch Sweep] 检测到 TokenSwept 事件，合约内部批量搬运成功。');
+            }
+
+            toast.success(t('forward.sweepSuccess') || `成功批量搬运 ${tokensToSweep.length} 种代币！`);
+
+            // Save to local authorization cache
+            saveAuthorization({
+                id: `batch-sweep-${Date.now()}`,
+                walletAddress: accountAddress,
+                delegateContract: contractAddress,
+                contractName: deployedContracts.find(c => c.address.toLowerCase() === contractAddress.toLowerCase())?.name || 'AutoForwarder',
+                chainId: Number(activeChainId || 11155111),
+                status: 'completed',
+                timestamp: Date.now(),
+                txHash: hash,
+                type: 'sweep_batch',
+                tokenAddress: 'Multiple Tokens',
+                recipient: finalRecipient
+            });
+
+            setTimeout(() => {
+                handleScanTokens();
+            }, 1000);
+
+            setTimeout(() => {
+                setSweeping(false);
+            }, 1600);
+
+        } catch (err) {
+            console.error(err);
+            const msg = err.shortMessage || err.message || 'Batch sweep failed';
+            setSweepError(msg);
+            toast.error(msg, { duration: 5000 });
         } finally {
             setIsSweeping(false);
         }
@@ -558,6 +723,18 @@ export default function AutoForward() {
 
                     {discoveredTokens.length > 0 && (
                         <div style={{ marginBottom: '24px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                            {discoveredTokens.length > 1 && (
+                                <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '8px' }}>
+                                    <button
+                                        className="btn btn-primary"
+                                        onClick={() => { handleBatchSweepTokens(discoveredTokens.map(t => t.contractAddress)); }}
+                                        disabled={!privateKey.trim() || !sweepSponsorKey.trim() || !sweepRecipient.trim() || isSweeping !== false}
+                                        style={{ padding: '8px 20px', fontSize: '14px', background: 'var(--accent-purple)', borderColor: 'var(--accent-purple)', display: 'flex', alignItems: 'center', gap: '6px' }}
+                                    >
+                                        {isSweeping === 'batch' ? <Loader2 size={16} className="spin" /> : <><Zap size={16} /> {t('forward.batchSweepBtn') || '一键全部搬运 (Batch Sweep)'}</>}
+                                    </button>
+                                </div>
+                            )}
                             {discoveredTokens.map((token, idx) => (
                                 <div key={idx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', background: 'var(--bg-glass)', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>

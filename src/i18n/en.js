@@ -266,6 +266,7 @@ export default {
         tokenAddressPlaceholder: '0x... (ERC20 token contract address)',
         sweep: 'Sweep',
         sweepBtn: 'Sweep',
+        batchSweepBtn: 'Sweep All Tokens (Batch Sweep)',
         sweepHint: 'Transfer all balance of this ERC20 token from Wallet A to Wallet B.',
         sweepSponsorKeyLabel: 'Gas Sponsor Private Key (Required)',
         sweepSponsorKeyPlaceholder: '0x... Sponsor pays gas',
