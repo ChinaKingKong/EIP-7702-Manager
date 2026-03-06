@@ -79,7 +79,7 @@ export default {
         thisWeek: '+{n} this week',
         recentActivity: 'Recent Activity',
         quickActions: 'Quick Actions',
-        newAuthorization: 'New Authorization',
+        deployContract: 'Deploy Contract',
         forwardAuth: 'Forwarding Auth',
         sponsorGas: 'Sponsor Gas',
         aboutEIP7702: 'About EIP-7702',

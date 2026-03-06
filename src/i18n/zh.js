@@ -79,7 +79,7 @@ export default {
         thisWeek: '本周 +{n}',
         recentActivity: '最近活动',
         quickActions: '快捷操作',
-        newAuthorization: '新建授权',
+        deployContract: '部署合约',
         forwardAuth: '转发授权',
         sponsorGas: '代付 Gas',
         aboutEIP7702: '关于 EIP-7702',
