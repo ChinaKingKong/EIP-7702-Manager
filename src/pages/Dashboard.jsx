@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
     CheckCircle, XCircle, Clock, Zap, Inbox, ExternalLink, Loader2,
-    Coins, Image as ImageIcon, Shield
+    Coins, Image as ImageIcon, Shield, ArrowRightLeft, Fuel, Activity, TrendingUp
 } from 'lucide-react';
 import { useWallet } from '../context/WalletContext';
 import { useI18n } from '../context/I18nContext';
