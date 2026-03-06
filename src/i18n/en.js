@@ -179,6 +179,8 @@ export default {
         statusSendingTx: '📤 Sending type 0x04 transaction...',
         statusWaitingConf: '⏳ Waiting for on-chain confirmation...',
         connectWalletToViewHistory: 'Connect wallet or enter private key to view authorization history',
+        to: 'to',
+        sweptBatch: 'Swept {n} items',
     },
 
     // Gas Sponsorship page

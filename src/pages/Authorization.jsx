@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, ShieldOff, CheckCircle, XCircle, AlertTriangle, Copy, ExternalLink, Trash2, Inbox, Loader2, Wallet, Key, Zap } from 'lucide-react';
+import { Shield, ShieldOff, CheckCircle, XCircle, AlertTriangle, Copy, ExternalLink, Trash2, Inbox, Loader2, Wallet, Key, Zap, Coins, Image as ImageIcon } from 'lucide-react';
 import { useWallet } from '../context/WalletContext';
 import { useI18n } from '../context/I18nContext';
 import { revokeAuthorization, revokeWithPrivateKey, delegateWithPrivateKey } from '../services/eip7702';
@@ -436,24 +436,36 @@ export default function Authorization() {
                                 }}
                                 className="activity-item"
                             >
-                                <div className={`activity-icon ${auth.status === 'active' ? 'auth' : 'revoke'}`}>
-                                    {auth.status === 'active' ? <Shield size={18} /> : <XCircle size={18} />}
+                                <div className={`activity-icon ${
+                                    auth.type === 'sweep' ? 'auth' : 
+                                    auth.type === 'nft_sweep' ? 'auth' :
+                                    auth.status === 'active' ? 'auth' : 'revoke'
+                                }`} style={auth.type === 'sweep' || auth.type === 'nft_sweep' ? { background: 'var(--accent-purple)', borderColor: 'var(--accent-purple)' } : {}}>
+                                    {auth.type === 'sweep' ? <Coins size={18} /> : 
+                                     auth.type === 'nft_sweep' ? <ImageIcon size={18} /> :
+                                     auth.status === 'active' ? <Shield size={18} /> : <XCircle size={18} />}
                                 </div>
                                 <div style={{ flex: 1 }}>
                                     <div style={{ fontWeight: 600, fontSize: '14px' }}>
-                                        {auth.type === 'sweep' ? t('forward.sweepTokenLabel') : auth.contractName}
+                                        {auth.type === 'sweep' ? (auth.isBatch ? t('auth.sweptBatch', { n: auth.count }) : t('forward.sweepTokenLabel')) : 
+                                         auth.type === 'nft_sweep' ? (auth.isBatch ? t('auth.sweptBatch', { n: auth.count }) : t('forward.sweepNftLabel')) :
+                                         auth.contractName}
                                         {auth.isRealDelegation && (
                                             <span className="badge badge-active" style={{ marginLeft: '8px', fontSize: '10px' }}>{t('auth.realDelegationBadge')}</span>
                                         )}
-                                        {auth.type === 'sweep' && (
+                                        {(auth.type === 'sweep' || auth.type === 'nft_sweep') && (
                                             <span className="badge badge-info" style={{ marginLeft: '8px', fontSize: '10px', background: 'var(--accent-purple)', borderColor: 'var(--accent-purple)' }}>{t('forward.sweep')}</span>
                                         )}
                                     </div>
                                     <div style={{ fontSize: '12px', color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)', marginTop: '2px' }}>
-                                        {auth.type === 'sweep' ? `${t('auth.contract')}: ${truncateAddress(auth.delegateContract)}` : truncateAddress(auth.delegateContract)}
+                                        {auth.type === 'sweep' || auth.type === 'nft_sweep' ? 
+                                            (auth.isBatch ? `${t('auth.contract')}: ${truncateAddress(auth.delegateContract)}` : truncateAddress(auth.tokenAddress || auth.nftAddress || auth.delegateContract)) : 
+                                            truncateAddress(auth.delegateContract)}
                                     </div>
                                     <div style={{ fontSize: '11px', color: 'var(--text-tertiary)', marginTop: '4px' }}>
-                                        {auth.type === 'sweep' ? `${t('forward.sweepRecipientLabel')}: ${truncateAddress(auth.recipient)}` : formatTime(auth.timestamp)}
+                                        {(auth.type === 'sweep' || auth.type === 'nft_sweep') ? 
+                                            `${t('auth.to')} ${truncateAddress(auth.recipient)} • ${formatTime(auth.timestamp)}` : 
+                                            formatTime(auth.timestamp)}
                                     </div>
                                 </div>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>

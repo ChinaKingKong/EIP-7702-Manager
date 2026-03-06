@@ -179,6 +179,8 @@ export default {
         statusSendingTx: '📤 发送 type 0x04 交易...',
         statusWaitingConf: '⏳ 等待链上确认...',
         connectWalletToViewHistory: '请连接钱包或输入私钥以查看授权历史',
+        to: '至',
+        sweptBatch: '一键搬运 {n} 个项目',
     },
 
     // 自动转发配置页面

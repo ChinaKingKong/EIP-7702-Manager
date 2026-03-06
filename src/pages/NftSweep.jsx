@@ -141,7 +141,10 @@ export default function NftSweep() {
                     status: 'completed',
                     timestamp: Date.now(),
                     txHash: hash,
-                    type: 'nft_sweep'
+                    type: 'nft_sweep',
+                    nftAddress: nftContract,
+                    tokenId: tokenId.toString(),
+                    recipient: recipient
                 });
                 handleScanNfts();
             } else {
@@ -217,6 +220,19 @@ export default function NftSweep() {
             
             if (receipt.status === 'success') {
                 toast.success(t('forward.sweepSuccess'), { id: 'nft-batch-sweep-loading' });
+                saveAuthorization({
+                    id: `nft-batch-sweep-${Date.now()}`,
+                    walletAddress: account.address,
+                    delegateContract: contractAddress,
+                    chainId: Number(activeChainId),
+                    status: 'completed',
+                    timestamp: Date.now(),
+                    txHash: hash,
+                    type: 'nft_sweep',
+                    recipient: recipient,
+                    isBatch: true,
+                    count: nfts.length
+                });
                 handleScanNfts();
             } else {
                 throw new Error('批量 NFT 转移失败：交易已撤回');
