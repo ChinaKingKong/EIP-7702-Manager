@@ -308,6 +308,8 @@ export default {
         nftsFound: 'Scan successful! Found {n} NFTs. Check them below.',
         batchSweepNftBtn: 'Batch Sweep ({n} NFTs)',
         sweepNftBtn: 'Sweep NFT',
+        sweepNftRecipientLabel: 'NFT Recipient Address (Required)',
+        sweepNftRecipientPlaceholder: '0x... (Required, NFTs will be sent here)',
     },
 
     // Deploy Contract page

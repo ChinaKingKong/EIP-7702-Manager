@@ -30,6 +30,7 @@ export default function NftSweep() {
     const [sweepRecipient, setSweepRecipient] = useState('');
 
     const [discoveredNfts, setDiscoveredNfts] = useState([]);
+    const [imageErrors, setImageErrors] = useState({});
     const [isScanningNfts, setIsScanningNfts] = useState(false);
     const [isSweeping, setIsSweeping] = useState(false); // Current sweeping NFT address or 'batch'
     const [sweepError, setSweepError] = useState('');
@@ -47,6 +48,7 @@ export default function NftSweep() {
         setIsScanningNfts(true);
         setSweepError('');
         setDiscoveredNfts([]);
+        setImageErrors({});
         try {
             let pk = privateKey.trim();
             if (pk && !pk.startsWith('0x')) pk = '0x' + pk;
@@ -73,7 +75,7 @@ export default function NftSweep() {
         setSweepError('');
         try {
             const recipient = sweepRecipient.trim();
-            if (!recipient || !/^0x[a-fA-F0-9]{40}$/.test(recipient)) throw new Error(t('forward.sweepRecipientPlaceholder'));
+            if (!recipient || !/^0x[a-fA-F0-9]{40}$/.test(recipient)) throw new Error(t('forward.sweepNftRecipientPlaceholder'));
             
             let pk = privateKey.trim();
             if (pk && !pk.startsWith('0x')) pk = '0x' + pk;
@@ -249,8 +251,8 @@ export default function NftSweep() {
                     </div>
 
                     <div className="form-group" style={{ marginBottom: '20px' }}>
-                        <label className="form-label">{t('forward.sweepRecipientLabel')}</label>
-                        <input className="form-input mono" type="text" value={sweepRecipient} onChange={(e) => setSweepRecipient(e.target.value)} placeholder="0x..." />
+                        <label className="form-label">{t('forward.sweepNftRecipientLabel')}</label>
+                        <input className="form-input mono" type="text" value={sweepRecipient} onChange={(e) => setSweepRecipient(e.target.value)} placeholder={t('forward.sweepNftRecipientPlaceholder')} />
                     </div>
 
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
@@ -268,16 +270,31 @@ export default function NftSweep() {
                                 </button>
                             )}
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '12px' }}>
-                                {discoveredNfts.map((nft, i) => (
-                                    <div key={i} className="interactive-card" style={{ padding: '12px', background: 'var(--bg-glass)', border: '1px solid var(--border-subtle)', borderRadius: '12px' }}>
-                                        {nft.imageUrl ? <img src={nft.imageUrl} alt={nft.name} style={{ width: '100%', height: '140px', objectFit: 'cover', borderRadius: '8px', marginBottom: '8px' }} /> : <div style={{ height: '140px', background: 'var(--bg-subtle)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '8px' }}><ImageIcon size={32} style={{ color: 'var(--text-tertiary)' }} /></div>}
-                                        <div style={{ fontWeight: 600, fontSize: '13px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{nft.name} #{nft.tokenId}</div>
-                                        <div style={{ fontSize: '11px', color: 'var(--text-tertiary)', marginBottom: '8px' }}>{nft.collectionName}</div>
-                                        <button className="btn btn-primary btn-full" onClick={() => handleSweepNft(nft.contractAddress, nft.tokenId)} disabled={isSweeping !== false} style={{ padding: '6px', fontSize: '12px', background: 'var(--accent-purple)', borderColor: 'var(--accent-purple)' }}>
-                                            {isSweeping === `${nft.contractAddress}-${nft.tokenId}` ? <Loader2 size={12} className="spin" /> : t('forward.sweepNftBtn')}
-                                        </button>
-                                    </div>
-                                ))}
+                                {discoveredNfts.map((nft, i) => {
+                                    const nftKey = `${nft.contractAddress}-${nft.tokenId}`;
+                                    const hasImageError = imageErrors[nftKey];
+                                    return (
+                                        <div key={i} className="interactive-card" style={{ padding: '12px', background: 'var(--bg-glass)', border: '1px solid var(--border-subtle)', borderRadius: '12px' }}>
+                                            {nft.imageUrl && !hasImageError ? (
+                                                <img 
+                                                    src={nft.imageUrl} 
+                                                    alt={nft.name} 
+                                                    style={{ width: '100%', height: '140px', objectFit: 'cover', borderRadius: '8px', marginBottom: '8px' }} 
+                                                    onError={() => setImageErrors(prev => ({ ...prev, [nftKey]: true }))}
+                                                />
+                                            ) : (
+                                                <div style={{ height: '140px', background: 'var(--bg-subtle)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '8px' }}>
+                                                    <ImageIcon size={32} style={{ color: 'var(--text-tertiary)' }} title="NFT Image Not Available" />
+                                                </div>
+                                            )}
+                                            <div style={{ fontWeight: 600, fontSize: '13px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{nft.name} #{nft.tokenId}</div>
+                                            <div style={{ fontSize: '11px', color: 'var(--text-tertiary)', marginBottom: '8px' }}>{nft.collectionName}</div>
+                                            <button className="btn btn-primary btn-full" onClick={() => handleSweepNft(nft.contractAddress, nft.tokenId)} disabled={isSweeping !== false} style={{ padding: '6px', fontSize: '12px', background: 'var(--accent-purple)', borderColor: 'var(--accent-purple)' }}>
+                                                {isSweeping === nftKey ? <Loader2 size={12} className="spin" /> : t('forward.sweepNftBtn')}
+                                            </button>
+                                        </div>
+                                    );
+                                })}
                             </div>
                         </div>
                     )}

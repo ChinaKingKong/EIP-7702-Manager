@@ -258,6 +258,8 @@ export default {
         nftsFound: '扫描成功！发现 {n} 个 NFT，请在下方查看。',
         batchSweepNftBtn: '一键全部搬运 ({n} 个 NFT)',
         sweepNftBtn: '搬运 NFT',
+        sweepNftRecipientLabel: 'NFT 接收地址 (必填)',
+        sweepNftRecipientPlaceholder: '0x... (必填，NFT 将被发送到此地址)',
     },
     // Gas 代付页面
     gas: {
