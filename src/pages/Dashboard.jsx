@@ -255,8 +255,8 @@ export default function Dashboard() {
                             <button className="btn btn-primary btn-full" onClick={() => navigate('/authorization')}>
                                 <Shield size={16} /> {t('dashboard.newAuthorization')}
                             </button>
-                            <button className="btn btn-success btn-full" onClick={() => navigate('/auto-forward')}>
-                                <ArrowRightLeft size={16} /> {t('dashboard.forwardingAuth')}
+                            <button className="btn btn-success btn-full" onClick={() => navigate('/authorization')}>
+                                <ArrowRightLeft size={16} /> {t('dashboard.forwardAuth')}
                             </button>
                             <button className="btn btn-secondary btn-full" onClick={() => navigate('/gas-sponsorship')}>
                                 <Fuel size={16} /> {t('dashboard.sponsorGas')}

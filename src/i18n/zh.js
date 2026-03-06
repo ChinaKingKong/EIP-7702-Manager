@@ -80,7 +80,7 @@ export default {
         recentActivity: '最近活动',
         quickActions: '快捷操作',
         newAuthorization: '新建授权',
-        forwardingAuth: '转发授权',
+        forwardAuth: '转发授权',
         sponsorGas: '代付 Gas',
         aboutEIP7702: '关于 EIP-7702',
         aboutDescription: 'EIP-7702 引入了一种新的交易类型 (0x04)，允许外部拥有账户 (EOA) 临时将执行权委托给智能合约，从而实现',
