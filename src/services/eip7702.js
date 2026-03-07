@@ -87,7 +87,7 @@ export async function signAuthorization({ contractAddress, account, chainId = 1,
         const walletClient = createWalletClient({
             account: walletAccount,
             chain: CHAIN_MAP[chainId],
-            transport: http()
+            transport: http(RPC_URLS[chainId])
         });
         
         const auth = await walletClient.signAuthorization({
@@ -253,6 +253,15 @@ export async function revokeAuthorization({ account, chainId = 1, sponsorPrivate
             transport: http(RPC_URLS[chainId])
         });
         txSenderAccount = sponsorAccount;
+    } else if (walletPrivateKey) {
+        if (!walletPrivateKey.startsWith('0x')) walletPrivateKey = `0x${walletPrivateKey}`;
+        const localAccount = privateKeyToAccount(walletPrivateKey);
+        txSenderClient = createWalletClient({
+            account: localAccount,
+            chain: CHAIN_MAP[chainId],
+            transport: http(RPC_URLS[chainId])
+        });
+        txSenderAccount = localAccount;
     } else {
         txSenderClient = getWalletClient(chainId);
         txSenderAccount = account;
@@ -307,6 +316,15 @@ export async function authorizeContract({ account, contractAddress, chainId = 1,
             transport: http(RPC_URLS[chainId])
         });
         txSenderAccount = sponsorAccount;
+    } else if (walletPrivateKey) {
+        if (!walletPrivateKey.startsWith('0x')) walletPrivateKey = `0x${walletPrivateKey}`;
+        const localAccount = privateKeyToAccount(walletPrivateKey);
+        txSenderClient = createWalletClient({
+            account: localAccount,
+            chain: CHAIN_MAP[chainId],
+            transport: http(RPC_URLS[chainId])
+        });
+        txSenderAccount = localAccount;
     } else {
         txSenderClient = getWalletClient(chainId);
         txSenderAccount = account;
@@ -473,7 +491,7 @@ export async function executeSponsoredIntent(sponseeAddress, to, value, data, si
     console.log(`[executeSponsoredIntent] Sending tx to ${executionTarget} via sponsor`);
 
     const hash = await txSenderClient.sendTransaction({
-        account: sponsorPrivateKey ? privateKeyToAccount(sponsorPrivateKey) : sponsorAddress,
+        account: (sponsorPrivateKey) ? privateKeyToAccount(sponsorPrivateKey) : sponsorAddress,
         to: executionTarget,
         data: txData,
         value: 0n, // Sponsor is just paying gas
