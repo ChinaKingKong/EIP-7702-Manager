@@ -422,6 +422,7 @@ export default {
         authorizeSponsored: 'Sponsored Reset',
         authorizing: 'Revoking...',
         authSuccess: 'EIP-7702 Reset/Revoke successful!',
+        privateKeyHint: 'Note: Some wallets (like MetaMask) do not support EIP-7702 transactions yet. If you get an error, please enter your private key in "Account Settings" above.',
     },
     // Error Handling
     errors: {
@@ -434,5 +435,6 @@ export default {
         txReverted: 'Transaction reverted on-chain. Please check contract state.',
         notDelegatedError: 'The current account is not delegated to an EIP-7702 contract. Sponsored action required a delegated account.',
         eip7702Error: 'EIP-7702 protocol error.',
+        metaMaskEip7702Unsupported: 'MetaMask does not support sending EIP-7702 transactions directly yet. Please enter your private key in "Account Settings" to sign and send locally.',
     },
 };

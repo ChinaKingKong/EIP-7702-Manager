@@ -605,6 +605,24 @@ export default function RevokeAuthorization() {
                             />
                         </div>
 
+                        {!walletPrivateKey && (
+                            <div style={{ 
+                                marginTop: '12px', 
+                                padding: '10px', 
+                                background: 'rgba(59, 130, 246, 0.05)', 
+                                border: '1px dotted rgba(59, 130, 246, 0.3)', 
+                                borderRadius: '8px',
+                                fontSize: '12px',
+                                color: 'var(--text-secondary)',
+                                display: 'flex',
+                                alignItems: 'flex-start',
+                                gap: '8px'
+                            }}>
+                                <Info size={14} style={{ marginTop: '2px', flexShrink: 0, color: 'var(--accent-blue)' }} />
+                                <span>{t('revoke.privateKeyHint')}</span>
+                            </div>
+                        )}
+
                         <div style={{ display: 'flex', gap: '12px', marginTop: '16px' }}>
                             <button 
                                 className="btn btn-secondary btn-sm" 

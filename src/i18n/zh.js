@@ -421,6 +421,7 @@ export default {
         authorizeSponsored: '代付重置',
         authorizing: '撤销中...',
         authSuccess: 'EIP-7702 撤销/重置成功！',
+        privateKeyHint: '注意：部分钱包（如 MetaMask）暂不支持 EIP-7702 事务发送。如果点击无响应或报错，请在上方“账户设置”中输入私钥后再操作。',
     },
     // 错误处理
     errors: {
@@ -433,5 +434,6 @@ export default {
         txReverted: '交易在链上回滚，请检查合约状态。',
         notDelegatedError: '当前账户尚未委托（Delegated）给 EIP-7702 转发合约，无法进行代付操作。',
         eip7702Error: 'EIP-7702 协议错误。',
+        metaMaskEip7702Unsupported: 'MetaMask 暂不支持直接发送 EIP-7702 事务。如果需要进行撤销或重置，请在“账户设置”中输入私钥进行本地签名发送。',
     },
 };

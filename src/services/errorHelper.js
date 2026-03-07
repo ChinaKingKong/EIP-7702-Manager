@@ -63,6 +63,9 @@ export function getLocalizedError(error, t) {
 
     // 7. EIP-7702 specific
     if (fullMessage.includes('eip-7702') || fullMessage.includes('eip7702')) {
+        if (fullMessage.includes('external eip-7702 transactions are not supported')) {
+            return t('errors.metaMaskEip7702Unsupported');
+        }
         return t('errors.eip7702Error');
     }
 
