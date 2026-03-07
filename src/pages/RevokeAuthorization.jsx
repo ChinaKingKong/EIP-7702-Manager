@@ -200,7 +200,7 @@ export default function RevokeAuthorization() {
             checkActiveDelegation(effectiveAddress, activeChainId);
         } catch (error) {
             console.error('Revocation failed:', error);
-            toast.error(error.shortMessage || error.message);
+            toast.error(getLocalizedError(error, t));
         } finally {
             setIsRevokingEip7702(false);
         }
@@ -220,7 +220,7 @@ export default function RevokeAuthorization() {
             checkActiveDelegation(effectiveAddress, activeChainId);
         } catch (error) {
             console.error('Revocation failed:', error);
-            toast.error(error.shortMessage || error.message);
+            toast.error(getLocalizedError(error, t));
         } finally {
             setIsStandardRevokingManual(false);
         }
