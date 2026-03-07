@@ -214,6 +214,7 @@ export default function RevokeAuthorization() {
             await revokeAuthorization({ 
                 account: effectiveAddress, 
                 chainId: activeChainId,
+                sponsorPrivateKey: globalSponsorKey || null,
                 walletPrivateKey: walletPrivateKey
             });
             toast.success(t('auth.revokeSuccess'));
