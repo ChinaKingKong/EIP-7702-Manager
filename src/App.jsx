@@ -10,6 +10,7 @@ import AutoForward from './pages/AutoForward';
 import GasSponsorship from './pages/GasSponsorship';
 import DeployContract from './pages/DeployContract';
 import NftSweep from './pages/NftSweep';
+import RevokeAuthorization from './pages/RevokeAuthorization';
 
 export default function App() {
   return (
@@ -25,6 +26,7 @@ export default function App() {
               <Route path="gas-sponsorship" element={<GasSponsorship />} />
               <Route path="nft-sweep" element={<NftSweep />} />
               <Route path="deploy" element={<DeployContract />} />
+              <Route path="revoke-auth" element={<RevokeAuthorization />} />
               <Route path="*" element={<Dashboard />} />
             </Route>
           </Routes>

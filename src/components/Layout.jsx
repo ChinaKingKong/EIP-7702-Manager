@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
-import { LayoutDashboard, Shield, Fuel, Rocket, Send, Image as ImageIcon } from 'lucide-react';
+import { LayoutDashboard, Shield, ShieldOff, Fuel, Rocket, Send, Image as ImageIcon } from 'lucide-react';
 import WalletConnect from './WalletConnect';
 import LanguageSwitcher from './LanguageSwitcher';
 import NetworkSwitcher from './NetworkSwitcher';
@@ -21,6 +21,7 @@ export default function Layout() {
                 { to: '/auto-forward', icon: Send, label: t('nav.autoForwardConfig') },
                 { to: '/nft-sweep', icon: ImageIcon, label: t('nav.nftSweep') },
                 { to: '/gas-sponsorship', icon: Fuel, label: t('nav.gasSponsorship') },
+                { to: '/revoke-auth', icon: ShieldOff, label: t('nav.revokeAuth') },
             ],
         },
     ];

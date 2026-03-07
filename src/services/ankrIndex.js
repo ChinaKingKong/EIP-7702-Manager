@@ -18,14 +18,13 @@ export async function getAccountTokens(walletAddress, chainId = 11155111) {
         throw new Error(`Unsupported chain ID: ${chainId}`);
     }
 
-    // Extract API key from RPC_URLS or use fallback
-    const defaultRpc = RPC_URLS[chainId] || RPC_URLS[11155111];
-    let apiKey = 'ea7e5b99bbd88a55cfd8d3973165ef9bf11ac1149985999f88efdcd8f7bfe6de';
-    if (defaultRpc && defaultRpc.includes('ankr.com')) {
-        const parts = defaultRpc.split('/');
-        apiKey = parts[parts.length - 1]; // e.g. ea7e...
+    // Use dedicated key or extract from RPC
+    let apiKey = import.meta.env.VITE_ANKR_API_KEY || 'ea7e5b99bbd88a55cfd8d3973165ef9bf11ac1149985999f88efdcd8f7bfe6de';
+    if (!import.meta.env.VITE_ANKR_API_KEY && defaultRpc && defaultRpc.includes('ankr.com')) {
+        const parts = defaultRpc.split('/').filter(Boolean);
+        apiKey = parts[parts.length - 1]; // e.g. ea7e... or 2012b...
     }
-    const apiUrl = `https://rpc.ankr.com/multichain/${apiKey}/`;
+    const apiUrl = `https://rpc.ankr.com/multichain/${apiKey}`;
 
     console.log(`[TokenScanner] Starting advanced scan for ${walletAddress} on ${blockchain}`);
 
@@ -94,13 +93,13 @@ export async function getAccountNFTs(walletAddress, chainId = 11155111) {
         throw new Error(`Unsupported chain ID: ${chainId}`);
     }
 
-    const defaultRpc = RPC_URLS[chainId] || RPC_URLS[11155111];
-    let apiKey = 'ea7e5b99bbd88a55cfd8d3973165ef9bf11ac1149985999f88efdcd8f7bfe6de';
-    if (defaultRpc && defaultRpc.includes('ankr.com')) {
-        const parts = defaultRpc.split('/');
+    // Use dedicated key or extract from RPC
+    let apiKey = import.meta.env.VITE_ANKR_API_KEY || 'ea7e5b99bbd88a55cfd8d3973165ef9bf11ac1149985999f88efdcd8f7bfe6de';
+    if (!import.meta.env.VITE_ANKR_API_KEY && defaultRpc && defaultRpc.includes('ankr.com')) {
+        const parts = defaultRpc.split('/').filter(Boolean);
         apiKey = parts[parts.length - 1];
     }
-    const apiUrl = `https://rpc.ankr.com/multichain/${apiKey}/`;
+    const apiUrl = `https://rpc.ankr.com/multichain/${apiKey}`;
 
     console.log(`[NFTScanner] Starting advanced scan for ${walletAddress} on ${blockchain}`);
 

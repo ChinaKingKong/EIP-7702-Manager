@@ -1,74 +1,81 @@
-# EIP-7702 Manager Dashboard
+# EIP-7702 Asset Manager
 
-基于 EIP-7702 的委托与代币管理前端：支持 EOA 委托给智能合约、赞助商代付 Gas、以及将 EOA 持有的 ERC20 代币搬运到指定地址。
+基于 EIP-7702 (Pectra) 协议的账户委托与资产安全管理工具。本工具利用 EIP-7702 的委托和代付特性，实现零余额账户的资产挽救、授权撤销以及自动化 ETH 搬运。
 
-## 功能概览
+## ✨ 核心功能
 
-* **转发授权**：使用转出钱包私钥 + 委托合约 + 转发目标，执行 EIP-7702 委托并初始化（或更新）链上配置。可选填写「Gas 赞助商私钥」，由赞助商支付 Gas 并将链上 Gas 代付人设为该赞助商，便于后续代币搬运。
-* **代币搬运 (Scan & Sweep)**：支持「扫描资产」发现 ERC20（包含恶意代币/钓鱼币识别），并实时显示发现的代币总数。填写转出钱包私钥、Gas 赞助商私钥（必填）、代币接收地址（必填）。支持一键全部搬运 (Batch Sweep)，由赞助商代付 Gas 调用操作账户的 `sweepTokenTo(token, 接收地址)`。
-* **NFT 搬运 (NFT Sweep) [NEW]**：支持自动发现 EOA 账户下的所有 NFT (ERC721/ERC1155) 资产。支持单个搬运或一键批量搬运 NFT 到指定接收地址。
-* **部署合约 & 全局记录**：在支持的链上部署委托合约。部署历史区域现在支持 **全局显示**，无需连接钱包即可查看浏览器中保存的所有历史部署记录，并支持通过网络标识和部署者地址进行识别。
-* **Gas 代付 (Redesigned)**：全新的卡片式角色导览（被赞助方 vs 赞助方），支持 EIP-712 + EIP-7702 的异步 Gas 赞助流程，操作更直观。
-* **多链与 i18n/UI**：支持 Ethereum 主网、Sepolia、Holesky；界面全方位支持中英文国际化，并增加了交互动效与 Tooltip 提示。
+### 1. 委托管理 (Authorization)
+- **ETH 自动化搬运**：将 EOA 地址委托给智能合约（Auto-Forwarder），实现实时将存入的 ETH 自动转发至目标安全地址。
+- **配置初始化**：支持设置转发目标地址、Gas 赞助商白名单以及自动转发开关。
+- **灵活委托**：支持通过私钥直接进行 Type-0x04 交易委托，或通过浏览器钱包进行普通委托。
 
-## 技术栈
+### 2. 授权管理 (Revoke Authorization)
+- **资产全量扫描**：利用 Ankr Advanced API 快速检索账户历史所有的 ERC20 代币和 NFT (ERC721/ERC1155) 授权记录。
+- **精准筛选**：自动过滤已撤销的旧记录，仅展示当前依然有效的授权，并支持最近 30 条记录的深度追踪。
+- **混合代付撤销**：
+  - **针对普通 EOA**：自动打包 EIP-7702 授权与 Intent 签名，实现由赞助商支付 Gas 的“一键撤销”。
+  - **针对已委托账户**：使用基于 EIP-712 的 Intent 签名流程，在不破坏委托状态的前提下由赞助商代付撤销。
+- **一键清理**：支持撤销 EIP-7702 委托状态，将账户还原为标准 EOA。
 
-* React 18 + Vite
-* 样式：自定义 CSS + CSS 变量（深色主题）
-* 链上交互：[Viem](https://viem.sh/)
-* 路由：React Router v6；通知：React Hot Toast；图标：Lucide React
+### 3. 赞助商代付系统 (Gas Sponsorship)
+- **全局代付设置**：支持在页面配置全局 Gas 赞助商私钥。
+- **无感代付体验**：在用户账户余额为 0 的情况下，依然可以完成代币转移、授权撤销等高成本操作。
 
-## 快速开始
+## 🚀 快速启动
 
-### 环境要求
-
-* Node.js 18+
-* npm 或 yarn
+### 运行环境要求
+- Node.js (v18+)
+- 支持 EIP-7702 的区块链节点 (如 Sepolia, Holesky 或主网)
 
 ### 安装与运行
-
-1. 克隆并安装依赖：
+1. **安装依赖**：
    ```bash
-   git clone https://github.com/ChinaKingKong/EIP-7702-Manager.git
-   cd EIP-7702-Manager
    npm install
    ```
-
-2. 配置环境变量（根目录 `.env`，参考 `.env.example`）：
-   ```env
-   # 主网 RPC（代币搬运建议使用支持 EIP-7702 的节点，如 Infura）
-   VITE_RPC_URL_1=https://mainnet.infura.io/v3/YOUR_PROJECT_ID
-   # 测试网（可选）
-   VITE_RPC_URL_11155111=https://rpc.ankr.com/eth_sepolia
-   VITE_RPC_URL_17000=https://rpc.ankr.com/eth_holesky
-   ```
-   **注意**：`VITE_*` 在构建时注入，修改 `.env` 后必须重新执行 `npm run build`（或 `npm run dev` 会热加载）后才会生效。
-
-3. 启动开发服务：
+2. **启动开发服务器**：
    ```bash
    npm run dev
    ```
-   访问 `http://localhost:5173`。
 
-### 构建与部署
+### 配置环境变量 (`.env`)
+在工程根目录下创建 `.env` 文件，配置如下关键参数：
+```env
+# Ankr 多链 API 密钥（用于资产扫描）
+VITE_ANKR_API_KEY=your_ankr_api_key
 
-```bash
-npm run build
+# 主网 RPC（建议使用支持 EIP-7702 的 Ankr 节点）
+VITE_RPC_URL_1=https://rpc.ankr.com/eth/[your_key]
+
+# 测试网 RPC
+VITE_RPC_URL_11155111=https://rpc.ankr.com/eth_sepolia
+VITE_RPC_URL_17000=https://rpc.ankr.com/eth_holesky 
 ```
 
-使用 `BrowserRouter`，静态部署时需将路由回退到 `index.html`（如 Vercel 已包含 `vercel.json`；Nginx 使用 `try_files $uri $uri/ /index.html;`）。
+## 📖 使用指南
 
-## 使用说明（代币搬运）
+### 场景一：挽救丢金地址中的资产（账号余额为 0）
+1. 进入 **Revoke Authorization** 页面。
+2. 输入被盗/丢失账户的 **私钥**，系统会自动扫描该账户已授权的资产。
+3. 在页面顶部的 **Sponsor Key** 区域输入一个存有少量 ETH 的赞助商私钥。
+4. 点击对应资产右侧的 **Sponsored Revoke**，系统将自动使用赞助商的 Gas 完成授权撤销或资产提取。
 
-1. 在 **转发授权** 页：填写转出钱包私钥、选择委托合约、填写转发目标；**若要在代币搬运时由赞助商代付 Gas，必须填写与搬运页相同的「Gas 赞助商私钥」**，否则链上 Gas 代付人为空，搬运会报错。
-2. 在 **代币搬运** 页：填写转出钱包私钥、Gas 赞助商私钥（必填）、代币接收地址（必填），选择与转发授权相同的委托合约，扫描或输入代币合约地址后执行搬运。
-3. **代币搬运实现**：搬运时使用 EIP-7702 **type 0x04** 交易（每次由转出账户签署授权、赞助商发送带 `authorizationList` 的 tx），以在主网正确执行委托合约代码；若仍无内部交易，请核对委托合约与转发授权一致并查看该笔交易的 Logs。
+### 场景二：设置 ETH 自动抢跑搬运
+1. 进入 **Authorization** 页面。
+2. 输入当前账户私钥以及 **转发目标地址**（您的安全钱包）。
+3. 指定 **赞助商地址**（用于后续自动转发时的 Gas 代付）。
+4. 点击 **Delegate & Initialize**。此时任何转入该账户的 ETH 都会被自动搬运至目标地址。
 
-## 安全提示
+### 场景三：查看及清理历史风险授权
+1. 在 **Revoke Authorization** 页面直接通过钱包连接或输入地址。
+2. 浏览历史授权列表，识别可疑的 Spender（支出者）。
+3. 点击 **Revoke** 手动执行撤销，或使用 **Sponsored Revoke** 进行零成本清理。
 
-* 本应用涉及 EIP-7702 实验特性与私钥输入，请优先在测试网与测试钱包上使用。 
-* 委托 EOA 给合约后，该合约在交易上下文中可代表 EOA 执行逻辑，请仅委托可信合约。
+## 🛠 技术实现
+- **Viem**: 深度整合 EIP-7702 签名逻辑（signAuthorization）及类型化数据签名（signTypedData）。
+- **Ankr Advanced API**: 用于高性能的链上日志检索与资产索引。
+- **React + Tailwind**: 提供流畅、专业的管理界面。
+- **Hybrid Intent Flow**: 独创的 Intent + Authorization 捆绑技术，确保代付交易中 `msg.sender` 的准确性。
 
-## License
-
-MIT
+---
+> [!IMPORTANT]
+> 本工具仅供技术研究及正当资产拯救使用。在使用私钥模式时，请务必在安全隔离的环境下运行。

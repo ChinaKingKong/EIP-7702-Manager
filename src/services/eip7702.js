@@ -25,12 +25,14 @@ import {
     encodeAbiParameters,
     parseAbiParameters,
 } from 'viem';
-import { mainnet, sepolia } from 'viem/chains';
+import { privateKeyToAccount } from 'viem/accounts';
+import { mainnet, sepolia, holesky } from 'viem/chains';
 import { RPC_URLS } from '../config';
 
 const CHAIN_MAP = {
     1: mainnet,
     11155111: sepolia,
+    17000: holesky,
 };
 
 /**
@@ -75,7 +77,31 @@ export function getWalletClient(chainId = 1) {
  * @param {number} params.chainId - Target chain ID
  * @returns {Object} The signed authorization object
  */
-export async function signAuthorization({ contractAddress, account, chainId = 1 }) {
+export async function signAuthorization({ contractAddress, account, chainId = 1, privateKey = null }) {
+    if (privateKey) {
+        if (!privateKey.startsWith('0x')) privateKey = `0x${privateKey}`;
+        const walletAccount = privateKeyToAccount(privateKey);
+        const publicClient = getPublicClient(chainId);
+        const nonce = await publicClient.getTransactionCount({ address: walletAccount.address });
+        
+        const walletClient = createWalletClient({
+            account: walletAccount,
+            chain: CHAIN_MAP[chainId],
+            transport: http()
+        });
+        
+        const auth = await walletClient.signAuthorization({
+            contractAddress,
+            nonce,
+            chainId
+        });
+        
+        return {
+            ...auth,
+            signer: walletAccount.address
+        };
+    }
+    
     if (!window.ethereum) throw new Error('No Ethereum wallet detected');
 
     const publicClient = getPublicClient(chainId);
@@ -202,20 +228,38 @@ export async function sponsorTransaction({
  * @param {number} params.chainId
  * @returns {Object} The revocation authorization object
  */
-export async function revokeAuthorization({ account, chainId = 1 }) {
+export async function revokeAuthorization({ account, chainId = 1, sponsorPrivateKey = null, walletPrivateKey = null }) {
     const publicClient = getPublicClient(chainId);
-    const walletClient = getWalletClient(chainId);
-
+    
     // 1. Sign an authorization pointing to the zero address
+    // If we have a sponsor, we still sign with the account, but the sponsor sends it.
     const authToZero = await signAuthorization({
         contractAddress: '0x0000000000000000000000000000000000000000',
         account,
         chainId,
+        privateKey: walletPrivateKey
     });
 
     // 2. Broadcast a transaction applying this zero-address authorization to clear the code
-    const hash = await walletClient.sendTransaction({
-        account,
+    let txSenderClient;
+    let txSenderAccount;
+
+    if (sponsorPrivateKey) {
+        if (!sponsorPrivateKey.startsWith('0x')) sponsorPrivateKey = `0x${sponsorPrivateKey}`;
+        const sponsorAccount = privateKeyToAccount(sponsorPrivateKey);
+        txSenderClient = createWalletClient({
+            account: sponsorAccount,
+            chain: CHAIN_MAP[chainId],
+            transport: http(RPC_URLS[chainId])
+        });
+        txSenderAccount = sponsorAccount;
+    } else {
+        txSenderClient = getWalletClient(chainId);
+        txSenderAccount = account;
+    }
+
+    const hash = await txSenderClient.sendTransaction({
+        account: txSenderAccount,
         to: account,
         value: 0n,
         authorizationList: [authToZero],
@@ -293,11 +337,11 @@ export const EIP7702_AUTO_FORWARDER_ABI = [
 
 export function encodeGasSponsorshipIntent(chainId, sponseeAddress, to, value, data, nonce) {
     // Defines the EIP-712 Typed Data that the Sponsee will sign to express their intent
-    // Omitted verifyingContract due to MetaMask pre-pectra limitation (cannot use internal account as contract)
     const domain = {
         name: 'EIP7702AutoForwarder',
         version: '1',
-        chainId: Number(chainId)
+        chainId: Number(chainId),
+        verifyingContract: sponseeAddress
     };
 
     const types = {
@@ -319,9 +363,9 @@ export function encodeGasSponsorshipIntent(chainId, sponseeAddress, to, value, d
 
     const message = {
         to: to,
-        value: weiValue.toString(), // For metamask typed data signing, string is safer
+        value: weiValue, 
         data: data || '0x',
-        nonce: nonce.toString(),
+        nonce: BigInt(nonce || 0),
     };
 
     return {
@@ -332,9 +376,23 @@ export function encodeGasSponsorshipIntent(chainId, sponseeAddress, to, value, d
     };
 }
 
-export async function executeSponsoredIntent(sponseeAddress, to, value, data, signature, sponsorAddress, chainId = 1, fallbackContract = null) {
+export async function executeSponsoredIntent(sponseeAddress, to, value, data, signature, sponsorAddress, chainId = 1, fallbackContract = null, sponsorPrivateKey = null, authorization = null) {
+    console.log(`[executeSponsoredIntent] ChainId: ${chainId}, Sponsee: ${sponseeAddress}, To: ${to}`);
     const publicClient = getPublicClient(chainId);
-    const walletClient = getWalletClient(chainId);
+    
+    let txSenderClient;
+    if (sponsorPrivateKey) {
+        if (!sponsorPrivateKey.startsWith('0x')) sponsorPrivateKey = `0x${sponsorPrivateKey}`;
+        const sponsorAccount = privateKeyToAccount(sponsorPrivateKey);
+        txSenderClient = createWalletClient({
+            account: sponsorAccount,
+            chain: publicClient.chain,
+            transport: http(RPC_URLS[chainId])
+        });
+        sponsorAddress = sponsorAccount.address;
+    } else {
+        txSenderClient = getWalletClient(chainId);
+    }
 
     let weiValue;
     try {
@@ -358,12 +416,14 @@ export async function executeSponsoredIntent(sponseeAddress, to, value, data, si
     // Determine target. Pre-Pectra MetaMask blocks sending data to an EOA.
     // If a fallbackContract is provided, we route through that actual deployed contract for demo purposes.
     const executionTarget = fallbackContract || sponseeAddress;
+    console.log(`[executeSponsoredIntent] Sending tx to ${executionTarget} via sponsor`);
 
-    const hash = await walletClient.sendTransaction({
-        account: sponsorAddress,
+    const hash = await txSenderClient.sendTransaction({
+        account: sponsorPrivateKey ? privateKeyToAccount(sponsorPrivateKey) : sponsorAddress,
         to: executionTarget,
         data: txData,
-        value: 0n, // Sponsor is just paying gas, not necessarily sending ETH along (unless they want to)
+        value: 0n, // Sponsor is just paying gas
+        authorizationList: authorization ? [authorization] : [],
     });
 
     const receipt = await publicClient.waitForTransactionReceipt({ hash });
@@ -380,8 +440,6 @@ export { parseEther, formatEther };
 // ==========================================
 // 5. Real EIP-7702 Delegation (Private Key)
 // ==========================================
-
-import { privateKeyToAccount } from 'viem/accounts';
 
 /**
  * Perform a real EIP-7702 delegation + initialize using a private key.
