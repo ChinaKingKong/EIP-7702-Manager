@@ -47,12 +47,14 @@ export default function AutoForward() {
 
     // 组件挂载时获取已部署的合约
     useEffect(() => {
-        const contracts = getDeployedContracts();
+        const contracts = getDeployedContracts().filter(c => Number(c.chainId) === Number(activeChainId));
         setDeployedContracts(contracts);
         if (contracts.length > 0) {
             setSelectedContract((prev) => prev || contracts[0].address);
+        } else {
+            setSelectedContract('');
         }
-    }, []);
+    }, [activeChainId]);
 
     // Load config helper
     const loadConfig = async (userAddress, rpcUrl = null) => {

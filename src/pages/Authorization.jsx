@@ -32,16 +32,19 @@ export default function Authorization() {
     // Load deployed contracts from cache
     const [deployedContracts, setDeployedContracts] = useState([]);
     useEffect(() => {
-        const contracts = getDeployedContracts();
+        const contracts = getDeployedContracts().filter(c => Number(c.chainId) === Number(activeChainId));
         setDeployedContracts(contracts);
         
-        // Default to the most recently deployed contract
-        if (contracts.length > 0 && !customContract) {
+        // Default to the most recently deployed contract for this network
+        if (contracts.length > 0) {
             const latest = contracts[0].address;
             setCustomContract(latest);
             setSelectedContract(latest);
+        } else {
+            setCustomContract('');
+            setSelectedContract('');
         }
-    }, []);
+    }, [activeChainId]);
     const contractAddress = selectedContract || customContract;
 
     // 追踪的地址列表：包含当前已连接的钱包地址，以及当前输入的私钥对应的地址

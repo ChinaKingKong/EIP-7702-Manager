@@ -181,9 +181,11 @@ export default function DeployContract() {
     };
 
     const filteredHistory = useMemo(() => {
-        // Return all history sorted by newest first
-        return [...history].sort((a, b) => b.timestamp - a.timestamp);
-    }, [history]);
+        // Return history for current chain sorted by newest first
+        return history
+            .filter(c => Number(c.chainId) === Number(chainId))
+            .sort((a, b) => b.timestamp - a.timestamp);
+    }, [history, chainId]);
 
     return (
         <div className="page-enter">

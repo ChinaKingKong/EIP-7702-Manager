@@ -41,12 +41,14 @@ export default function NftSweep() {
     const [manualTokenId, setManualTokenId] = useState('');
 
     useEffect(() => {
-        const contracts = getDeployedContracts();
+        const contracts = getDeployedContracts().filter(c => Number(c.chainId) === Number(activeChainId));
         setDeployedContracts(contracts);
         if (contracts.length > 0) {
-            setSelectedContract(contracts[0].address);
+            setSelectedContract((prev) => prev || contracts[0].address);
+        } else {
+            setSelectedContract('');
         }
-    }, []);
+    }, [activeChainId]);
 
     const handleScanNfts = async () => {
         setIsScanningNfts(true);

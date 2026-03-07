@@ -121,9 +121,9 @@ export default function GasSponsorship() {
             // To emulate the execution, we send it to a deployed EIP7702AutoForwarder contract instead of the EOA directly.
             // When Pectra is live, this defaults back to the EOA (sponseeAddress).
             let fallbackContract = null;
-            const savedContracts = getDeployedContracts();
+            const savedContracts = getDeployedContracts().filter(c => Number(c.chainId) === Number(chainId));
             // Find a contract deployed on the current chain
-            const contractOnThisChain = savedContracts.find(c => Number(c.chainId) === Number(chainId));
+            const contractOnThisChain = savedContracts.length > 0 ? savedContracts[0] : null;
 
             if (contractOnThisChain) {
                 fallbackContract = contractOnThisChain.address;

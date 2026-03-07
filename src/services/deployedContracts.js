@@ -13,6 +13,11 @@ export function getDeployedContracts() {
     }
 }
 
+export function getDeployedContractsByChainId(chainId) {
+    const all = getDeployedContracts();
+    return all.filter(c => Number(c.chainId) === Number(chainId));
+}
+
 export function saveDeployedContract({ name, address, chainId, deployer }) {
     const list = getDeployedContracts();
     // Avoid duplicates by address (case-insensitive)
