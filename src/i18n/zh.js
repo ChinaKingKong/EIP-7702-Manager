@@ -417,7 +417,7 @@ export default {
         selectNetwork: '选择网络',
         manualAuthTitle: '自定义 EIP-7702 撤销/重置',
         manualAuthDesc: '如果您需要将账户强制重置到特定合约（或手动输入撤销），请在此操作。',
-        authorizeStandard: '标准重置',
+        authorizeStandard: '撤销',
         authorizeSponsored: '代付重置',
         authorizing: '撤销中...',
         authSuccess: 'EIP-7702 撤销/重置成功！',

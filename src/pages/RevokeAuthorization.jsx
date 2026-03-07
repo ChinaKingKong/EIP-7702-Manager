@@ -34,7 +34,8 @@ export default function RevokeAuthorization() {
     const [showSponsorKey, setShowSponsorKey] = useState(null); // Local key for individual items if needed
     const [effectiveAddress, setEffectiveAddress] = useState(address);
     const [manualEipContract, setManualEipContract] = useState('');
-    const [isAuthorizingEip7702, setIsAuthorizingEip7702] = useState(false);
+    const [isStandardRevokingManual, setIsStandardRevokingManual] = useState(false);
+    const [isSponsoredResetingManual, setIsSponsoredResetingManual] = useState(false);
 
     useEffect(() => {
         let currentAddress = address;
@@ -191,26 +192,46 @@ export default function RevokeAuthorization() {
         }
     };
 
-    const handleAuthorizeEip7702 = async (useSponsorship = false) => {
+    const handleManualRevokeStandard = async () => {
+        if (!validateWalletKey(walletPrivateKey)) return;
+
+        setIsStandardRevokingManual(true);
+        try {
+            await revokeAuthorization({ 
+                account: effectiveAddress, 
+                chainId: activeChainId,
+                walletPrivateKey: walletPrivateKey
+            });
+            toast.success(t('auth.revokeSuccess'));
+            checkActiveDelegation(effectiveAddress, activeChainId);
+        } catch (error) {
+            console.error('Revocation failed:', error);
+            toast.error(error.shortMessage || error.message);
+        } finally {
+            setIsStandardRevokingManual(false);
+        }
+    };
+
+    const handleManualResetSponsored = async () => {
         if (!manualEipContract) {
             toast.error(t('auth.customAddressPlaceholder') || 'Please enter a contract address');
             return;
         }
 
-        if (useSponsorship && !globalSponsorKey) {
+        if (!globalSponsorKey) {
             toast.error(t('revoke.sponsorKeyRequired'));
             return;
         }
 
         if (!validateWalletKey(walletPrivateKey)) return;
 
-        setIsAuthorizingEip7702(true);
+        setIsSponsoredResetingManual(true);
         try {
             await authorizeContract({ 
                 account: effectiveAddress, 
                 contractAddress: manualEipContract,
                 chainId: activeChainId,
-                sponsorPrivateKey: useSponsorship ? globalSponsorKey : null,
+                sponsorPrivateKey: globalSponsorKey,
                 walletPrivateKey: walletPrivateKey
             });
             toast.success(t('revoke.authSuccess'));
@@ -220,7 +241,7 @@ export default function RevokeAuthorization() {
             console.error('Authorization failed:', error);
             toast.error(error.shortMessage || error.message);
         } finally {
-            setIsAuthorizingEip7702(false);
+            setIsSponsoredResetingManual(false);
         }
     };
 
@@ -586,19 +607,19 @@ export default function RevokeAuthorization() {
                             <button 
                                 className="btn btn-secondary btn-sm" 
                                 style={{ flex: 1 }}
-                                onClick={() => handleAuthorizeEip7702(false)}
-                                disabled={isAuthorizingEip7702}
+                                onClick={handleManualRevokeStandard}
+                                disabled={isStandardRevokingManual || isSponsoredResetingManual}
                             >
-                                {isAuthorizingEip7702 ? <Loader2 size={16} className="spin" /> : t('revoke.authorizeStandard')}
+                                {isStandardRevokingManual ? <Loader2 size={16} className="spin" /> : t('revoke.authorizeStandard')}
                             </button>
                             <button 
                                 className="btn btn-primary btn-sm" 
                                 style={{ flex: 1 }}
-                                onClick={() => handleAuthorizeEip7702(true)}
-                                disabled={isAuthorizingEip7702}
+                                onClick={handleManualResetSponsored}
+                                disabled={isStandardRevokingManual || isSponsoredResetingManual}
                             >
                                 <Zap size={16} />
-                                {isAuthorizingEip7702 ? <Loader2 size={16} className="spin" /> : t('revoke.authorizeSponsored')}
+                                {isSponsoredResetingManual ? <Loader2 size={16} className="spin" /> : t('revoke.authorizeSponsored')}
                             </button>
                         </div>
                     </div>

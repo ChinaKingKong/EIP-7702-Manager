@@ -418,7 +418,7 @@ export default {
         selectNetwork: 'Select Network',
         manualAuthTitle: 'Custom EIP-7702 Reset/Revoke',
         manualAuthDesc: 'If you need to force reset your account to a specific contract (or manual revoke), do it here.',
-        authorizeStandard: 'Standard Reset',
+        authorizeStandard: 'Revoke',
         authorizeSponsored: 'Sponsored Reset',
         authorizing: 'Revoking...',
         authSuccess: 'EIP-7702 Reset/Revoke successful!',
