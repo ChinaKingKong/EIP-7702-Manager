@@ -91,7 +91,20 @@ export default function RevokeAuthorization() {
             
             // Extract delegate address if EIP-7702 (ef01 format)
             if (code && code.startsWith('0xef01')) {
-                const extracted = '0x' + code.substring(6, 46);
+                // EIP-7702 bytecode: 0xef01 <20-byte address>
+                // 0x (2) + ef01 (4) = 6. Address is 40 chars after that.
+                // extracted = code.slice(6, 46) is correct for hex chars.
+                // Wait, if code is "0xef01... address ...", the address starts at index 6 and ends at 46.
+                // Let's verify: 0x (0,1) e (2) f (3) 0 (4) 1 (5) -> address starts at 6.
+                // Address is 20 bytes = 40 hex chars. 6 + 40 = 46.
+                // The user says 0x009c... instead of 0x9c9d...
+                // Bytecode for EIP-7702 is actually defined as: 0xef0100 || address
+                // EIP-7702 spec: "0xef0100" followed by the 20-byte address.
+                // Ah! The magic is ef01, then a VERSION byte. Version 0 is 00.
+                // So it's 0xef0100...
+                // If it starts with 0xef01, the address starts after the version byte.
+                // 0x (2) + ef01 (4) + 00 (2) = 8.
+                const extracted = '0x' + code.substring(8, 48);
                 setDelegateAddress(extracted);
             } else if (hasCode) {
                 // Standard contract or other code
