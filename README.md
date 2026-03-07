@@ -2,7 +2,7 @@
 
 基于 EIP-7702 (Pectra) 协议的账户委托与资产安全管理工具。本工具利用 EIP-7702 的委托和代付特性，实现零余额账户的资产挽救、授权撤销以及自动化 ETH 搬运。
 
-![demo](https://github.com/ChinaKingKong/EIP-7702-Manager/blob/main/src/assets/P0.png)
+![demo](./src/assets/demo.png)
 
 ## ✨ 核心功能
 
