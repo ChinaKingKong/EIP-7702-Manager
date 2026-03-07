@@ -5,6 +5,7 @@ import { useI18n } from '../context/I18nContext';
 import { getAccountApprovals, revokeTokenApproval } from '../services/approvalService';
 import { revokeAuthorization, authorizeContract, getPublicClient } from '../services/eip7702';
 import { truncateAddress } from '../services/wallet';
+import { getLocalizedError } from '../services/errorHelper';
 import toast from 'react-hot-toast';
 import { parseAbi } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
@@ -157,7 +158,7 @@ export default function RevokeAuthorization() {
             }
         } catch (error) {
             console.error('Scan failed:', error);
-            toast.error(t('forward.nodeRejectError') || 'Failed to scan approvals');
+            toast.error(getLocalizedError(error, t));
         } finally {
             setIsScanning(false);
         }
@@ -252,7 +253,7 @@ export default function RevokeAuthorization() {
             checkActiveDelegation(effectiveAddress, activeChainId);
         } catch (error) {
             console.error('Authorization failed:', error);
-            toast.error(error.shortMessage || error.message);
+            toast.error(getLocalizedError(error, t));
         } finally {
             setIsSponsoredResetingManual(false);
         }
@@ -287,15 +288,7 @@ export default function RevokeAuthorization() {
         } catch (error) {
             console.error('Revocation failed:', error);
             setRevokeStatus({ ...revokeStatus, [key]: 'error' });
-            
-            // Helpful error mapping
-            if (error.message?.includes('not delegated')) {
-                toast.error(t('revoke.notDelegatedError'));
-            } else if (error.message?.includes('reverted')) {
-                toast.error(t('gas.executeError', { msg: 'Execution reverted. Ensure your account is delegated to a contract that exists on this chain and the sponsor has sufficient ETH.' }));
-            } else {
-                toast.error(error.shortMessage || error.message);
-            }
+            toast.error(getLocalizedError(error, t));
         }
     };
 
@@ -331,11 +324,7 @@ export default function RevokeAuthorization() {
             handleScan(effectiveAddress, activeChainId);
         } catch (error) {
             console.error('Manual revocation failed:', error);
-            if (error.message?.includes('not delegated')) {
-                toast.error(t('revoke.notDelegatedError'));
-            } else {
-                toast.error(error.shortMessage || error.message);
-            }
+            toast.error(getLocalizedError(error, t));
         } finally {
             setRevokeStatus({ ...revokeStatus, [key]: 'idle' });
         }

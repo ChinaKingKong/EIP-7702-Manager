@@ -423,4 +423,16 @@ export default {
         authorizing: 'Revoking...',
         authSuccess: 'EIP-7702 Reset/Revoke successful!',
     },
+    // Error Handling
+    errors: {
+        userRejected: 'User rejected the signature or transaction.',
+        insufficientFunds: 'Insufficient funds to complete the transaction.',
+        invalidParams: 'Invalid RPC parameters. Please check input data.',
+        internalError: 'RPC Internal Error.',
+        networkError: 'Network connection error. Please check your network.',
+        unknownError: 'Unknown error occurred: {msg}',
+        txReverted: 'Transaction reverted on-chain. Please check contract state.',
+        notDelegatedError: 'The current account is not delegated to an EIP-7702 contract. Sponsored action required a delegated account.',
+        eip7702Error: 'EIP-7702 protocol error.',
+    },
 };

@@ -422,4 +422,16 @@ export default {
         authorizing: '撤销中...',
         authSuccess: 'EIP-7702 撤销/重置成功！',
     },
+    // 错误处理
+    errors: {
+        userRejected: '用户取消了签名或交易。',
+        insufficientFunds: '余额不足，无法完成交易。',
+        invalidParams: 'RPC 参数无效。请检查输入数据。',
+        internalError: 'RPC 内部错误。',
+        networkError: '网络连接错误，请检查您的网络。',
+        unknownError: '发生未知错误: {msg}',
+        txReverted: '交易在链上回滚，请检查合约状态。',
+        notDelegatedError: '当前账户尚未委托（Delegated）给 EIP-7702 转发合约，无法进行代付操作。',
+        eip7702Error: 'EIP-7702 协议错误。',
+    },
 };
