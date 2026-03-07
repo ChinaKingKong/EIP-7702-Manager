@@ -233,6 +233,8 @@ export default {
         hideAdvanced: 'Hide Advanced',
         showAdvanced: 'Show Advanced',
         backToRoles: 'Back to Role Selection',
+        deleteIntent: 'Delete Intent',
+        confirmDeleteIntent: 'Are you sure you want to delete this intent?',
     },
 
     // Auto-Forward Configuration page

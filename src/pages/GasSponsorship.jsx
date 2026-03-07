@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Fuel, Send, CheckCircle, XCircle, Copy, Wallet, DollarSign, Zap, Inbox, PenTool, Check } from 'lucide-react';
+import { Fuel, Send, CheckCircle, XCircle, Copy, Wallet, DollarSign, Zap, Inbox, PenTool, Check, Trash2 } from 'lucide-react';
 import { parseEther } from 'viem';
 import { getDeployedContracts } from '../services/deployedContracts';
 import { useWallet } from '../context/WalletContext';
@@ -179,6 +179,14 @@ export default function GasSponsorship() {
             }
         } finally {
             setIsExecuting(null);
+        }
+    };
+
+    const handleDeleteIntent = (id) => {
+        if (window.confirm(t('gas.confirmDeleteIntent'))) {
+            const updated = intents.filter(i => i.id !== id);
+            saveIntents(updated);
+            toast.success(t('auth.deleteSuccess'));
         }
     };
 
@@ -454,15 +462,25 @@ export default function GasSponsorship() {
                                                         </div>
                                                     </div>
 
-                                                    {intent.status === 'executed' ? (
-                                                        <span className="badge" style={{ background: 'rgba(34, 197, 94, 0.1)', color: 'var(--accent-green)', padding: '4px 10px' }}>
-                                                            <Check size={12} /> {t('gas.sponsoredStatus')}
-                                                        </span>
-                                                    ) : (
-                                                        <span className="badge" style={{ background: 'rgba(245, 158, 11, 0.1)', color: '#fbbf24', padding: '4px 10px' }}>
-                                                            <Zap size={12} /> {t('gas.pendingStatus')}
-                                                        </span>
-                                                    )}
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                        {intent.status === 'executed' ? (
+                                                            <span className="badge" style={{ background: 'rgba(34, 197, 94, 0.1)', color: 'var(--accent-green)', padding: '4px 10px' }}>
+                                                                <Check size={12} /> {t('gas.sponsoredStatus')}
+                                                            </span>
+                                                        ) : (
+                                                            <span className="badge" style={{ background: 'rgba(245, 158, 11, 0.1)', color: '#fbbf24', padding: '4px 10px' }}>
+                                                                <Zap size={12} /> {t('gas.pendingStatus')}
+                                                            </span>
+                                                        )}
+                                                        <button 
+                                                            className="btn btn-ghost" 
+                                                            style={{ padding: '4px', height: '28px', color: 'var(--text-tertiary)' }}
+                                                            onClick={(e) => { e.stopPropagation(); handleDeleteIntent(intent.id); }}
+                                                            title={t('gas.deleteIntent')}
+                                                        >
+                                                            <Trash2 size={14} />
+                                                        </button>
+                                                    </div>
                                                 </div>
 
                                                 <div style={{

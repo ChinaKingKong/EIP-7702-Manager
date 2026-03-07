@@ -319,6 +319,8 @@ export default {
         hideAdvanced: '隐藏高级选项',
         showAdvanced: '显示高级选项',
         backToRoles: '返回角色选择',
+        deleteIntent: '删除意图',
+        confirmDeleteIntent: '您确定要删除此意图吗？',
     },
 
     // 部署合约页面
