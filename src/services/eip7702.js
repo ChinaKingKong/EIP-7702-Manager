@@ -275,6 +275,60 @@ export async function revokeAuthorization({ account, chainId = 1, sponsorPrivate
 }
 
 /**
+ * Authorize an EOA to a specific contract address via EIP-7702.
+ *
+ * @param {Object} params
+ * @param {string} params.account - The EOA to delegate
+ * @param {string} params.contractAddress - The delegate contract address
+ * @param {number} params.chainId
+ * @returns {Object} { hash, receipt, authorization }
+ */
+export async function authorizeContract({ account, contractAddress, chainId = 1, sponsorPrivateKey = null, walletPrivateKey = null }) {
+    const publicClient = getPublicClient(chainId);
+    
+    // 1. Sign an authorization pointing to the target contract
+    const auth = await signAuthorization({
+        contractAddress,
+        account,
+        chainId,
+        privateKey: walletPrivateKey
+    });
+
+    // 2. Broadcast a transaction applying this authorization
+    let txSenderClient;
+    let txSenderAccount;
+
+    if (sponsorPrivateKey) {
+        if (!sponsorPrivateKey.startsWith('0x')) sponsorPrivateKey = `0x${sponsorPrivateKey}`;
+        const sponsorAccount = privateKeyToAccount(sponsorPrivateKey);
+        txSenderClient = createWalletClient({
+            account: sponsorAccount,
+            chain: CHAIN_MAP[chainId],
+            transport: http(RPC_URLS[chainId])
+        });
+        txSenderAccount = sponsorAccount;
+    } else {
+        txSenderClient = getWalletClient(chainId);
+        txSenderAccount = account;
+    }
+
+    const hash = await txSenderClient.sendTransaction({
+        account: txSenderAccount,
+        to: account,
+        value: 0n,
+        authorizationList: [auth],
+    });
+
+    const receipt = await publicClient.waitForTransactionReceipt({ hash });
+
+    if (receipt.status !== 'success') {
+        throw new Error('Authorization transaction reverted');
+    }
+
+    return { hash, receipt, authorization: auth };
+}
+
+/**
  * Revoke an EIP-7702 authorization using a private key.
  * Sends a type 0x04 transaction directly to the RPC.
  *

@@ -3,7 +3,7 @@ import { ShieldOff, Shield, Search, Loader2, AlertTriangle, CheckCircle, XCircle
 import { useWallet } from '../context/WalletContext';
 import { useI18n } from '../context/I18nContext';
 import { getAccountApprovals, revokeTokenApproval } from '../services/approvalService';
-import { revokeAuthorization, getPublicClient } from '../services/eip7702';
+import { revokeAuthorization, authorizeContract, getPublicClient } from '../services/eip7702';
 import { truncateAddress } from '../services/wallet';
 import toast from 'react-hot-toast';
 import { parseAbi } from 'viem';
@@ -33,6 +33,8 @@ export default function RevokeAuthorization() {
     const [manualType, setManualType] = useState('ERC20');
     const [showSponsorKey, setShowSponsorKey] = useState(null); // Local key for individual items if needed
     const [effectiveAddress, setEffectiveAddress] = useState(address);
+    const [manualEipContract, setManualEipContract] = useState('');
+    const [isAuthorizingEip7702, setIsAuthorizingEip7702] = useState(false);
 
     useEffect(() => {
         let currentAddress = address;
@@ -186,6 +188,39 @@ export default function RevokeAuthorization() {
             toast.error(error.shortMessage || error.message);
         } finally {
             setIsRevokingEip7702(false);
+        }
+    };
+
+    const handleAuthorizeEip7702 = async (useSponsorship = false) => {
+        if (!manualEipContract) {
+            toast.error(t('auth.customAddressPlaceholder') || 'Please enter a contract address');
+            return;
+        }
+
+        if (useSponsorship && !globalSponsorKey) {
+            toast.error(t('revoke.sponsorKeyRequired'));
+            return;
+        }
+
+        if (!validateWalletKey(walletPrivateKey)) return;
+
+        setIsAuthorizingEip7702(true);
+        try {
+            await authorizeContract({ 
+                account: effectiveAddress, 
+                contractAddress: manualEipContract,
+                chainId: activeChainId,
+                sponsorPrivateKey: useSponsorship ? globalSponsorKey : null,
+                walletPrivateKey: walletPrivateKey
+            });
+            toast.success(t('revoke.authSuccess'));
+            setManualEipContract('');
+            checkActiveDelegation(effectiveAddress, activeChainId);
+        } catch (error) {
+            console.error('Authorization failed:', error);
+            toast.error(error.shortMessage || error.message);
+        } finally {
+            setIsAuthorizingEip7702(false);
         }
     };
 
@@ -395,14 +430,14 @@ export default function RevokeAuthorization() {
             </div>
 
             <div className="grid-2" style={{ 
-                display: 'flex', 
-                flexDirection: 'column', 
-                gap: '40px', 
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))',
+                gap: '24px', 
                 marginBottom: '40px', 
                 alignItems: 'stretch' 
             }}>
                 {/* EIP-7702 Section */}
-                <div className="card" style={{ background: 'rgba(15, 22, 45, 0.95)', backdropFilter: 'none' }}>
+                <div className="card" style={{ background: 'rgba(15, 22, 45, 0.95)', backdropFilter: 'none', margin: 0 }}>
                     <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
                             <Zap size={20} style={{ color: 'var(--accent-green)' }} />
@@ -524,8 +559,61 @@ export default function RevokeAuthorization() {
                     </div>
                 </div>
 
+                {/* Manual EIP-7702 Authorization Section */}
+                <div className="card" style={{ background: 'rgba(15, 22, 45, 0.95)', backdropFilter: 'none', margin: 0 }}>
+                    <div className="card-header">
+                        <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <Shield size={20} className="text-secondary" />
+                            {t('revoke.manualAuthTitle')}
+                        </h3>
+                    </div>
+                    <div className="card-body">
+                        <p style={{ color: 'var(--text-secondary)', marginBottom: '20px', fontSize: '14px' }}>
+                            {t('revoke.manualAuthDesc')}
+                        </p>
+                        
+                        <div className="form-group">
+                            <label className="form-label">{t('auth.delegateContract')}</label>
+                            <input 
+                                className="form-input mono"
+                                placeholder="0x..."
+                                value={manualEipContract}
+                                onChange={(e) => setManualEipContract(e.target.value)}
+                            />
+                        </div>
+
+                        <div style={{ display: 'flex', gap: '12px', marginTop: '16px' }}>
+                            <button 
+                                className="btn btn-secondary btn-sm" 
+                                style={{ flex: 1 }}
+                                onClick={() => handleAuthorizeEip7702(false)}
+                                disabled={isAuthorizingEip7702}
+                            >
+                                {isAuthorizingEip7702 ? <Loader2 size={16} className="spin" /> : t('revoke.authorizeStandard')}
+                            </button>
+                            <button 
+                                className="btn btn-primary btn-sm" 
+                                style={{ flex: 1 }}
+                                onClick={() => handleAuthorizeEip7702(true)}
+                                disabled={isAuthorizingEip7702}
+                            >
+                                <Zap size={16} />
+                                {isAuthorizingEip7702 ? <Loader2 size={16} className="spin" /> : t('revoke.authorizeSponsored')}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div className="grid-2" style={{ 
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))',
+                gap: '24px', 
+                marginBottom: '40px', 
+                alignItems: 'stretch' 
+            }}>
                 {/* Manual Revoke Section */}
-                <div className="card" style={{ background: 'rgba(15, 22, 45, 0.95)', backdropFilter: 'none' }}>
+                <div className="card" style={{ background: 'rgba(15, 22, 45, 0.95)', backdropFilter: 'none', margin: 0 }}>
                     <div className="card-header">
                         <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <Trash2 size={20} className="text-secondary" />
