@@ -123,6 +123,7 @@ export default {
         chooseDelegateContract: 'Choose a delegate contract...',
         customAddress: 'Custom Address',
         customContractAddress: 'Custom Contract Address',
+        customAddressPlaceholder: '0x... (Smart Contract Address)',
         continueToSign: 'Continue to Sign',
         signWarning: 'Signing grants the delegate contract execution control over your EOA. Verify the contract address carefully.',
         wallet: 'Wallet',

@@ -123,6 +123,7 @@ export default {
         chooseDelegateContract: '请选择委托合约...',
         customAddress: '自定义地址',
         customContractAddress: '自定义合约地址',
+        customAddressPlaceholder: '0x... (目标智能合约地址)',
         continueToSign: '继续签名',
         signWarning: '签署授权将赋予委托合约对您 EOA 的执行控制权。请仔细验证合约地址。',
         wallet: '钱包',
