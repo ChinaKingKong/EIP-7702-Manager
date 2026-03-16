@@ -136,7 +136,7 @@ export default function DeployContract() {
 
             setTxHash(hash);
 
-            const receipt = await publicClient.waitForTransactionReceipt({ hash });
+            const receipt = await publicClient.waitForTransactionReceipt({ hash, timeout: 600_000 });
             setDeployedAddress(receipt.contractAddress);
             // Cache deployed contract for Authorization page
             setHistory(saveDeployedContract({

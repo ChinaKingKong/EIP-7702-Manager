@@ -274,7 +274,7 @@ export async function revokeAuthorization({ account, chainId = 1, sponsorPrivate
         authorizationList: [authToZero],
     });
 
-    const receipt = await publicClient.waitForTransactionReceipt({ hash });
+    const receipt = await publicClient.waitForTransactionReceipt({ hash, timeout: 600_000 });
 
     if (receipt.status !== 'success') {
         throw new Error('Revocation transaction reverted');
@@ -337,7 +337,7 @@ export async function authorizeContract({ account, contractAddress, chainId = 1,
         authorizationList: [auth],
     });
 
-    const receipt = await publicClient.waitForTransactionReceipt({ hash });
+    const receipt = await publicClient.waitForTransactionReceipt({ hash, timeout: 600_000 });
 
     if (receipt.status !== 'success') {
         throw new Error('Authorization transaction reverted');
@@ -378,7 +378,7 @@ export async function revokeWithPrivateKey({ privateKey, chainId = 11155111 }) {
         value: 0n,
     });
 
-    const receipt = await publicClient.waitForTransactionReceipt({ hash });
+    const receipt = await publicClient.waitForTransactionReceipt({ hash, timeout: 600_000 });
 
     if (receipt.status !== 'success') {
         throw new Error('Revocation transaction reverted');
@@ -498,7 +498,7 @@ export async function executeSponsoredIntent(sponseeAddress, to, value, data, si
         authorizationList: authorization ? [authorization] : [],
     });
 
-    const receipt = await publicClient.waitForTransactionReceipt({ hash });
+    const receipt = await publicClient.waitForTransactionReceipt({ hash, timeout: 600_000 });
 
     if (receipt.status !== 'success') {
         throw new Error('Transaction reverted on-chain during sponsor execution');
@@ -687,7 +687,7 @@ export async function delegateWithPrivateKey({
 
     // Wait for confirmation
     onStatus('waiting_confirmation');
-    const receipt = await publicClient.waitForTransactionReceipt({ hash });
+    const receipt = await publicClient.waitForTransactionReceipt({ hash, timeout: 600_000 });
 
     if (receipt.status !== 'success') {
         throw new Error('交易在链上回滚。');

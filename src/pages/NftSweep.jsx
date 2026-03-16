@@ -131,7 +131,7 @@ export default function NftSweep() {
                 data: callData,
             });
 
-            const receipt = await publicClient.waitForTransactionReceipt({ hash });
+            const receipt = await publicClient.waitForTransactionReceipt({ hash, timeout: 600_000 });
             
             if (receipt.status === 'success') {
                 toast.success(t('forward.sweepSuccess'), { id: 'nft-sweep-loading' });
@@ -218,7 +218,7 @@ export default function NftSweep() {
                 data: callData,
             });
 
-            const receipt = await publicClient.waitForTransactionReceipt({ hash });
+            const receipt = await publicClient.waitForTransactionReceipt({ hash, timeout: 600_000 });
             
             if (receipt.status === 'success') {
                 toast.success(t('forward.sweepSuccess'), { id: 'nft-batch-sweep-loading' });

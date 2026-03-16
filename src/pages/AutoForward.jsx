@@ -408,7 +408,7 @@ export default function AutoForward() {
                 });
             }
 
-            const receipt = await publicClient.waitForTransactionReceipt({ hash });
+            const receipt = await publicClient.waitForTransactionReceipt({ hash, timeout: 600_000 });
             console.log('[Token Sweep] 交易回执成功:', receipt);
             console.log('[Token Sweep] 回执日志 (Logs):', receipt.logs);
 
@@ -623,7 +623,7 @@ export default function AutoForward() {
                 });
             }
 
-            const receipt = await publicClient.waitForTransactionReceipt({ hash });
+            const receipt = await publicClient.waitForTransactionReceipt({ hash, timeout: 600_000 });
             console.log('[Batch Sweep] 交易回执成功:', receipt);
 
             if (receipt.status !== 'success') {
